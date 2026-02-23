@@ -18,7 +18,7 @@ class GoalCheckbox extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: Colors.white.withAlpha(15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: CheckboxListTile(

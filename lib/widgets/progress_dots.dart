@@ -7,7 +7,7 @@ class ProgressDots extends StatelessWidget {
   const ProgressDots({
     super.key,
     required this.current,
-    required this.total = 6,
+    this.total = 6,
   });
 
   @override
@@ -15,19 +15,40 @@ class ProgressDots extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(total, (i) {
-        bool isActive = i < current;
-        bool isCurrent = i == current - 1;
+        final isActive = i < current;
+        final isCurrent = i == current - 1;
+
+        Color dotColor;
+        if (isActive) {
+          dotColor = const Color(0xFF3B82F6); // completed
+        } else if (isCurrent) {
+          dotColor = const Color(0xFF3B82F6).withAlpha(128); // current (50% opacity)
+        } else {
+          dotColor = Colors.white.withAlpha(51); // inactive (~20% opacity)
+        }
+
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 5),
+          margin: const EdgeInsets.symmetric(horizontal: 6),
           width: 10,
           height: 10,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isActive
-                ? const Color(0xFF3B82F6)
-                : isCurrent
-                ? const Color(0xFF3B82F6).withOpacity(0.5)
-                : Colors.white.withOpacity(0.2),
+            color: dotColor,
+            border: Border.all(
+              color: isActive || isCurrent
+                  ? const Color(0xFF3B82F6)
+                  : Colors.white.withAlpha(40),
+              width: 1.5,
+            ),
+            boxShadow: isCurrent
+                ? [
+              BoxShadow(
+                color: const Color(0xFF3B82F6).withAlpha(100),
+                blurRadius: 6,
+                spreadRadius: 1,
+              )
+            ]
+                : null,
           ),
         );
       }),

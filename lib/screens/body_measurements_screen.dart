@@ -60,7 +60,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
+                  fillColor: Colors.white.withAlpha(20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   hintText: 'Height',
                   suffixText: 'cm',
@@ -74,7 +74,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
+                  fillColor: Colors.white.withAlpha(20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   hintText: 'Weight',
                   suffixText: 'kg',
@@ -88,7 +88,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
+                  fillColor: Colors.white.withAlpha(20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   hintText: 'Goal weight',
                   suffixText: 'kg',

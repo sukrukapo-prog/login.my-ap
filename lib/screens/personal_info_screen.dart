@@ -68,21 +68,27 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: RadioListTile<String>(
+                    child: ListTile(
                       title: const Text('Male'),
-                      value: 'Male',
-                      groupValue: _gender,
-                      onChanged: (v) => setState(() => _gender = v),
-                      activeColor: const Color(0xFF3B82F6),
+                      leading: Radio<String>(
+                        value: 'Male',
+                        groupValue: _gender,
+                        activeColor: const Color(0xFF3B82F6),
+                        onChanged: (value) => setState(() => _gender = value),
+                      ),
+                      contentPadding: EdgeInsets.zero,
                     ),
                   ),
                   Expanded(
-                    child: RadioListTile<String>(
+                    child: ListTile(
                       title: const Text('Female'),
-                      value: 'Female',
-                      groupValue: _gender,
-                      onChanged: (v) => setState(() => _gender = v),
-                      activeColor: const Color(0xFF3B82F6),
+                      leading: Radio<String>(
+                        value: 'Female',
+                        groupValue: _gender,
+                        activeColor: const Color(0xFF3B82F6),
+                        onChanged: (value) => setState(() => _gender = value),
+                      ),
+                      contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 ],
@@ -95,7 +101,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
+                  fillColor: Colors.white.withAlpha(20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   hintText: 'Your age',
                 ),
@@ -110,7 +116,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 onChanged: (v) => setState(() => _country = v),
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
+                  fillColor: Colors.white.withAlpha(20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
               ),

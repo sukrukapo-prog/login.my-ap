@@ -53,7 +53,7 @@ class _NameScreenState extends State<NameScreen> {
                 controller: _controller,
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
+                  fillColor: Colors.white.withAlpha(20),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,

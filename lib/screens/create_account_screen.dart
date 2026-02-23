@@ -57,7 +57,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
+                  fillColor: Colors.white.withAlpha(20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   hintText: 'your@email.com',
                 ),
@@ -70,7 +70,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
+                  fillColor: Colors.white.withAlpha(20),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   hintText: 'At least 10 characters',
                   suffixIcon: IconButton(

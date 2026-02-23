@@ -17,7 +17,7 @@ final appTheme = ThemeData.dark().copyWith(
   ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-    fillColor: Colors.white.withOpacity(0.08),
+    fillColor: Colors.white.withAlpha(20),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide: BorderSide.none,

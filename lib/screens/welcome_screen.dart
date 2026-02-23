@@ -33,7 +33,7 @@ class WelcomeScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF3B82F6).withOpacity(0.15),
+                      color: const Color(0xFF3B82F6).withAlpha(20),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -73,8 +73,7 @@ class WelcomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const NameScreen(data: OnboardingData()),
-                        // builder: (_) => const PersonalizeScreen(),  // ← if you want intermediate screen
+                        builder: (_) => NameScreen(data: OnboardingData()), // ← remove const if present
                       ),
                     );
                   },

@@ -36,7 +36,7 @@ class NumberInputField extends StatelessWidget {
         suffixText: suffixText,
         suffixStyle: const TextStyle(color: Colors.white70),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.08),
+        fillColor: Colors.white.withAlpha(20),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,

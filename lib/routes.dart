@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics_app/models/onboarding_data.dart';
 import 'package:fitmetrics_app/screens/welcome_screen.dart';
 import 'package:fitmetrics_app/screens/personalize_screen.dart';
 import 'package:fitmetrics_app/screens/name_screen.dart';
@@ -7,7 +8,6 @@ import 'package:fitmetrics_app/screens/personal_info_screen.dart';
 import 'package:fitmetrics_app/screens/body_measurements_screen.dart';
 import 'package:fitmetrics_app/screens/create_account_screen.dart';
 import 'package:fitmetrics_app/screens/success_screen.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
 
 class AppRoutes {
   static const String welcome = '/welcome';
@@ -30,40 +30,28 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const PersonalizeScreen());
 
       case name:
-        if (args is OnboardingData) {
-          return MaterialPageRoute(builder: (_) => NameScreen(data: args));
-        }
-        return _errorRoute();
+        final data = args is OnboardingData ? args : OnboardingData(); // fallback to empty
+        return MaterialPageRoute(builder: (_) => NameScreen(data: data));
 
       case goals:
-        if (args is OnboardingData) {
-          return MaterialPageRoute(builder: (_) => GoalsScreen(data: args));
-        }
-        return _errorRoute();
+        final data = args is OnboardingData ? args : OnboardingData();
+        return MaterialPageRoute(builder: (_) => GoalsScreen(data: data));
 
       case personalInfo:
-        if (args is OnboardingData) {
-          return MaterialPageRoute(builder: (_) => PersonalInfoScreen(data: args));
-        }
-        return _errorRoute();
+        final data = args is OnboardingData ? args : OnboardingData();
+        return MaterialPageRoute(builder: (_) => PersonalInfoScreen(data: data));
 
       case measurements:
-        if (args is OnboardingData) {
-          return MaterialPageRoute(builder: (_) => BodyMeasurementsScreen(data: args));
-        }
-        return _errorRoute();
+        final data = args is OnboardingData ? args : OnboardingData();
+        return MaterialPageRoute(builder: (_) => BodyMeasurementsScreen(data: data));
 
       case createAccount:
-        if (args is OnboardingData) {
-          return MaterialPageRoute(builder: (_) => CreateAccountScreen(data: args));
-        }
-        return _errorRoute();
+        final data = args is OnboardingData ? args : OnboardingData();
+        return MaterialPageRoute(builder: (_) => CreateAccountScreen(data: data));
 
       case success:
-        if (args is OnboardingData) {
-          return MaterialPageRoute(builder: (_) => SuccessScreen(data: args));
-        }
-        return _errorRoute();
+        final data = args is OnboardingData ? args : OnboardingData();
+        return MaterialPageRoute(builder: (_) => SuccessScreen(data: data));
 
       default:
         return _errorRoute();
@@ -76,7 +64,10 @@ class AppRoutes {
         body: Center(
           child: Text(
             'Route not found!',
-            style: TextStyle(fontSize: 24, color: Colors.red),
+            style: TextStyle(
+              fontSize: 24,
+              color: Colors.red, // or use AppColors.error if defined
+            ),
           ),
         ),
       ),

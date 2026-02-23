@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/core/theme/app_theme.dart';
-import 'package:fitmetrics_app/screens/welcome_screen.dart';
+import 'core/app_theme.dart';
+import 'screens/welcome_screen.dart';
 
 void main() {
   runApp(const FitMetricsApp());
