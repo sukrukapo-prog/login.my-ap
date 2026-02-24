@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics_app/models/onboarding_data.dart';
-import 'package:fitmetrics_app/screens/name_screen.dart';
 import 'package:fitmetrics_app/widgets/progress_dots.dart';
+import 'package:fitmetrics_app/routes.dart'; // ← for AppRoutes
 
 class PersonalizeScreen extends StatelessWidget {
   const PersonalizeScreen({super.key});
@@ -11,7 +11,7 @@ class PersonalizeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Sign Up'),
@@ -25,7 +25,9 @@ class PersonalizeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
+
               const ProgressDots(current: 0, total: 6), // before name step
+
               const Spacer(flex: 1),
 
               const Text(
@@ -44,13 +46,22 @@ class PersonalizeScreen extends StatelessWidget {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
+                    // Create fresh data object
+                    final initialData = OnboardingData();
+
+                    // Go to name screen using named route
+                    Navigator.pushNamed(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => NameScreen(data: OnboardingData()),
-                      ),
+                      AppRoutes.name,
+                      arguments: initialData,
                     );
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B82F6),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
                   child: const Text('Continue', style: TextStyle(fontSize: 18)),
                 ),
               ),
@@ -71,7 +82,7 @@ class PersonalizeScreen extends StatelessWidget {
                 height: 56,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // TODO: Implement Google Sign In
+                    // TODO: Implement Google Sign In later
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Google Sign In – coming soon')),
                     );

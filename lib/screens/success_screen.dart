@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics_app/models/onboarding_data.dart';
+import 'package:fitmetrics_app/routes.dart'; // ← for AppRoutes.dashboard
 
 class SuccessScreen extends StatelessWidget {
   final OnboardingData data;
@@ -21,6 +22,7 @@ class SuccessScreen extends StatelessWidget {
                 size: 120,
                 color: Color(0xFF3B82F6),
               ),
+
               const SizedBox(height: 40),
 
               Text(
@@ -52,15 +54,22 @@ class SuccessScreen extends StatelessWidget {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Optional: clear saved onboarding data
+                    // Optional: Clear onboarding data after success (uncomment if you have storage)
                     // await StorageService.clearOnboardingData();
 
+                    // Go to dashboard screen
                     Navigator.pushReplacementNamed(
                       context,
-                      '/dashboard',              // or AppRoutes.dashboard
+                      AppRoutes.dashboard, // or '/dashboard' if not using constants
                       arguments: data,
                     );
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B82F6),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
                   child: const Text('Go to Dashboard', style: TextStyle(fontSize: 18)),
                 ),
               ),
@@ -69,6 +78,7 @@ class SuccessScreen extends StatelessWidget {
 
               TextButton(
                 onPressed: () {
+                  // Reset to welcome (start onboarding again)
                   Navigator.popUntil(context, (route) => route.isFirst);
                 },
                 child: const Text(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics_app/models/onboarding_data.dart';
 import 'package:fitmetrics_app/widgets/progress_dots.dart';
-import 'package:fitmetrics_app/routes.dart'; // ← for named navigation
+import 'package:fitmetrics_app/routes.dart';
 
 class BodyMeasurementsScreen extends StatefulWidget {
   final OnboardingData data;
@@ -43,14 +43,14 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
     final h = double.tryParse(_heightController.text.trim()) ?? 0;
     final w = double.tryParse(_weightController.text.trim()) ?? 0;
     final g = double.tryParse(_goalWeightController.text.trim()) ?? 0;
-    return h > 50 && w > 20 && g > 20 && g >= w; // goal weight >= current weight
+    return h > 50 && w > 20 && g > 20 && g >= w;
   }
 
   String? get _heightError {
     final text = _heightController.text.trim();
     if (text.isEmpty) return 'Height is required';
     final h = double.tryParse(text);
-    if (h == null || h <= 50) return 'Enter a realistic height (>50 cm)';
+    if (h == null || h <= 50) return 'Enter realistic height (>50 cm)';
     return null;
   }
 
@@ -58,7 +58,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
     final text = _weightController.text.trim();
     if (text.isEmpty) return 'Weight is required';
     final w = double.tryParse(text);
-    if (w == null || w <= 20) return 'Enter a realistic weight (>20 kg)';
+    if (w == null || w <= 20) return 'Enter realistic weight (>20 kg)';
     return null;
   }
 
@@ -67,7 +67,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
     if (text.isEmpty) return 'Goal weight is required';
     final g = double.tryParse(text);
     final w = double.tryParse(_weightController.text.trim()) ?? 0;
-    if (g == null || g <= 20) return 'Enter a realistic goal (>20 kg)';
+    if (g == null || g <= 20) return 'Enter realistic goal (>20 kg)';
     if (g < w) return 'Goal should be ≥ current weight';
     return null;
   }
@@ -84,7 +84,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
               const SizedBox(height: 16),
 
               IconButton(
-                icon: const Icon(Icons.arrow_back, size: 28),
+                icon: const Icon(Icons.arrow_back_rounded, size: 28),
                 onPressed: () => Navigator.pop(context),
               ),
 
@@ -95,7 +95,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
               const SizedBox(height: 32),
 
               const Text(
-                "Just few more questions",
+                "Just a few more questions",
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
 
@@ -114,7 +114,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
-                  hintText: 'Height',
+                  hintText: 'Height in cm',
                   suffixText: 'cm',
                   errorText: _heightError,
                 ),
@@ -136,7 +136,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
-                  hintText: 'Weight',
+                  hintText: 'Weight in kg',
                   suffixText: 'kg',
                   errorText: _weightError,
                 ),
@@ -158,7 +158,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
-                  hintText: 'Goal weight',
+                  hintText: 'Goal weight in kg',
                   suffixText: 'kg',
                   errorText: _goalWeightError,
                 ),
@@ -168,7 +168,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
               const SizedBox(height: 12),
 
               const Text(
-                "It's OK to estimate, you can update later.\n"
+                "It's OK to estimate — you can update later.\n"
                     "This doesn't affect your daily calorie goal and you can always change it later.",
                 style: TextStyle(fontSize: 14, color: Colors.white60),
               ),
@@ -186,7 +186,6 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                     widget.data.currentWeightKg = double.tryParse(_weightController.text.trim());
                     widget.data.goalWeightKg = double.tryParse(_goalWeightController.text.trim());
 
-                    // Go to next screen using named route
                     Navigator.pushNamed(
                       context,
                       AppRoutes.createAccount,
@@ -196,7 +195,9 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                       : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
                   ),
                   child: const Text('Next', style: TextStyle(fontSize: 18)),
                 ),

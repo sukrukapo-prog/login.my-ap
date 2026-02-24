@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics_app/models/onboarding_data.dart';
 import 'package:fitmetrics_app/widgets/progress_dots.dart';
-import 'package:fitmetrics_app/routes.dart'; // ← for named navigation
+import 'package:fitmetrics_app/routes.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   final OnboardingData data;
@@ -35,7 +35,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     _gender = widget.data.gender;
     _country = widget.data.country;
 
-    // Update UI when age changes (real-time validation)
+    // Real-time UI update when age changes
     _ageController.addListener(() => setState(() {}));
   }
 
@@ -48,8 +48,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   bool get _isValid =>
       _gender != null &&
           _ageController.text.trim().isNotEmpty &&
-          int.tryParse(_ageController.text) != null &&
-          int.parse(_ageController.text) > 0 &&
+          int.tryParse(_ageController.text.trim()) != null &&
+          int.parse(_ageController.text.trim()) > 0 &&
           _country != null;
 
   String? get _ageError {
@@ -72,7 +72,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               const SizedBox(height: 16),
 
               IconButton(
-                icon: const Icon(Icons.arrow_back, size: 28),
+                icon: const Icon(Icons.arrow_back_rounded, size: 28),
                 onPressed: () => Navigator.pop(context),
               ),
 
@@ -93,7 +93,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
               const SizedBox(height: 16),
 
-              // Modern gender selection (no deprecated RadioListTile)
               Row(
                 children: [
                   Expanded(
@@ -123,7 +122,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 ],
               ),
 
-              // Show error if gender not selected
               if (_gender == null)
                 const Padding(
                   padding: EdgeInsets.only(left: 16, top: 4),
@@ -149,7 +147,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     borderSide: BorderSide.none,
                   ),
                   hintText: 'Your age',
-                  errorText: _ageError, // shows under field
+                  errorText: _ageError,
                 ),
                 style: const TextStyle(color: Colors.white),
               ),
@@ -177,7 +175,6 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
               const Spacer(),
 
-              // Next button
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -185,10 +182,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                   onPressed: _isValid
                       ? () {
                     widget.data.gender = _gender;
-                    widget.data.age = int.tryParse(_ageController.text);
+                    widget.data.age = int.tryParse(_ageController.text.trim());
                     widget.data.country = _country;
 
-                    // Use named route (recommended)
                     Navigator.pushNamed(
                       context,
                       AppRoutes.measurements,
@@ -198,7 +194,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
                   ),
                   child: const Text('Next', style: TextStyle(fontSize: 18)),
                 ),

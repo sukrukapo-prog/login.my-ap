@@ -8,6 +8,7 @@ import 'package:fitmetrics_app/screens/personal_info_screen.dart';
 import 'package:fitmetrics_app/screens/body_measurements_screen.dart';
 import 'package:fitmetrics_app/screens/create_account_screen.dart';
 import 'package:fitmetrics_app/screens/success_screen.dart';
+import 'package:fitmetrics_app/screens/dashboard_screen.dart'; // ← ADD THIS IMPORT
 
 class AppRoutes {
   static const String welcome = '/welcome';
@@ -18,6 +19,7 @@ class AppRoutes {
   static const String measurements = '/measurements';
   static const String createAccount = '/create-account';
   static const String success = '/success';
+  static const String dashboard = '/dashboard';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     final args = settings.arguments;
@@ -30,7 +32,7 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const PersonalizeScreen());
 
       case name:
-        final data = args is OnboardingData ? args : OnboardingData(); // fallback to empty
+        final data = args is OnboardingData ? args : OnboardingData();
         return MaterialPageRoute(builder: (_) => NameScreen(data: data));
 
       case goals:
@@ -53,6 +55,11 @@ class AppRoutes {
         final data = args is OnboardingData ? args : OnboardingData();
         return MaterialPageRoute(builder: (_) => SuccessScreen(data: data));
 
+    // ADD THIS CASE
+      case dashboard:
+        final data = args is OnboardingData ? args : OnboardingData();
+        return MaterialPageRoute(builder: (_) => DashboardScreen(data: data));
+
       default:
         return _errorRoute();
     }
@@ -66,7 +73,7 @@ class AppRoutes {
             'Route not found!',
             style: TextStyle(
               fontSize: 24,
-              color: Colors.red, // or use AppColors.error if defined
+              color: Colors.red,
             ),
           ),
         ),

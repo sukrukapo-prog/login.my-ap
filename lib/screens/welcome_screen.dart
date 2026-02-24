@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
-import 'package:fitmetrics_app/screens/name_screen.dart';
-// import 'package:fitmetrics_app/screens/personalize_screen.dart';  // if you add it
+import 'package:fitmetrics_app/models/onboarding_data.dart'; // ← ADD THIS LINE (critical!)
+import 'package:fitmetrics_app/routes.dart'; // ← ADD THIS if you want named routes
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -70,13 +69,28 @@ class WelcomeScreen extends StatelessWidget {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
+                    // This line creates a fresh OnboardingData object
+                    final initialData = OnboardingData();
+
+                    // Option 1: Simple push (works if no routes.dart)
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //     builder: (_) => NameScreen(data: initialData),
+                    //   ),
+                    // );
+
+                    // Option 2: Recommended - use named route (cleaner & future-proof)
+                    Navigator.pushNamed(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => NameScreen(data: OnboardingData()), // ← remove const if present
-                      ),
+                      AppRoutes.name,
+                      arguments: initialData,
                     );
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B82F6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
                   child: const Text('Sign Up', style: TextStyle(fontSize: 18)),
                 ),
               ),

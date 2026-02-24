@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics_app/models/onboarding_data.dart';
-import 'package:fitmetrics_app/screens/goals_screen.dart';
+import 'package:fitmetrics_app/routes.dart';           // for AppRoutes
 import 'package:fitmetrics_app/widgets/progress_dots.dart';
-import 'package:fitmetrics_app/routes.dart'; // import your routes file
 
 class NameScreen extends StatefulWidget {
   final OnboardingData data;
@@ -14,25 +13,17 @@ class NameScreen extends StatefulWidget {
 }
 
 class _NameScreenState extends State<NameScreen> {
-  late TextEditingController _controller;
-  bool _isButtonEnabled = false;
+  late TextEditingController _nameController;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.data.name ?? '');
-
-    // Enable/disable button in real time as user types
-    _controller.addListener(() {
-      setState(() {
-        _isButtonEnabled = _controller.text.trim().isNotEmpty;
-      });
-    });
+    _nameController = TextEditingController(text: widget.data.name ?? '');
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -49,7 +40,7 @@ class _NameScreenState extends State<NameScreen> {
 
               // Back button
               IconButton(
-                icon: const Icon(Icons.arrow_back, size: 28),
+                icon: const Icon(Icons.arrow_back_rounded, size: 28),
                 onPressed: () => Navigator.pop(context),
               ),
 
@@ -62,7 +53,10 @@ class _NameScreenState extends State<NameScreen> {
 
               const Text(
                 'Welcome',
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
 
               const SizedBox(height: 8),
@@ -74,12 +68,15 @@ class _NameScreenState extends State<NameScreen> {
 
               const SizedBox(height: 40),
 
-              const Text('Preferred first name', style: TextStyle(fontSize: 16)),
+              const Text(
+                'Preferred first name',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
 
               const SizedBox(height: 12),
 
               TextField(
-                controller: _controller,
+                controller: _nameController,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white.withAlpha(20),
@@ -91,46 +88,51 @@ class _NameScreenState extends State<NameScreen> {
                   hintStyle: const TextStyle(color: Colors.white54),
                 ),
                 style: const TextStyle(color: Colors.white),
+                textCapitalization: TextCapitalization.words,
               ),
 
-              const SizedBox(height: 8),
-
-              // Show error message if name is empty (only when user tries to submit)
-              if (!_isButtonEnabled && _controller.text.trim().isNotEmpty == false)
-                const Padding(
-                  padding: EdgeInsets.only(left: 16),
-                  child: Text(
-                    'Please enter your name',
-                    style: TextStyle(color: Colors.redAccent, fontSize: 14),
-                  ),
-                ),
-
-              const Spacer(),
+              const SizedBox(height: 24),
 
               // Next button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isButtonEnabled
-                      ? () {
-                    final name = _controller.text.trim();
+                  onPressed: () {
+                    final name = _nameController.text.trim();
 
+                    if (name.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter your name'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Save data
                     widget.data.name = name;
 
-                    // Navigate to next screen using named route
+                    // Go to next screen
                     Navigator.pushNamed(
                       context,
                       AppRoutes.goals,
                       arguments: widget.data,
                     );
-                  }
-                      : null,
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
                   ),
-                  child: const Text('Next', style: TextStyle(fontSize: 18)),
+                  child: const Text(
+                    'Next',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
 

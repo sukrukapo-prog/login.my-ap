@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:fitmetrics_app/models/onboarding_data.dart';
 import 'package:fitmetrics_app/screens/personal_info_screen.dart';
 import 'package:fitmetrics_app/widgets/progress_dots.dart';
-import 'package:fitmetrics_app/routes.dart'; // ← import your routes file
+import 'package:fitmetrics_app/routes.dart'; // ← important
 
 class GoalsScreen extends StatefulWidget {
   final OnboardingData data;
-
   const GoalsScreen({super.key, required this.data});
 
   @override
@@ -20,8 +19,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
     'Gain muscle',
   ];
 
-  bool get _hasGoals => widget.data.goals.isNotEmpty;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,7 +30,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
             children: [
               const SizedBox(height: 16),
 
-              // Back button
               IconButton(
                 icon: const Icon(Icons.arrow_back, size: 28),
                 onPressed: () => Navigator.pop(context),
@@ -41,7 +37,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
               const SizedBox(height: 8),
 
-              // Progress
               const ProgressDots(current: 2),
 
               const SizedBox(height: 32),
@@ -58,9 +53,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 style: TextStyle(fontSize: 16, color: Colors.white70),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
-              // Goals list
               ..._options.map((goal) {
                 return CheckboxListTile(
                   title: Text(goal),
@@ -83,30 +77,19 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   activeColor: const Color(0xFF3B82F6),
                   checkColor: Colors.white,
                   controlAffinity: ListTileControlAffinity.trailing,
-                  contentPadding: EdgeInsets.zero,
                 );
               }),
 
-              // Error message if no goals selected
-              if (!_hasGoals)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8, left: 16),
-                  child: Text(
-                    'Please select at least one goal',
-                    style: TextStyle(color: Colors.redAccent, fontSize: 14),
-                  ),
-                ),
-
               const Spacer(),
 
-              // Next button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _hasGoals
-                      ? () {
-                    // Optional: show brief confirmation
+                  onPressed: widget.data.goals.isEmpty
+                      ? null
+                      : () {
+                    // Optional feedback
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Goals saved!'),
@@ -114,14 +97,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       ),
                     );
 
-                    // Go to next screen using named route
+                    // Go to next screen (named route)
                     Navigator.pushNamed(
                       context,
                       AppRoutes.personalInfo,
                       arguments: widget.data,
                     );
-                  }
-                      : null,
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics_app/models/onboarding_data.dart';
 import 'package:fitmetrics_app/widgets/progress_dots.dart';
-import 'package:fitmetrics_app/routes.dart'; // ← for named navigation
+import 'package:fitmetrics_app/routes.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   final OnboardingData data;
@@ -23,7 +23,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     _emailController = TextEditingController(text: widget.data.email ?? '');
     _passwordController = TextEditingController(text: widget.data.password ?? '');
 
-    // Real-time validation
+    // Real-time validation update
     void listener() => setState(() {});
     _emailController.addListener(listener);
     _passwordController.addListener(listener);
@@ -39,7 +39,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   bool get _isValid {
     final email = _emailController.text.trim();
     final pass = _passwordController.text;
-    return email.contains('@') && email.contains('.') && pass.length >= 10;
+    return email.isNotEmpty && email.contains('@') && email.contains('.') && pass.length >= 10;
   }
 
   String? get _emailError {
@@ -68,7 +68,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               const SizedBox(height: 16),
 
               IconButton(
-                icon: const Icon(Icons.arrow_back, size: 28),
+                icon: const Icon(Icons.arrow_back_rounded, size: 28),
                 onPressed: () => Navigator.pop(context),
               ),
 
@@ -100,6 +100,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   ),
                   hintText: 'your@email.com',
                   errorText: _emailError,
+                  errorStyle: const TextStyle(color: Colors.redAccent),
                 ),
                 style: const TextStyle(color: Colors.white),
               ),
@@ -121,10 +122,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   ),
                   hintText: 'At least 10 characters',
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.white70,
+                    ),
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                   errorText: _passwordError,
+                  errorStyle: const TextStyle(color: Colors.redAccent),
                 ),
                 style: const TextStyle(color: Colors.white),
               ),
@@ -148,6 +153,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     widget.data.email = _emailController.text.trim();
                     widget.data.password = _passwordController.text;
 
+                    // Optional: show loading feedback
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Creating account...')),
+                    );
+
                     // Go to success screen
                     Navigator.pushNamed(
                       context,
@@ -158,7 +168,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
                   ),
                   child: const Text('Create Account', style: TextStyle(fontSize: 18)),
                 ),
