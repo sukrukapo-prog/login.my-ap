@@ -13,20 +13,37 @@ class BodyMeasurementsScreen extends StatefulWidget {
 }
 
 class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
-  late TextEditingController _heightController;
+  late TextEditingController _heightController;     // cm
+  late TextEditingController _feetController;
+  late TextEditingController _inchesController;
   late TextEditingController _weightController;
   late TextEditingController _goalWeightController;
+
+  bool _useMetric = true; // true = cm, false = ft/in
 
   @override
   void initState() {
     super.initState();
+
     _heightController = TextEditingController(text: widget.data.heightCm?.toString() ?? '');
     _weightController = TextEditingController(text: widget.data.currentWeightKg?.toString() ?? '');
     _goalWeightController = TextEditingController(text: widget.data.goalWeightKg?.toString() ?? '');
 
+    // Convert saved cm to feet/inches if available
+    if (widget.data.heightCm != null && widget.data.heightCm! > 0) {
+      final fi = _cmToFeetInches(widget.data.heightCm!);
+      _feetController = TextEditingController(text: fi[0].toString());
+      _inchesController = TextEditingController(text: fi[1].toString());
+    } else {
+      _feetController = TextEditingController();
+      _inchesController = TextEditingController();
+    }
+
     // Real-time validation update
     void listener() => setState(() {});
     _heightController.addListener(listener);
+    _feetController.addListener(listener);
+    _inchesController.addListener(listener);
     _weightController.addListener(listener);
     _goalWeightController.addListener(listener);
   }
@@ -34,23 +51,48 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
   @override
   void dispose() {
     _heightController.dispose();
+    _feetController.dispose();
+    _inchesController.dispose();
     _weightController.dispose();
     _goalWeightController.dispose();
     super.dispose();
   }
 
+  // Convert cm → [feet, inches]
+  List<int> _cmToFeetInches(double cm) {
+    final totalInches = (cm / 2.54).round();
+    final feet = totalInches ~/ 12;
+    final inches = totalInches % 12;
+    return [feet, inches];
+  }
+
+  // Convert feet + inches → cm
+  double _feetInchesToCm(int feet, int inches) {
+    return (feet * 12 + inches) * 2.54;
+  }
+
+  // ==================== ONLY ONE _currentHeightCm ====================
+  double get _currentHeightCm {
+    if (_useMetric) {
+      return double.tryParse(_heightController.text.trim()) ?? 0;
+    } else {
+      final feet = int.tryParse(_feetController.text.trim()) ?? 0;
+      final inches = int.tryParse(_inchesController.text.trim()) ?? 0;
+      return _feetInchesToCm(feet, inches);
+    }
+  }
+
   bool get _isValid {
-    final h = double.tryParse(_heightController.text.trim()) ?? 0;
+    final h = _currentHeightCm;
     final w = double.tryParse(_weightController.text.trim()) ?? 0;
     final g = double.tryParse(_goalWeightController.text.trim()) ?? 0;
     return h > 50 && w > 20 && g > 20 && g >= w;
   }
 
   String? get _heightError {
-    final text = _heightController.text.trim();
-    if (text.isEmpty) return 'Height is required';
-    final h = double.tryParse(text);
-    if (h == null || h <= 50) return 'Enter realistic height (>50 cm)';
+    final h = _currentHeightCm;
+    if (h <= 0) return 'Height is required';
+    if (h <= 50) return 'Enter realistic height (>50 cm)';
     return null;
   }
 
@@ -99,44 +141,106 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               const Text('How tall are you?'),
-              const SizedBox(height: 8),
 
-              TextField(
-                controller: _heightController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white.withAlpha(20),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  hintText: 'Height in cm',
-                  suffixText: 'cm',
-                  errorText: _heightError,
-                ),
-                style: const TextStyle(color: Colors.white),
+              const SizedBox(height: 12),
+
+              // Unit Toggle
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment<bool>(value: true, label: Text('cm')),
+                  ButtonSegment<bool>(value: false, label: Text('ft/in')),
+                ],
+                selected: {_useMetric},
+                onSelectionChanged: (Set<bool> selection) {
+                  setState(() {
+                    _useMetric = selection.first;
+
+                    if (_useMetric) {
+                      // ft/in → cm
+                      final feet = int.tryParse(_feetController.text.trim()) ?? 0;
+                      final inches = int.tryParse(_inchesController.text.trim()) ?? 0;
+                      final cm = _feetInchesToCm(feet, inches);
+                      _heightController.text = cm.toStringAsFixed(1);
+                    } else {
+                      // cm → ft/in
+                      final cm = double.tryParse(_heightController.text.trim()) ?? 0;
+                      if (cm > 0) {
+                        final fi = _cmToFeetInches(cm);
+                        _feetController.text = fi[0].toString();
+                        _inchesController.text = fi[1].toString();
+                      }
+                    }
+                  });
+                },
               ),
+
+              const SizedBox(height: 16),
+
+              // Height Input
+              if (_useMetric)
+                TextField(
+                  controller: _heightController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withAlpha(20),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    hintText: 'Height',
+                    suffixText: 'cm',
+                    errorText: _heightError,
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _feetController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white.withAlpha(20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          hintText: 'Feet',
+                          suffixText: 'ft',
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _inchesController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white.withAlpha(20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          hintText: 'Inches',
+                          suffixText: 'in',
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
 
               const SizedBox(height: 24),
 
               const Text('How much do you weigh?'),
               const SizedBox(height: 8),
-
               TextField(
                 controller: _weightController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white.withAlpha(20),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  hintText: 'Weight in kg',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  hintText: 'Weight',
                   suffixText: 'kg',
                   errorText: _weightError,
                 ),
@@ -147,18 +251,14 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
 
               const Text("What's your goal weight?"),
               const SizedBox(height: 8),
-
               TextField(
                 controller: _goalWeightController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white.withAlpha(20),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  hintText: 'Goal weight in kg',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  hintText: 'Goal weight',
                   suffixText: 'kg',
                   errorText: _goalWeightError,
                 ),
@@ -175,14 +275,13 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
 
               const Spacer(),
 
-              // Next button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _isValid
                       ? () {
-                    widget.data.heightCm = double.tryParse(_heightController.text.trim());
+                    widget.data.heightCm = _currentHeightCm;
                     widget.data.currentWeightKg = double.tryParse(_weightController.text.trim());
                     widget.data.goalWeightKg = double.tryParse(_goalWeightController.text.trim());
 
