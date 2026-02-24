@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics_app/models/onboarding_data.dart';
-import 'package:fitmetrics_app/screens/body_measurements_screen.dart';
 import 'package:fitmetrics_app/widgets/progress_dots.dart';
+import 'package:fitmetrics_app/routes.dart'; // ← for named navigation
 
 class PersonalInfoScreen extends StatefulWidget {
   final OnboardingData data;
+
   const PersonalInfoScreen({super.key, required this.data});
 
   @override
@@ -13,7 +14,7 @@ class PersonalInfoScreen extends StatefulWidget {
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   String? _gender;
-  final _ageController = TextEditingController();
+  late TextEditingController _ageController;
   String? _country;
 
   final List<String> _countries = [
@@ -30,16 +31,34 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   @override
   void initState() {
     super.initState();
+    _ageController = TextEditingController(text: widget.data.age?.toString() ?? '');
     _gender = widget.data.gender;
-    _ageController.text = widget.data.age?.toString() ?? '';
     _country = widget.data.country;
+
+    // Update UI when age changes (real-time validation)
+    _ageController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _ageController.dispose();
+    super.dispose();
   }
 
   bool get _isValid =>
       _gender != null &&
           _ageController.text.trim().isNotEmpty &&
           int.tryParse(_ageController.text) != null &&
+          int.parse(_ageController.text) > 0 &&
           _country != null;
+
+  String? get _ageError {
+    final text = _ageController.text.trim();
+    if (text.isEmpty) return 'Age is required';
+    final age = int.tryParse(text);
+    if (age == null || age <= 0) return 'Enter a valid age';
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,20 +70,30 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
+
               IconButton(
                 icon: const Icon(Icons.arrow_back, size: 28),
                 onPressed: () => Navigator.pop(context),
               ),
+
               const SizedBox(height: 8),
+
               const ProgressDots(current: 3),
+
               const SizedBox(height: 32),
+
               const Text(
                 "Tell us a little bit about yourself",
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 32),
+
               const Text('Please select which sex we should use to calculate your calorie needs'),
+
               const SizedBox(height: 16),
+
+              // Modern gender selection (no deprecated RadioListTile)
               Row(
                 children: [
                   Expanded(
@@ -93,22 +122,43 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                   ),
                 ],
               ),
+
+              // Show error if gender not selected
+              if (_gender == null)
+                const Padding(
+                  padding: EdgeInsets.only(left: 16, top: 4),
+                  child: Text(
+                    'Please select gender',
+                    style: TextStyle(color: Colors.redAccent, fontSize: 14),
+                  ),
+                ),
+
               const SizedBox(height: 24),
+
               const Text('How old are you?'),
               const SizedBox(height: 8),
+
               TextField(
                 controller: _ageController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white.withAlpha(20),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                   hintText: 'Your age',
+                  errorText: _ageError, // shows under field
                 ),
+                style: const TextStyle(color: Colors.white),
               ),
+
               const SizedBox(height: 24),
+
               const Text('Where do you live?'),
               const SizedBox(height: 8),
+
               DropdownButtonFormField<String>(
                 value: _country,
                 hint: const Text('Select Country'),
@@ -117,10 +167,17 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white.withAlpha(20),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  errorText: _country == null ? 'Please select country' : null,
                 ),
               ),
+
               const Spacer(),
+
+              // Next button
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -130,11 +187,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     widget.data.gender = _gender;
                     widget.data.age = int.tryParse(_ageController.text);
                     widget.data.country = _country;
-                    Navigator.push(
+
+                    // Use named route (recommended)
+                    Navigator.pushNamed(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => BodyMeasurementsScreen(data: widget.data),
-                      ),
+                      AppRoutes.measurements,
+                      arguments: widget.data,
                     );
                   }
                       : null,
@@ -145,17 +203,12 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                   child: const Text('Next', style: TextStyle(fontSize: 18)),
                 ),
               ),
+
               const SizedBox(height: 32),
             ],
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _ageController.dispose();
-    super.dispose();
   }
 }

@@ -52,14 +52,14 @@ class SuccessScreen extends StatelessWidget {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: Navigate to main app / dashboard
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Welcome to your dashboard! (to be implemented)'),
-                        duration: Duration(seconds: 3),
-                      ),
+                    // Optional: clear saved onboarding data
+                    // await StorageService.clearOnboardingData();
+
+                    Navigator.pushReplacementNamed(
+                      context,
+                      '/dashboard',              // or AppRoutes.dashboard
+                      arguments: data,
                     );
-                    // Example: Navigator.pushReplacementNamed(context, '/home');
                   },
                   child: const Text('Go to Dashboard', style: TextStyle(fontSize: 18)),
                 ),
