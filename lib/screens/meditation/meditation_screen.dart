@@ -13,145 +13,185 @@ class MeditationScreen extends StatefulWidget {
 
 class _MeditationScreenState extends State<MeditationScreen> {
   String? _selectedMood;
+  double _cardScale1 = 1.0;
+  double _cardScale2 = 1.0;
 
   @override
   Widget build(BuildContext context) {
-    final String username = widget.userData.name ?? "User";
+    final username = widget.userData.name ?? "User";
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1624),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              backgroundColor: const Color(0xFF3B82F6),
-              child: Text(
-                username.isNotEmpty ? username[0].toUpperCase() : "?",
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              Text(
-                "Welcome${username.isNotEmpty ? ', $username' : ''}!",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Let's start your day",
-                style: TextStyle(color: Colors.white70, fontSize: 18),
-              ),
-              const SizedBox(height: 32),
-
-              // Mood selection – now interactive
-              const Text(
-                "How is your mood?",
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildMoodEmoji("😊", "Happy"),
-                  _buildMoodEmoji("😢", "Sad"),
-                  _buildMoodEmoji("😐", "Normal"),
-                  _buildMoodEmoji("😊", "Good"),
-                  _buildMoodEmoji("😂", "Excited"),
-                ],
-              ),
-              const SizedBox(height: 40),
-
-              // Meditation cards – using the extracted widget
-              MeditationCard(
-                title: "Movement Meditation",
-                instructor: "Rachel Jules",
-                subtitle: "Yoga Guru",
-                buttonText: "Start",
-                buttonColor: Colors.green,
-                imagePath: "assets/images/meditation/movement_meditation.jpg",
-                onStartPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Starting Movement Meditation...")),
-                  );
-                  // Later → Navigator.push to timer or player screen
-                },
-              ),
-              const SizedBox(height: 16),
-              MeditationCard(
-                title: "Music Meditation",
-                instructor: "Alice Brook",
-                subtitle: "Calm Your Mind",
-                buttonText: "Start",
-                buttonColor: const Color(0xFF3B82F6),
-                imagePath: "assets/images/meditation/music_meditation.jpg",
-                onStartPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Starting Music Meditation...")),
-                  );
-                },
-              ),
-
-              const Spacer(),
+      body: Container(
+        // Subtle background gradient
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0F1624),
+              Color(0xFF0A0F1A),
             ],
           ),
         ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+
+                // Header with username
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Welcome${username.isNotEmpty ? ', $username' : ''}!",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: const Color(0xFF3B82F6),
+                      child: Text(
+                        username.isNotEmpty ? username[0].toUpperCase() : "?",
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Let's start your day",
+                  style: TextStyle(color: Colors.white70, fontSize: 18),
+                ),
+
+                // Motivational quote
+                const SizedBox(height: 28),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      "Breathe. Let go. And remind yourself that this very moment is the only one you know you have for sure.",
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 15,
+                        fontStyle: FontStyle.italic,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Mood selection with colored circles + glow
+                const Text(
+                  "How is your mood?",
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildMood("😊", "Happy",   const Color(0xFFFFC107)),
+                    _buildMood("😢", "Sad",     const Color(0xFF2196F3)),
+                    _buildMood("😐", "Normal",  Colors.grey),
+                    _buildMood("😊", "Good",    const Color(0xFF4CAF50)),
+                    _buildMood("😎", "Excited", const Color(0xFFF44336)),
+                  ],
+                ),
+                const SizedBox(height: 40),
+
+                // Cards with micro-animation, featured badge, larger size & shadow
+                GestureDetector(
+                  onTapDown: (_) => setState(() => _cardScale1 = 0.96),
+                  onTapUp: (_) => setState(() => _cardScale1 = 1.0),
+                  onTapCancel: () => setState(() => _cardScale1 = 1.0),
+                  child: AnimatedScale(
+                    scale: _cardScale1,
+                    duration: const Duration(milliseconds: 120),
+                    child: MeditationCard(
+                      title: "$username's Movement Meditation",
+                      instructor: username,
+                      subtitle: "Awaken Your Body & Mind",
+                      buttonText: "Start",
+                      buttonColor: Colors.green,
+                      imagePath: "assets/images/meditation/movement_meditation.jpg",
+                      isFeatured: true,
+                      onStartPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Starting Movement Meditation...")),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTapDown: (_) => setState(() => _cardScale2 = 0.96),
+                  onTapUp: (_) => setState(() => _cardScale2 = 1.0),
+                  onTapCancel: () => setState(() => _cardScale2 = 1.0),
+                  child: AnimatedScale(
+                    scale: _cardScale2,
+                    duration: const Duration(milliseconds: 120),
+                    child: MeditationCard(
+                      title: "$username's Music Meditation",
+                      instructor: username,
+                      subtitle: "Calm Your Mind",
+                      buttonText: "Start",
+                      buttonColor: const Color(0xFF3B82F6),
+                      imagePath: "assets/images/meditation/music_meditation.jpg",
+                      isFeatured: false,
+                      onStartPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Starting Music Meditation...")),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+                const Spacer(),
+              ],
+            ),
+          ),
+        ),
       ),
-      // IMPORTANT: NO bottomNavigationBar here!
-      // It is managed by MainTabScreen
     );
   }
 
-  Widget _buildMoodEmoji(String emoji, String label) {
+  Widget _buildMood(String emoji, String label, Color color) {
     final isSelected = _selectedMood == label;
 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedMood = label;
-        });
-      },
+      onTap: () => setState(() => _selectedMood = label),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isSelected ? const Color(0xFF3B82F6).withOpacity(0.25) : null,
-              border: isSelected
-                  ? Border.all(color: const Color(0xFF3B82F6), width: 2.5)
-                  : null,
+              color: color,
+              boxShadow: isSelected
+                  ? [
+                BoxShadow(color: color.withOpacity(0.7), blurRadius: 14, spreadRadius: 5),
+                BoxShadow(color: color.withOpacity(0.45), blurRadius: 24, spreadRadius: 12),
+              ]
+                  : [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3))],
             ),
-            child: Text(
-              emoji,
-              style: const TextStyle(fontSize: 38),
-            ),
+            child: Text(emoji, style: const TextStyle(fontSize: 40, color: Colors.white)),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text(
             label,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.white70,
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? color : Colors.white70,
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
         ],
