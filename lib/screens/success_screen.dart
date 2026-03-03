@@ -57,11 +57,10 @@ class SuccessScreen extends StatelessWidget {
                     // Optional: Clear onboarding data after success (uncomment if you have storage)
                     // await StorageService.clearOnboardingData();
 
-                    // Go to dashboard screen
                     Navigator.pushReplacementNamed(
                       context,
-                      AppRoutes.dashboard, // or '/dashboard' if not using constants
-                      arguments: data,
+                      AppRoutes.main,
+                      arguments: data,   // your OnboardingData object
                     );
                   },
                   style: ElevatedButton.styleFrom(

@@ -4,7 +4,9 @@ import 'package:fitmetrics_app/widgets/progress_dots.dart';
 import 'package:fitmetrics_app/routes.dart'; // ← for AppRoutes
 
 class PersonalizeScreen extends StatelessWidget {
-  const PersonalizeScreen({super.key});
+  final OnboardingData data;
+
+  const PersonalizeScreen({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
