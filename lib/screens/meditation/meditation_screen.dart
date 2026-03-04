@@ -83,16 +83,36 @@ class _MeditationScreenState extends State<MeditationScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Mood emojis row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildMood("😊", "Happy",   const Color(0xFFFFC107)),
-                      _buildMood("🥺", "Sad",     const Color(0xFF2196F3)),
-                      _buildMood("😐", "Normal",  Colors.grey.shade400),
-                      _buildMood("😊", "Good",    const Color(0xFF4CAF50)),
-                      _buildMood("😎", "Excited", const Color(0xFFF44336)),
-                    ],
+                  // Mood selection – Sad → Exhausted → Normal → Good → Excited
+                  SizedBox(
+                    height: 120,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      itemCount: 5,
+                      separatorBuilder: (context, index) => const SizedBox(width: 20),
+                      itemBuilder: (context, index) {
+                        final moods = [
+                          // 1. Sad
+                          ["🥺", "Sad",       const Color(0xFF007AA5)],
+                          // 2. Exhausted
+                          ["😩", "Exhausted", const Color(0xFFDEBD9E)],
+                          // 3. Normal
+                          ["😐", "Normal",    Colors.grey.shade400],
+                          // 4. Good
+                          ["😊", "Good",      const Color(0xFF9CFFDB)],
+                          // 5. Excited
+                          ["😎", "Excited",   const Color(0xFFE09B51)],
+                        ];
+                        final mood = moods[index];
+                        return _buildMood(
+                          mood[0] as String,
+                          mood[1] as String,
+                          mood[2] as Color,
+                        );
+                      },
+                    ),
                   ),
 
                   const SizedBox(height: 48),
@@ -167,7 +187,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 80), // generous bottom space
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
@@ -180,20 +200,17 @@ class _MeditationScreenState extends State<MeditationScreen> {
   Widget _buildMood(String emoji, String label, Color color) {
     final isSelected = _selectedMood == label;
 
-    // Natural, encouraging messages tied to the app's purpose
     final moodMessages = {
-      "Happy":   "Awesome energy! Let's keep that positivity going with movement or music.",
-      "Sad":     "Sorry you're feeling down... let's lift your mood together with something calming.",
-      "Normal":  "Feeling steady? Perfect moment to center yourself — what calls to you today?",
-      "Good":    "Solid vibes! Great time to build on that with a quick meditation session.",
-      "Excited": "Love that spark! Let's channel it — movement to energize or music to flow?",
+      "Sad":       "Sorry you're feeling down... let's lift your mood together with something calming.",
+      "Exhausted": "Feeling drained? A gentle music meditation might help you recharge slowly.",
+      "Normal":    "Feeling steady? Perfect moment to center yourself — what calls to you today?",
+      "Good":      "Solid vibes! Great time to build on that with a quick meditation session.",
+      "Excited":   "Love that spark! Let's channel it — movement to energize or music to flow?",
     };
 
     return GestureDetector(
       onTap: () {
         setState(() => _selectedMood = label);
-
-        // Show floating message
         ScaffoldMessenger.of(context).removeCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -201,7 +218,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
               moodMessages[label] ?? "Nice choice!",
               style: const TextStyle(color: Colors.white, fontSize: 14),
             ),
-            backgroundColor: color.withAlpha((255 * 0.92).round()),
+            backgroundColor: color.withValues(alpha: 0.92),
             duration: const Duration(seconds: 3, milliseconds: 500),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -211,54 +228,56 @@ class _MeditationScreenState extends State<MeditationScreen> {
         );
       },
       child: AnimatedScale(
-        scale: isSelected ? 1.18 : 1.0,
-        duration: const Duration(milliseconds: 340),
+        scale: isSelected ? 1.14 : 1.0,
+        duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutBack,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 420),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.all(16),
+            Container(
+              width: 76,
+              height: 76,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: color,
                 boxShadow: isSelected
                     ? [
                   BoxShadow(
-                    color: color.withAlpha((255 * 0.85).round()),
-                    blurRadius: 22,
-                    spreadRadius: 10,
-                    offset: const Offset(0, 6),
-                  ),
-                  BoxShadow(
-                    color: color.withAlpha((255 * 0.55).round()),
-                    blurRadius: 36,
-                    spreadRadius: 18,
+                    color: color.withValues(alpha: 0.65),
+                    blurRadius: 18,
+                    spreadRadius: 6,
+                    offset: const Offset(0, 4),
                   ),
                 ]
                     : [
                   BoxShadow(
-                    color: Colors.black.withAlpha((255 * 0.28).round()),
-                    blurRadius: 12,
-                    offset: const Offset(0, 5),
+                    color: Colors.black.withValues(alpha: 0.26),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: Text(
-                emoji,
-                style: const TextStyle(fontSize: 42, color: Colors.white),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Text(
+                    emoji,
+                    style: const TextStyle(
+                      fontSize: 44,
+                      height: 1.0,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
+              duration: const Duration(milliseconds: 280),
               style: TextStyle(
                 color: isSelected ? color : Colors.white70,
-                fontSize: isSelected ? 14.5 : 13,
+                fontSize: isSelected ? 14.5 : 13.5,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                letterSpacing: isSelected ? 0.4 : 0.2,
               ),
               child: Text(label),
             ),
