@@ -49,12 +49,51 @@ class _MainTabScreenState extends State<MainTabScreen> {
         onTap: (index) {
           setState(() => _currentIndex = index);
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.fitness_center_outlined), activeIcon: Icon(Icons.fitness_center), label: 'Workout'),
-          BottomNavigationBarItem(icon: Icon(Icons.self_improvement_outlined), activeIcon: Icon(Icons.self_improvement), label: 'Meditation'),
-          BottomNavigationBarItem(icon: Icon(Icons.restaurant_outlined), activeIcon: Icon(Icons.restaurant), label: 'Food'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.fitness_center_outlined),
+            activeIcon: Icon(Icons.fitness_center),
+            label: 'Workout',
+          ),
+          // ── Meditation tab with custom image + scale animation ──
+          BottomNavigationBarItem(
+            icon: AnimatedScale(
+              scale: _currentIndex == 2 ? 1.15 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: Image.asset(
+                'assets/images/meditation/meditation_icon.jpg',
+                width: 26,
+                height: 26,
+              ),
+            ),
+            activeIcon: AnimatedScale(
+              scale: 1.15,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: Image.asset(
+                'assets/images/meditation_icon.png',
+                width: 28,
+                height: 28,
+              ),
+            ),
+            label: 'Meditation',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.restaurant_outlined),
+            activeIcon: Icon(Icons.restaurant),
+            label: 'Food',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ],
       ),
     );
