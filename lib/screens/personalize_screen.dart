@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
 import 'package:fitmetrics_app/widgets/progress_dots.dart';
-import 'package:fitmetrics_app/routes.dart'; // ← for AppRoutes
+import 'package:fitmetrics_app/routes.dart';
+import 'package:fitmetrics_app/models/onboarding_data.dart';
 
 class PersonalizeScreen extends StatelessWidget {
-  final OnboardingData data;
-
-  const PersonalizeScreen({super.key, required this.data});
+  const PersonalizeScreen({super.key});  // ← No 'data' parameter needed
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +26,7 @@ class PersonalizeScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 16),
 
-              const ProgressDots(current: 0, total: 6), // before name step
+              const ProgressDots(current: 0, total: 6),
 
               const Spacer(flex: 1),
 
@@ -48,10 +46,9 @@ class PersonalizeScreen extends StatelessWidget {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Create fresh data object
+                    // Start fresh data object here
                     final initialData = OnboardingData();
 
-                    // Go to name screen using named route
                     Navigator.pushNamed(
                       context,
                       AppRoutes.name,
@@ -84,7 +81,6 @@ class PersonalizeScreen extends StatelessWidget {
                 height: 56,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // TODO: Implement Google Sign In later
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Google Sign In – coming soon')),
                     );

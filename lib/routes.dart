@@ -11,9 +11,11 @@ import 'package:fitmetrics_app/screens/body_measurements_screen.dart';
 import 'package:fitmetrics_app/screens/create_account_screen.dart';
 import 'package:fitmetrics_app/screens/success_screen.dart';
 
-// Tab system screens
-import 'package:fitmetrics_app/screens/main_tab_screen.dart';     // ← NEW
-// import 'package:fitmetrics_app/screens/dashboard_screen.dart'; // ← comment out or remove if replacing
+// Login screen
+import 'package:fitmetrics_app/screens/login_screen.dart';
+
+// Main tabs
+import 'package:fitmetrics_app/screens/main_tab_screen.dart';
 
 class AppRoutes {
   // Onboarding routes
@@ -26,11 +28,11 @@ class AppRoutes {
   static const String createAccount    = '/create-account';
   static const String success          = '/success';
 
-  // Main app route (with bottom navigation bar)
-  static const String main             = '/main';               // ← NEW: entry point after onboarding
+  // Login route
+  static const String login            = '/login';
 
-  // Optional: keep if you still want a separate dashboard later
-  // static const String dashboard     = '/dashboard';
+  // Main app tabs
+  static const String main             = '/main';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     final args = settings.arguments;
@@ -40,11 +42,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const WelcomeScreen());
 
       case personalize:
-        return MaterialPageRoute(
-          builder: (_) => PersonalizeScreen(
-            data: args is OnboardingData ? args : OnboardingData(),
-          ),
-        );
+      // Intro screen – no data parameter
+        return MaterialPageRoute(builder: (_) => const PersonalizeScreen());
 
       case name:
         return MaterialPageRoute(
@@ -88,21 +87,15 @@ class AppRoutes {
           ),
         );
 
-    // ── NEW ── Main tab screen (replaces old dashboard)
+      case login:
+        return MaterialPageRoute(builder: (_) => const LoginScreen());
+
       case main:
         return MaterialPageRoute(
           builder: (_) => MainTabScreen(
             userData: args is OnboardingData ? args : OnboardingData(),
           ),
         );
-
-    // Optional: keep this if you want to test old dashboard separately
-    // case dashboard:
-    //   return MaterialPageRoute(
-    //     builder: (_) => DashboardScreen(
-    //       data: args is OnboardingData ? args : OnboardingData(),
-    //     ),
-    //   );
 
       default:
         return _errorRoute(settings.name);

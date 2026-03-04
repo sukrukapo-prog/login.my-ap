@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/routes.dart'; // your routes file
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fitmetrics_app/routes.dart';
 
-void main() {
-  runApp(const FitMetricsApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Check if user is already registered/logged in
+  final prefs = await SharedPreferences.getInstance();
+  final isRegistered = prefs.getBool('isRegistered') ?? false;
+
+  // Decide starting route
+  final String startRoute = isRegistered ? AppRoutes.main : AppRoutes.welcome;
+
+  runApp(FitMetricsApp(initialRoute: startRoute));
 }
 
 class FitMetricsApp extends StatelessWidget {
-  const FitMetricsApp({super.key});
+  final String initialRoute;
+
+  const FitMetricsApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +50,8 @@ class FitMetricsApp extends StatelessWidget {
           hintStyle: const TextStyle(color: Colors.white54),
         ),
       ),
-      initialRoute: AppRoutes.welcome,           // start here
-      onGenerateRoute: AppRoutes.generateRoute,   // ← this line makes named routes work
+      initialRoute: initialRoute,  // ← now uses the dynamic route
+      onGenerateRoute: AppRoutes.generateRoute,
     );
   }
 }
