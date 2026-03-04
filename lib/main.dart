@@ -16,9 +16,9 @@ void main() async {
 }
 
 class FitMetricsApp extends StatelessWidget {
-  final String initialRoute;
+  final String? initialRoute;  // optional – no 'required'
 
-  const FitMetricsApp({super.key, required this.initialRoute});
+  const FitMetricsApp({super.key, this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +50,7 @@ class FitMetricsApp extends StatelessWidget {
           hintStyle: const TextStyle(color: Colors.white54),
         ),
       ),
-      initialRoute: initialRoute,  // ← now uses the dynamic route
+      initialRoute: initialRoute ?? AppRoutes.welcome,  // fallback if null
       onGenerateRoute: AppRoutes.generateRoute,
     );
   }
