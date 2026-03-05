@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/constants/colors.dart';
+import 'package:fitmetrics/constants/colors.dart';
 
 class GoalCheckbox extends StatelessWidget {
   final String label;

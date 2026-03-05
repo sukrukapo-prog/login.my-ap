@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
+import 'package:fitmetrics/models/onboarding_data.dart';
 import 'dart:developer' as developer; // Use developer.log for better debugging
 
 class StorageService {

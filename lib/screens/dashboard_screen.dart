@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
+import 'package:fitmetrics/models/onboarding_data.dart';
 
 class DashboardScreen extends StatelessWidget {
   final OnboardingData data;

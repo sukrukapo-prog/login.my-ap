@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
-import 'package:fitmetrics_app/screens/meditation/widgets/meditation_card.dart';
+import 'package:fitmetrics/models/onboarding_data.dart';
+import 'package:fitmetrics/screens/meditation/widgets/meditation_card.dart';
+import 'package:fitmetrics/screens/meditation/choose_calmness_screen.dart'; // ← ADD THIS
 
 class MeditationScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -21,7 +22,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
     final username = widget.userData.name ?? "User";
 
     return Scaffold(
-      extendBody: true, // ← Key: content extends behind bottom nav bar
+      extendBody: true,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -35,14 +36,14 @@ class _MeditationScreenState extends State<MeditationScreen> {
         ),
         child: SafeArea(
           top: true,
-          bottom: false, // ← Important: disable bottom safe area so content reaches edge
+          bottom: false,
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.fromLTRB(
               20,
               0,
               20,
-              MediaQuery.of(context).padding.bottom + 120, // ← Fixes hidden bottom content
+              MediaQuery.of(context).padding.bottom + 120,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,7 +129,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                     scale: _cardScale1,
                     duration: const Duration(milliseconds: 120),
                     child: MeditationCard(
-                      title: " lets start Movement Meditation",//this is better
+                      title: "lets start Movement Meditation",
                       instructor: username,
                       subtitle: "Awaken Your Body & Mind",
                       buttonText: "Start",
@@ -146,7 +147,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
 
                 const SizedBox(height: 28),
 
-                // Music card
+                // Music card — navigates to ChooseCalmnessScreen ← UPDATED
                 GestureDetector(
                   onTapDown: (_) => setState(() => _cardScale2 = 0.96),
                   onTapUp: (_) => setState(() => _cardScale2 = 1.0),
@@ -155,7 +156,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                     scale: _cardScale2,
                     duration: const Duration(milliseconds: 120),
                     child: MeditationCard(
-                      title: " Relax your breathing with music",
+                      title: "Relax your breathing with music",
                       instructor: username,
                       subtitle: "Calm Your Mind",
                       buttonText: "Start",
@@ -163,8 +164,12 @@ class _MeditationScreenState extends State<MeditationScreen> {
                       imagePath: "assets/images/meditation/music_meditation.jpg",
                       isFeatured: false,
                       onStartPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Starting Music Meditation...")),
+                        // ← UPDATED: navigate to ChooseCalmnessScreen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ChooseCalmnessScreen(),
+                          ),
                         );
                       },
                     ),
@@ -189,7 +194,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 140), // ← Increased for extra safety
+                const SizedBox(height: 140),
               ],
             ),
           ),

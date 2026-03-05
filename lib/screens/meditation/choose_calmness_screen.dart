@@ -21,7 +21,7 @@ class ChooseCalmnessScreen extends StatelessWidget {
                       horizontal: 14.0, vertical: 8.0),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFFD4A017), Color(0xFFF0C040)],
+                      colors: [Color(0xFF0A233E), Color(0xEFB87A09)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -53,7 +53,7 @@ class ChooseCalmnessScreen extends StatelessWidget {
 
               // Title
               const Text(
-                'Choose Your Calmness',
+                'Find Your Calmness',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24.0,
@@ -65,7 +65,7 @@ class ChooseCalmnessScreen extends StatelessWidget {
 
               // Subtitle
               const Text(
-                'Find your focus with a curated scene',
+                'Choose a sound that soothes your mind',
                 style: TextStyle(
                   color: Color(0xFFAAAAAA),
                   fontSize: 14.0,
@@ -85,33 +85,33 @@ class ChooseCalmnessScreen extends StatelessWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   children: const [
                     _CalmnessCard(
-                      title: 'Rainy Vibe',
-                      imagePath: 'assets/images/rainy_vibe.png',
+                      title: 'Rain',
+                      imagePath: 'assets/images/meditation/calmness/rain.png',
                       icon: Icons.cloud,
                     ),
                     _CalmnessCard(
                       title: 'Ocean',
-                      imagePath: 'assets/images/ocean.png',
+                      imagePath: 'assets/images/meditation/calmness/ocean.png',
                       icon: Icons.waves,
                     ),
                     _CalmnessCard(
                       title: 'Night',
-                      imagePath: 'assets/images/night.png',
+                      imagePath: 'assets/images/meditation/calmness/night.png',
                       icon: Icons.nightlight_round,
                     ),
                     _CalmnessCard(
                       title: 'Birds',
-                      imagePath: 'assets/images/birds.png',
+                      imagePath: 'assets/images/meditation/calmness/birds.png',
                       icon: Icons.flutter_dash,
                     ),
                     _CalmnessCard(
                       title: 'Morning',
-                      imagePath: 'assets/images/morning.png',
+                      imagePath: 'assets/images/meditation/calmness/morning.png',
                       icon: Icons.wb_sunny,
                     ),
                     _CalmnessCard(
                       title: 'Nature',
-                      imagePath: 'assets/images/nature.png',
+                      imagePath: 'assets/images/meditation/calmness/nature.png',
                       icon: Icons.eco,
                     ),
                   ],

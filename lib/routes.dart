@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
+import 'package:fitmetrics/models/onboarding_data.dart';
 
 // Onboarding screens
-import 'package:fitmetrics_app/screens/welcome_screen.dart';
-import 'package:fitmetrics_app/screens/personalize_screen.dart';
-import 'package:fitmetrics_app/screens/name_screen.dart';
-import 'package:fitmetrics_app/screens/goals_screen.dart';
-import 'package:fitmetrics_app/screens/personal_info_screen.dart';
-import 'package:fitmetrics_app/screens/body_measurements_screen.dart';
-import 'package:fitmetrics_app/screens/create_account_screen.dart';
-import 'package:fitmetrics_app/screens/success_screen.dart';
+import 'package:fitmetrics/screens/welcome_screen.dart';
+import 'package:fitmetrics/screens/personalize_screen.dart';
+import 'package:fitmetrics/screens/name_screen.dart';
+import 'package:fitmetrics/screens/goals_screen.dart';
+import 'package:fitmetrics/screens/personal_info_screen.dart';
+import 'package:fitmetrics/screens/body_measurements_screen.dart';
+import 'package:fitmetrics/screens/create_account_screen.dart';
+import 'package:fitmetrics/screens/success_screen.dart';
 
 // Login screen
-import 'package:fitmetrics_app/screens/login_screen.dart';
+import 'package:fitmetrics/screens/login_screen.dart';
 
 // Main tabs
-import 'package:fitmetrics_app/screens/main_tab_screen.dart';
+import 'package:fitmetrics/screens/main_tab_screen.dart';
 
 class AppRoutes {
   // Onboarding routes

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:fitmetrics_app/routes.dart';
+import 'package:fitmetrics/routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +19,7 @@ class FitMetricsApp extends StatelessWidget {
   final String? initialRoute;  // optional – no 'required'
 
   const FitMetricsApp({super.key, this.initialRoute});
+
 
   @override
   Widget build(BuildContext context) {

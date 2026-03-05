@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // ← add this import
-import 'package:fitmetrics_app/models/onboarding_data.dart';
-import 'package:fitmetrics_app/routes.dart';
+import 'package:fitmetrics/models/onboarding_data.dart';
+import 'package:fitmetrics/routes.dart';
 
 class SuccessScreen extends StatelessWidget {
   final OnboardingData data;

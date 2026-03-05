@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/services/local_storage.dart';
-import 'package:fitmetrics_app/routes.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
+import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/routes.dart';
+import 'package:fitmetrics/models/onboarding_data.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

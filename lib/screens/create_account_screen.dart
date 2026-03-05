@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
-import 'package:fitmetrics_app/widgets/progress_dots.dart';
-import 'package:fitmetrics_app/routes.dart';
+import 'package:fitmetrics/models/onboarding_data.dart';
+import 'package:fitmetrics/widgets/progress_dots.dart';
+import 'package:fitmetrics/routes.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   final OnboardingData data;

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
+import 'package:fitmetrics/models/onboarding_data.dart';
 
 // Import your tab screens (adjust paths if you moved them)
-import 'package:fitmetrics_app/screens/home_screen.dart';
-import 'package:fitmetrics_app/screens/workout_screen.dart';
-import 'package:fitmetrics_app/screens/meditation/meditation_screen.dart';
-import 'package:fitmetrics_app/screens/food_screen.dart';
-import 'package:fitmetrics_app/screens/profile_screen.dart';
+import 'package:fitmetrics/screens/home_screen.dart';
+import 'package:fitmetrics/screens/workout_screen.dart';
+import 'package:fitmetrics/screens/meditation/meditation_screen.dart';
+import 'package:fitmetrics/screens/food_screen.dart';
+import 'package:fitmetrics/screens/profile_screen.dart';
 
 class MainTabScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -77,7 +77,7 @@ class _MainTabScreenState extends State<MainTabScreen> {
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               child: Image.asset(
-                'assets/images/meditation_icon.png',
+                'assets/images/meditation/meditation_icon.jpg',
                 width: 28,
                 height: 28,
               ),

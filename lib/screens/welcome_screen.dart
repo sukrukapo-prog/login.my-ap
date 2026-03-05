@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart'; // ← ADD THIS LINE (critical!)
-import 'package:fitmetrics_app/routes.dart'; // ← ADD THIS if you want named routes
+import 'package:fitmetrics/models/onboarding_data.dart'; // ← ADD THIS LINE (critical!)
+import 'package:fitmetrics/routes.dart'; // ← ADD THIS if you want named routes
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});

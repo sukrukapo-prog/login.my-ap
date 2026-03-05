@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/models/onboarding_data.dart';
-import 'package:fitmetrics_app/screens/personal_info_screen.dart';
-import 'package:fitmetrics_app/widgets/progress_dots.dart';
-import 'package:fitmetrics_app/routes.dart'; // ← important
+import 'package:fitmetrics/models/onboarding_data.dart';
+import 'package:fitmetrics/screens/personal_info_screen.dart';
+import 'package:fitmetrics/widgets/progress_dots.dart';
+import 'package:fitmetrics/routes.dart'; // ← important
 
 class GoalsScreen extends StatefulWidget {
   final OnboardingData data;

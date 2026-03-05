@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics_app/constants/colors.dart'; // adjust import if needed
+import 'package:fitmetrics/constants/colors.dart'; // adjust import if needed
 
 class GenderRadioGroup extends StatelessWidget {
   final String? selectedGender;
