@@ -21,6 +21,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
     final username = widget.userData.name ?? "User";
 
     return Scaffold(
+      extendBody: true, // ← Key: content extends behind bottom nav bar
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -33,163 +34,163 @@ class _MeditationScreenState extends State<MeditationScreen> {
           ),
         ),
         child: SafeArea(
+          top: true,
+          bottom: false, // ← Important: disable bottom safe area so content reaches edge
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              MediaQuery.of(context).padding.bottom + 120, // ← Fixes hidden bottom content
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
 
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Welcome${username.isNotEmpty ? ', $username' : ''}!",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Welcome${username.isNotEmpty ? ', $username' : ''}!",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
                       ),
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: const Color(0xFF3B82F6),
-                        child: Text(
-                          username.isNotEmpty ? username[0].toUpperCase() : "?",
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Let's start your day",
-                    style: TextStyle(color: Colors.white70, fontSize: 18),
-                  ),
-
-                  const SizedBox(height: 36),
-
-                  // Mood question
-                  const Text(
-                    "How is your mood?",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w600,
                     ),
-                  ),
-                  const SizedBox(height: 20),
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: const Color(0xFF3B82F6),
+                      child: Text(
+                        username.isNotEmpty ? username[0].toUpperCase() : "?",
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Let's start your day",
+                  style: TextStyle(color: Colors.white70, fontSize: 18),
+                ),
 
-                  // Mood selection – Sad → Exhausted → Normal → Good → Excited
-                  SizedBox(
-                    height: 120,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      itemCount: 5,
-                      separatorBuilder: (context, index) => const SizedBox(width: 20),
-                      itemBuilder: (context, index) {
-                        final moods = [
-                          // 1. Sad
-                          ["🥺", "Sad",       const Color(0xFF007AA5)],
-                          // 2. Exhausted
-                          ["😩", "Exhausted", const Color(0xFFDEBD9E)],
-                          // 3. Normal
-                          ["😐", "Normal",    Colors.grey.shade400],
-                          // 4. Good
-                          ["😊", "Good",      const Color(0xFF9CFFDB)],
-                          // 5. Excited
-                          ["😎", "Excited",   const Color(0xFFE09B51)],
-                        ];
-                        final mood = moods[index];
-                        return _buildMood(
-                          mood[0] as String,
-                          mood[1] as String,
-                          mood[2] as Color,
+                const SizedBox(height: 36),
+
+                // Mood question
+                const Text(
+                  "How is your mood?",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Mood selection
+                SizedBox(
+                  height: 120,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    itemCount: 5,
+                    separatorBuilder: (context, index) => const SizedBox(width: 20),
+                    itemBuilder: (context, index) {
+                      final moods = [
+                        ["🥺", "Sad",       const Color(0xFF007AA5)],
+                        ["😩", "Exhausted", const Color(0xFFDEBD9E)],
+                        ["😐", "Normal",    Colors.grey.shade400],
+                        ["😊", "Good",      const Color(0xFF9CFFDB)],
+                        ["😎", "Excited",   const Color(0xFFE09B51)],
+                      ];
+                      final mood = moods[index];
+                      return _buildMood(
+                        mood[0] as String,
+                        mood[1] as String,
+                        mood[2] as Color,
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 48),
+
+                // Movement card
+                GestureDetector(
+                  onTapDown: (_) => setState(() => _cardScale1 = 0.96),
+                  onTapUp: (_) => setState(() => _cardScale1 = 1.0),
+                  onTapCancel: () => setState(() => _cardScale1 = 1.0),
+                  child: AnimatedScale(
+                    scale: _cardScale1,
+                    duration: const Duration(milliseconds: 120),
+                    child: MeditationCard(
+                      title: "$username's Movement Meditation",//this is done by kapil
+                      instructor: username,
+                      subtitle: "Awaken Your Body & Mind",
+                      buttonText: "Start",
+                      buttonColor: Colors.green,
+                      imagePath: "assets/images/meditation/movement_meditation.jpg",
+                      isFeatured: true,
+                      onStartPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Starting Movement Meditation...")),
                         );
                       },
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 48),
+                const SizedBox(height: 28),
 
-                  // Movement card
-                  GestureDetector(
-                    onTapDown: (_) => setState(() => _cardScale1 = 0.96),
-                    onTapUp: (_) => setState(() => _cardScale1 = 1.0),
-                    onTapCancel: () => setState(() => _cardScale1 = 1.0),
-                    child: AnimatedScale(
-                      scale: _cardScale1,
-                      duration: const Duration(milliseconds: 120),
-                      child: MeditationCard(
-                        title: "$username's Movement Meditation",
-                        instructor: username,
-                        subtitle: "Awaken Your Body & Mind",
-                        buttonText: "Start",
-                        buttonColor: Colors.green,
-                        imagePath: "assets/images/meditation/movement_meditation.jpg",
-                        isFeatured: true,
-                        onStartPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Starting Movement Meditation...")),
-                          );
-                        },
-                      ),
+                // Music card
+                GestureDetector(
+                  onTapDown: (_) => setState(() => _cardScale2 = 0.96),
+                  onTapUp: (_) => setState(() => _cardScale2 = 1.0),
+                  onTapCancel: () => setState(() => _cardScale2 = 1.0),
+                  child: AnimatedScale(
+                    scale: _cardScale2,
+                    duration: const Duration(milliseconds: 120),
+                    child: MeditationCard(
+                      title: "$username's Music Meditation",
+                      instructor: username,
+                      subtitle: "Calm Your Mind",
+                      buttonText: "Start",
+                      buttonColor: const Color(0xFF3B82F6),
+                      imagePath: "assets/images/meditation/music_meditation.jpg",
+                      isFeatured: false,
+                      onStartPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Starting Music Meditation...")),
+                        );
+                      },
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 28),
-
-                  // Music card
-                  GestureDetector(
-                    onTapDown: (_) => setState(() => _cardScale2 = 0.96),
-                    onTapUp: (_) => setState(() => _cardScale2 = 1.0),
-                    onTapCancel: () => setState(() => _cardScale2 = 1.0),
-                    child: AnimatedScale(
-                      scale: _cardScale2,
-                      duration: const Duration(milliseconds: 120),
-                      child: MeditationCard(
-                        title: "$username's Music Meditation",
-                        instructor: username,
-                        subtitle: "Calm Your Mind",
-                        buttonText: "Start",
-                        buttonColor: const Color(0xFF3B82F6),
-                        imagePath: "assets/images/meditation/music_meditation.jpg",
-                        isFeatured: false,
-                        onStartPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Starting Music Meditation...")),
-                          );
-                        },
+                // Quote at bottom
+                const SizedBox(height: 48),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      "Breathe. Let go. And remind yourself that this very moment is the only one you know you have for sure.",
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 15,
+                        fontStyle: FontStyle.italic,
+                        height: 1.45,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
+                ),
 
-                  // Quote at bottom
-                  const SizedBox(height: 48),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        "Breathe. Let go. And remind yourself that this very moment is the only one you know you have for sure.",
-                        style: TextStyle(
-                          color: Colors.white60,
-                          fontSize: 15,
-                          fontStyle: FontStyle.italic,
-                          height: 1.45,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 80),
-                ],
-              ),
+                const SizedBox(height: 140), // ← Increased for extra safety
+              ],
             ),
           ),
         ),
