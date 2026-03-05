@@ -141,7 +141,7 @@ class _MeditationCardState extends State<MeditationCard> {
                       ],
                     ),
 
-                    // Start button
+                    // Start button – SMALLER VERSION
                     Align(
                       alignment: Alignment.centerRight,
                       child: ElevatedButton(
@@ -149,17 +149,16 @@ class _MeditationCardState extends State<MeditationCard> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: widget.buttonColor,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                          minimumSize: const Size(110, 38),           // ← smaller base size
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), // reduced padding
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                           elevation: 0,
-                        ),
-                        child: Text(
-                          widget.buttonText,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                          textStyle: const TextStyle(
+                            fontSize: 15,                             // slightly smaller text
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
+                        child: Text(widget.buttonText),
                       ),
                     ),
                   ],
