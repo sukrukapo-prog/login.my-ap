@@ -128,7 +128,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                     scale: _cardScale1,
                     duration: const Duration(milliseconds: 120),
                     child: MeditationCard(
-                      title: "$username's Movement Meditation",//this is done by kapil
+                      title: " lets start Movement Meditation",//this is better
                       instructor: username,
                       subtitle: "Awaken Your Body & Mind",
                       buttonText: "Start",
@@ -155,7 +155,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                     scale: _cardScale2,
                     duration: const Duration(milliseconds: 120),
                     child: MeditationCard(
-                      title: "$username's Music Meditation",
+                      title: " Relax your breathing with music",
                       instructor: username,
                       subtitle: "Calm Your Mind",
                       buttonText: "Start",
