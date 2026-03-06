@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'package:fitmetrics/models/onboarding_data.dart';
+import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/screens/meditation/widgets/meditation_card.dart';
-import 'package:fitmetrics/screens/meditation/choose_calmness_screen.dart'; // ← ADD THIS
+import 'package:fitmetrics/screens/meditation/choose_calmness_screen.dart';
 
 class MeditationScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -16,10 +19,41 @@ class _MeditationScreenState extends State<MeditationScreen> {
   String? _selectedMood;
   double _cardScale1 = 1.0;
   double _cardScale2 = 1.0;
+  String _preferredName = '';
+  String? _avatarId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    // First try passed-in data
+    String name = widget.userData.name ?? '';
+
+    // If empty (after app restart), load from SharedPreferences
+    if (name.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString('userData');
+      if (jsonString != null) {
+        final data = OnboardingData.fromJson(jsonDecode(jsonString));
+        name = data.name ?? '';
+      }
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final avatarId = prefs.getString('avatarId');
+
+    setState(() {
+      _preferredName = name;
+      _avatarId = avatarId;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final username = widget.userData.name ?? "User";
+    final username = _preferredName.isNotEmpty ? _preferredName : 'there';
 
     return Scaffold(
       extendBody: true,
@@ -28,10 +62,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0F1624),
-              Color(0xFF0A0F1A),
-            ],
+            colors: [Color(0xFF0F1624), Color(0xFF0A0F1A)],
           ),
         ),
         child: SafeArea(
@@ -40,9 +71,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.fromLTRB(
-              20,
-              0,
-              20,
+              20, 0, 20,
               MediaQuery.of(context).padding.bottom + 120,
             ),
             child: Column(
@@ -50,26 +79,20 @@ class _MeditationScreenState extends State<MeditationScreen> {
               children: [
                 const SizedBox(height: 20),
 
-                // Header
+                // Header with avatar
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Welcome${username.isNotEmpty ? ', $username' : ''}!",
+                      "Welcome, $username!",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: const Color(0xFF3B82F6),
-                      child: Text(
-                        username.isNotEmpty ? username[0].toUpperCase() : "?",
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
+                    // User's selected avatar
+                    AvatarWidget(avatarId: _avatarId, size: 44, showBorder: true),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -80,14 +103,9 @@ class _MeditationScreenState extends State<MeditationScreen> {
 
                 const SizedBox(height: 36),
 
-                // Mood question
                 const Text(
                   "How is your mood?",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 20),
 
@@ -104,16 +122,12 @@ class _MeditationScreenState extends State<MeditationScreen> {
                       final moods = [
                         ["🥺", "Sad",       const Color(0xFF007AA5)],
                         ["😩", "Exhausted", const Color(0xFFDEBD9E)],
-                        ["😐", "Normal",    Colors.grey.shade400],
+                        ["😐", "Normal",    Colors.grey],
                         ["😊", "Good",      const Color(0xFF9CFFDB)],
                         ["😎", "Excited",   const Color(0xFFE09B51)],
                       ];
                       final mood = moods[index];
-                      return _buildMood(
-                        mood[0] as String,
-                        mood[1] as String,
-                        mood[2] as Color,
-                      );
+                      return _buildMood(mood[0] as String, mood[1] as String, mood[2] as Color);
                     },
                   ),
                 ),
@@ -147,7 +161,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
 
                 const SizedBox(height: 28),
 
-                // Music card — navigates to ChooseCalmnessScreen ← UPDATED
+                // Music card
                 GestureDetector(
                   onTapDown: (_) => setState(() => _cardScale2 = 0.96),
                   onTapUp: (_) => setState(() => _cardScale2 = 1.0),
@@ -164,19 +178,15 @@ class _MeditationScreenState extends State<MeditationScreen> {
                       imagePath: "assets/images/meditation/music_meditation.jpg",
                       isFeatured: false,
                       onStartPressed: () {
-                        // ← UPDATED: navigate to ChooseCalmnessScreen
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const ChooseCalmnessScreen(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const ChooseCalmnessScreen()),
                         );
                       },
                     ),
                   ),
                 ),
 
-                // Quote at bottom
                 const SizedBox(height: 48),
                 Center(
                   child: Padding(
@@ -193,7 +203,6 @@ class _MeditationScreenState extends State<MeditationScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 140),
               ],
             ),
@@ -220,11 +229,8 @@ class _MeditationScreenState extends State<MeditationScreen> {
         ScaffoldMessenger.of(context).removeCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              moodMessages[label] ?? "Nice choice!",
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
-            backgroundColor: color.withValues(alpha: 0.92),
+            content: Text(moodMessages[label] ?? "Nice choice!", style: const TextStyle(color: Colors.white, fontSize: 14)),
+            backgroundColor: color.withOpacity(0.92),
             duration: const Duration(seconds: 3, milliseconds: 500),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -247,33 +253,13 @@ class _MeditationScreenState extends State<MeditationScreen> {
                 shape: BoxShape.circle,
                 color: color,
                 boxShadow: isSelected
-                    ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.65),
-                    blurRadius: 18,
-                    spreadRadius: 6,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-                    : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.26),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                    ? [BoxShadow(color: color.withOpacity(0.65), blurRadius: 18, spreadRadius: 6, offset: const Offset(0, 4))]
+                    : [BoxShadow(color: Colors.black.withOpacity(0.26), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(10.0),
-                  child: Text(
-                    emoji,
-                    style: const TextStyle(
-                      fontSize: 44,
-                      height: 1.0,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: Text(emoji, style: const TextStyle(fontSize: 44, height: 1.0, color: Colors.white)),
                 ),
               ),
             ),

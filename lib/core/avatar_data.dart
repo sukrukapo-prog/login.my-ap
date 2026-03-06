@@ -5,7 +5,7 @@ class AppAvatar {
   final String name;
   final Color primaryColor;
   final Color secondaryColor;
-  final IconData icon;
+  final IconData fallbackIcon; // used if image not found
   final String category; // 'male', 'female', 'animal'
 
   const AppAvatar({
@@ -13,19 +13,21 @@ class AppAvatar {
     required this.name,
     required this.primaryColor,
     required this.secondaryColor,
-    required this.icon,
+    required this.fallbackIcon,
     required this.category,
   });
+
+  String get imagePath => 'assets/images/avatars/$id.png';
 }
 
 const List<AppAvatar> allAvatars = [
-  // Male avatars
+  // ── Male avatars ──────────────────────────────────────────────
   AppAvatar(
     id: 'male_athlete',
     name: 'Athlete',
     primaryColor: Color(0xFF3B82F6),
     secondaryColor: Color(0xFF1E3A5F),
-    icon: Icons.sports_gymnastics,
+    fallbackIcon: Icons.sports_gymnastics,
     category: 'male',
   ),
   AppAvatar(
@@ -33,7 +35,7 @@ const List<AppAvatar> allAvatars = [
     name: 'Casual',
     primaryColor: Color(0xFF10B981),
     secondaryColor: Color(0xFF064E3B),
-    icon: Icons.person,
+    fallbackIcon: Icons.person,
     category: 'male',
   ),
   AppAvatar(
@@ -41,7 +43,7 @@ const List<AppAvatar> allAvatars = [
     name: 'Sporty',
     primaryColor: Color(0xFFF59E0B),
     secondaryColor: Color(0xFF78350F),
-    icon: Icons.directions_run,
+    fallbackIcon: Icons.directions_run,
     category: 'male',
   ),
   AppAvatar(
@@ -49,7 +51,7 @@ const List<AppAvatar> allAvatars = [
     name: 'Zen',
     primaryColor: Color(0xFF8B5CF6),
     secondaryColor: Color(0xFF3B0764),
-    icon: Icons.self_improvement,
+    fallbackIcon: Icons.self_improvement,
     category: 'male',
   ),
   AppAvatar(
@@ -57,25 +59,25 @@ const List<AppAvatar> allAvatars = [
     name: 'Runner',
     primaryColor: Color(0xFFEF4444),
     secondaryColor: Color(0xFF7F1D1D),
-    icon: Icons.directions_walk,
+    fallbackIcon: Icons.directions_walk,
     category: 'male',
   ),
   AppAvatar(
-    id: 'male_strong',
-    name: 'Strong',
-    primaryColor: Color(0xFFEC4899),
-    secondaryColor: Color(0xFF831843),
-    icon: Icons.fitness_center,
+    id: 'male_swimmer',
+    name: 'Swimmer',
+    primaryColor: Color(0xFF0EA5E9),
+    secondaryColor: Color(0xFF0C4A6E),
+    fallbackIcon: Icons.pool,
     category: 'male',
   ),
 
-  // Female avatars
+  // ── Female avatars ────────────────────────────────────────────
   AppAvatar(
-    id: 'female_athlete',
-    name: 'Athlete',
+    id: 'female_pilates',
+    name: 'Pilates',
     primaryColor: Color(0xFF06B6D4),
     secondaryColor: Color(0xFF164E63),
-    icon: Icons.sports_gymnastics,
+    fallbackIcon: Icons.accessibility_new,
     category: 'female',
   ),
   AppAvatar(
@@ -83,7 +85,7 @@ const List<AppAvatar> allAvatars = [
     name: 'Casual',
     primaryColor: Color(0xFF84CC16),
     secondaryColor: Color(0xFF365314),
-    icon: Icons.person_2,
+    fallbackIcon: Icons.person_2,
     category: 'female',
   ),
   AppAvatar(
@@ -91,7 +93,7 @@ const List<AppAvatar> allAvatars = [
     name: 'Yoga',
     primaryColor: Color(0xFFA78BFA),
     secondaryColor: Color(0xFF4C1D95),
-    icon: Icons.self_improvement,
+    fallbackIcon: Icons.self_improvement,
     category: 'female',
   ),
   AppAvatar(
@@ -99,7 +101,7 @@ const List<AppAvatar> allAvatars = [
     name: 'Runner',
     primaryColor: Color(0xFFF97316),
     secondaryColor: Color(0xFF7C2D12),
-    icon: Icons.directions_run,
+    fallbackIcon: Icons.directions_run,
     category: 'female',
   ),
   AppAvatar(
@@ -107,7 +109,7 @@ const List<AppAvatar> allAvatars = [
     name: 'Strong',
     primaryColor: Color(0xFFF43F5E),
     secondaryColor: Color(0xFF881337),
-    icon: Icons.fitness_center,
+    fallbackIcon: Icons.fitness_center,
     category: 'female',
   ),
   AppAvatar(
@@ -115,33 +117,33 @@ const List<AppAvatar> allAvatars = [
     name: 'Zen',
     primaryColor: Color(0xFF14B8A6),
     secondaryColor: Color(0xFF134E4A),
-    icon: Icons.spa,
+    fallbackIcon: Icons.spa,
     category: 'female',
   ),
 
-  // Animal avatars
+  // ── Animal avatars ────────────────────────────────────────────
   AppAvatar(
     id: 'animal_lion',
     name: 'Lion',
     primaryColor: Color(0xFFD97706),
     secondaryColor: Color(0xFF78350F),
-    icon: Icons.pets,
+    fallbackIcon: Icons.pets,
     category: 'animal',
   ),
   AppAvatar(
-    id: 'animal_wolf',
-    name: 'Wolf',
+    id: 'animal_bear',
+    name: 'Bear',
     primaryColor: Color(0xFF6B7280),
     secondaryColor: Color(0xFF111827),
-    icon: Icons.night_shelter,
+    fallbackIcon: Icons.park,
     category: 'animal',
   ),
   AppAvatar(
-    id: 'animal_eagle',
-    name: 'Eagle',
-    primaryColor: Color(0xFF92400E),
-    secondaryColor: Color(0xFF1C1917),
-    icon: Icons.flight,
+    id: 'animal_dolphin',
+    name: 'Dolphin',
+    primaryColor: Color(0xFF0284C7),
+    secondaryColor: Color(0xFF0C4A6E),
+    fallbackIcon: Icons.waves,
     category: 'animal',
   ),
   AppAvatar(
@@ -149,7 +151,7 @@ const List<AppAvatar> allAvatars = [
     name: 'Tiger',
     primaryColor: Color(0xFFEA580C),
     secondaryColor: Color(0xFF1C0A00),
-    icon: Icons.track_changes,
+    fallbackIcon: Icons.track_changes,
     category: 'animal',
   ),
 ];
@@ -162,7 +164,7 @@ AppAvatar getAvatarById(String? id) {
   );
 }
 
-// Widget to display an avatar anywhere in the app
+// ── AvatarWidget — shows image if available, falls back to icon ───────────────
 class AvatarWidget extends StatelessWidget {
   final String? avatarId;
   final double size;
@@ -189,7 +191,8 @@ class AvatarWidget extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         border: showBorder
-            ? Border.all(color: avatar.primaryColor.withOpacity(0.6), width: 2.5)
+            ? Border.all(
+            color: avatar.primaryColor.withOpacity(0.6), width: 2.5)
             : null,
         boxShadow: [
           BoxShadow(
@@ -199,10 +202,19 @@ class AvatarWidget extends StatelessWidget {
           ),
         ],
       ),
-      child: Icon(
-        avatar.icon,
-        color: Colors.white,
-        size: size * 0.5,
+      child: ClipOval(
+        child: Image.asset(
+          avatar.imagePath,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          // Falls back to icon if image not found
+          errorBuilder: (_, __, ___) => Icon(
+            avatar.fallbackIcon,
+            color: Colors.white,
+            size: size * 0.5,
+          ),
+        ),
       ),
     );
   }

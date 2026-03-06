@@ -66,3 +66,21 @@ flutter:
     - assets/images/meditation/audio/morning.mp3
     - assets/images/meditation/audio/nature.mp3
 
+    - assets/images/avatars/animal_bear.png
+    - assets/images/avatars/animal_dolphin.png
+    - assets/images/avatars/animal_lion.png
+    - assets/images/avatars/animal_tiger.png
+    - assets/images/avatars/female_casual.png
+    - assets/images/avatars/female_pilates.png
+    - assets/images/avatars/female_runner.png
+    - assets/images/avatars/female_strong.png
+    - assets/images/avatars/female_yoga.png
+    - assets/images/avatars/female_zen.png
+    - assets/images/avatars/male_athlete.png
+    - assets/images/avatars/male_casual.png
+    - assets/images/avatars/male_runner.png
+    - assets/images/avatars/male_sporty.png
+    - assets/images/avatars/male_swimmer.png
+    - assets/images/avatars/male_zen.png
+
+
