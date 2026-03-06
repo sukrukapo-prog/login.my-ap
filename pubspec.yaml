@@ -32,6 +32,8 @@ flutter:
   assets:
     - assets/images/fittintroimage.jpg
     - assets/images/logo.png
+
+
     - assets/images/meditation/movement_meditation.jpg
     - assets/images/meditation/music_meditation.jpg
     - assets/images/meditation/meditation_icon.jpg
@@ -47,15 +49,20 @@ flutter:
     - assets/images/meditation/calmness/ocean.png
     - assets/images/meditation/calmness/rain.png
     - assets/images/meditation/calmness/morning.png
+
+
     - assets/images/meditation/videos/rain.mp4
     - assets/images/meditation/videos/ocean.mp4
     - assets/images/meditation/videos/night.mp4
     - assets/images/meditation/videos/birds.mp4
     - assets/images/meditation/videos/morning.mp4
     - assets/images/meditation/videos/nature.mp4
+
+
     - assets/images/meditation/audio/rain.mp3
     - assets/images/meditation/audio/ocean.mp3
     - assets/images/meditation/audio/night.mp3
     - assets/images/meditation/audio/birds.mp3
     - assets/images/meditation/audio/morning.mp3
     - assets/images/meditation/audio/nature.mp3
+
