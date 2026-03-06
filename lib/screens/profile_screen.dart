@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
+import 'package:fitmetrics/core/audio_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -17,8 +18,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late OnboardingData _data;
   String? _avatarId;
   bool _isEditing = false;
+  bool _showPersonalDetails = false; // hidden by default
 
-  // Edit controllers
   late TextEditingController _ageController;
   late TextEditingController _heightController;
   late TextEditingController _weightController;
@@ -39,21 +40,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _saveData() async {
-    // Update data
     final age = int.tryParse(_ageController.text.trim());
     final height = double.tryParse(_heightController.text.trim());
     final weight = double.tryParse(_weightController.text.trim());
-
     if (age != null) _data.age = age;
     if (height != null) _data.heightCm = height;
     if (weight != null) _data.currentWeightKg = weight;
-
-    // Save to prefs
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userData', jsonEncode(_data.toJson()));
-
     setState(() => _isEditing = false);
-
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated!')),
@@ -62,6 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _changeAvatar() {
+    AudioService().playClickSound();
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A2540),
@@ -81,6 +77,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _openSettings() {
+    AudioService().playClickSound();
+    Navigator.pushNamed(context, AppRoutes.settings);
+  }
+
   void _logout() {
     showDialog(
       context: context,
@@ -98,9 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('isRegistered', false);
-              if (mounted) {
-                Navigator.pushReplacementNamed(context, AppRoutes.welcome);
-              }
+              if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.welcome);
             },
             child: const Text('Logout', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700)),
           ),
@@ -138,11 +137,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           AvatarWidget(avatarId: _avatarId, size: 90, showBorder: true),
                           Positioned(
-                            bottom: 0,
-                            right: 0,
+                            bottom: 0, right: 0,
                             child: Container(
-                              width: 28,
-                              height: 28,
+                              width: 28, height: 28,
                               decoration: const BoxDecoration(
                                 color: Color(0xFF3B82F6),
                                 shape: BoxShape.circle,
@@ -154,19 +151,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      _data.name ?? 'User',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    Text(_data.name ?? 'User',
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 4),
-                    Text(
-                      _data.email ?? '',
-                      style: const TextStyle(color: Colors.white38, fontSize: 13),
-                    ),
+                    Text(_data.email ?? '',
+                        style: const TextStyle(color: Colors.white38, fontSize: 13)),
                   ],
                 ),
               ),
@@ -182,29 +171,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Row(
                   children: [
-                    _StatBox(
-                      label: 'Height',
-                      value: _data.heightCm != null ? '${_data.heightCm!.round()} cm' : '—',
-                    ),
-                    _Divider(),
-                    _StatBox(
-                      label: 'Age',
-                      value: _data.age?.toString() ?? '—',
-                    ),
-                    _Divider(),
-                    _StatBox(
-                      label: 'Weight',
-                      value: _data.currentWeightKg != null ? '${_data.currentWeightKg!.toStringAsFixed(1)} kg' : '—',
-                    ),
+                    _StatBox(label: 'Height', value: _data.heightCm != null ? '${_data.heightCm!.round()} cm' : '—'),
+                    _VertDivider(),
+                    _StatBox(label: 'Age', value: _data.age?.toString() ?? '—'),
+                    _VertDivider(),
+                    _StatBox(label: 'Weight', value: _data.currentWeightKg != null ? '${_data.currentWeightKg!.toStringAsFixed(1)} kg' : '—'),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
 
-              // Personal Details
+              // Personal Details — hidden by default, toggle to show
               _SectionCard(
                 title: 'Personal Details',
-                child: Column(
+                trailing: GestureDetector(
+                  onTap: () => setState(() => _showPersonalDetails = !_showPersonalDetails),
+                  child: Text(
+                    _showPersonalDetails ? 'Hide' : 'Show',
+                    style: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                ),
+                child: _showPersonalDetails
+                    ? Column(
                   children: [
                     _InfoRow(label: 'Preferred Name', value: _data.name ?? '—'),
                     const Divider(color: Colors.white12, height: 1),
@@ -212,6 +200,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const Divider(color: Colors.white12, height: 1),
                     _InfoRow(label: 'Gender', value: _data.gender ?? '—'),
                   ],
+                )
+                    : const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.lock_outline, color: Colors.white38, size: 16),
+                      SizedBox(width: 8),
+                      Text('Tap "Show" to reveal details',
+                          style: TextStyle(color: Colors.white38, fontSize: 13)),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -230,69 +229,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    _EditableRow(
-                      label: 'Age',
-                      controller: _ageController,
-                      isEditing: _isEditing,
-                      value: _data.age?.toString() ?? '—',
-                      keyboardType: TextInputType.number,
-                      suffix: 'yrs',
-                    ),
+                    _EditableRow(label: 'Age', controller: _ageController, isEditing: _isEditing,
+                        value: _data.age?.toString() ?? '—', keyboardType: TextInputType.number, suffix: 'yrs'),
                     const Divider(color: Colors.white12, height: 1),
-                    _EditableRow(
-                      label: 'Height',
-                      controller: _heightController,
-                      isEditing: _isEditing,
-                      value: _data.heightCm != null ? '${_data.heightCm!.round()} cm' : '—',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      suffix: 'cm',
-                    ),
+                    _EditableRow(label: 'Height', controller: _heightController, isEditing: _isEditing,
+                        value: _data.heightCm != null ? '${_data.heightCm!.round()} cm' : '—',
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true), suffix: 'cm'),
                     const Divider(color: Colors.white12, height: 1),
-                    _EditableRow(
-                      label: 'Weight',
-                      controller: _weightController,
-                      isEditing: _isEditing,
-                      value: _data.currentWeightKg != null ? '${_data.currentWeightKg!.toStringAsFixed(1)} kg' : '—',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      suffix: 'kg',
-                    ),
+                    _EditableRow(label: 'Weight', controller: _weightController, isEditing: _isEditing,
+                        value: _data.currentWeightKg != null ? '${_data.currentWeightKg!.toStringAsFixed(1)} kg' : '—',
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true), suffix: 'kg'),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
 
-              // Menu items
-              _MenuCard(
-                items: [
-                  _MenuItem(
-                    icon: Icons.color_lens_outlined,
-                    label: 'Change Avatar',
-                    onTap: _changeAvatar,
-                  ),
-                  _MenuItem(
-                    icon: Icons.settings_outlined,
-                    label: 'Settings',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Settings — coming soon')),
-                      );
-                    },
-                  ),
-                ],
-              ),
+              _MenuCard(items: [
+                _MenuItem(icon: Icons.color_lens_outlined, label: 'Change Avatar', onTap: _changeAvatar),
+                _MenuItem(icon: Icons.settings_outlined, label: 'Settings', onTap: _openSettings),
+              ]),
               const SizedBox(height: 12),
 
-              // Logout
-              _MenuCard(
-                items: [
-                  _MenuItem(
-                    icon: Icons.logout,
-                    label: 'Logout',
-                    onTap: _logout,
-                    color: Colors.redAccent,
-                  ),
-                ],
-              ),
+              _MenuCard(items: [
+                _MenuItem(icon: Icons.logout, label: 'Logout', onTap: _logout, color: Colors.redAccent),
+              ]),
               const SizedBox(height: 32),
             ],
           ),
@@ -302,13 +262,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ── Sub-widgets ────────────────────────────────────────────────────────────────
-
 class _StatBox extends StatelessWidget {
-  final String label;
-  final String value;
+  final String label, value;
   const _StatBox({required this.label, required this.value});
-
   @override
   Widget build(BuildContext context) {
     return Expanded(
@@ -323,18 +279,16 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-class _Divider extends StatelessWidget {
+class _VertDivider extends StatelessWidget {
   @override
-  Widget build(BuildContext context) {
-    return Container(width: 1, height: 36, color: Colors.white12);
-  }
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 36, color: Colors.white12);
 }
 
 class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
   final Widget? trailing;
-
   const _SectionCard({required this.title, required this.child, this.trailing});
 
   @override
@@ -371,10 +325,8 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
+  final String label, value;
   const _InfoRow({required this.label, required this.value});
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -391,21 +343,13 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _EditableRow extends StatelessWidget {
-  final String label;
+  final String label, value, suffix;
   final TextEditingController controller;
   final bool isEditing;
-  final String value;
   final TextInputType keyboardType;
-  final String suffix;
-
-  const _EditableRow({
-    required this.label,
-    required this.controller,
-    required this.isEditing,
-    required this.value,
-    required this.keyboardType,
-    required this.suffix,
-  });
+  const _EditableRow({required this.label, required this.controller,
+    required this.isEditing, required this.value,
+    required this.keyboardType, required this.suffix});
 
   @override
   Widget build(BuildContext context) {
@@ -426,8 +370,7 @@ class _EditableRow extends StatelessWidget {
                 decoration: InputDecoration(
                   suffixText: suffix,
                   suffixStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                  isDense: true,
-                  filled: true,
+                  isDense: true, filled: true,
                   fillColor: Colors.white.withOpacity(0.08),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -448,7 +391,6 @@ class _EditableRow extends StatelessWidget {
 class _MenuCard extends StatelessWidget {
   final List<_MenuItem> items;
   const _MenuCard({required this.items});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -458,17 +400,15 @@ class _MenuCard extends StatelessWidget {
         border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
       child: Column(
-        children: items.asMap().entries.map((entry) {
-          final i = entry.key;
-          final item = entry.value;
+        children: items.asMap().entries.map((e) {
+          final i = e.key;
+          final item = e.value;
           return Column(
             children: [
               ListTile(
                 leading: Icon(item.icon, color: item.color ?? Colors.white70, size: 22),
-                title: Text(
-                  item.label,
-                  style: TextStyle(color: item.color ?? Colors.white70, fontSize: 15),
-                ),
+                title: Text(item.label,
+                    style: TextStyle(color: item.color ?? Colors.white70, fontSize: 15)),
                 trailing: const Icon(Icons.chevron_right, color: Colors.white24, size: 20),
                 onTap: item.onTap,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -488,16 +428,13 @@ class _MenuItem {
   final String label;
   final VoidCallback onTap;
   final Color? color;
-
   const _MenuItem({required this.icon, required this.label, required this.onTap, this.color});
 }
 
 // ── Avatar picker bottom sheet ─────────────────────────────────────────────────
-
 class _AvatarPickerSheet extends StatefulWidget {
   final String? currentAvatarId;
   final Function(String) onSelected;
-
   const _AvatarPickerSheet({required this.currentAvatarId, required this.onSelected});
 
   @override
@@ -527,13 +464,12 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(
-            child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-          ),
+          Center(child: Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 16),
-          const Text('Change Avatar', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+          const Text('Change Avatar',
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 16),
-          // Category filter
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -552,9 +488,7 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
           Expanded(
             child: GridView.builder(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
+                crossAxisCount: 4, crossAxisSpacing: 12, mainAxisSpacing: 12,
               ),
               itemCount: _filtered.length,
               itemBuilder: (context, i) {
@@ -578,14 +512,12 @@ class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
                         child: AvatarWidget(avatarId: avatar.id, size: 56),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        avatar.name,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white38,
-                          fontSize: 10,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      Text(avatar.name,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white38,
+                            fontSize: 10,
+                          ),
+                          overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 );
@@ -614,7 +546,12 @@ class _Chip extends StatelessWidget {
           color: selected ? const Color(0xFF3B82F6) : Colors.white.withOpacity(0.08),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : Colors.white54, fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.normal)),
+        child: Text(label,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.white54,
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+            )),
       ),
     );
   }

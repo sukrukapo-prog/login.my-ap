@@ -1,7 +1,8 @@
 class OnboardingData {
-  String? name;
+  String? name;        // preferred name
+  String? fullName;    // real full name (different from preferred)
   Set<String> goals = {};
-  String? gender; // 'Male' or 'Female'
+  String? gender;
   int? age;
   String? country;
   double? heightCm;
@@ -10,38 +11,29 @@ class OnboardingData {
   String? email;
   String? password;
 
-  OnboardingData(); // explicit empty constructor
+  OnboardingData();
 
-  // Validation getters (your original code is perfect)
   bool get hasName => name != null && name!.trim().isNotEmpty;
   bool get hasGoals => goals.isNotEmpty;
   bool get hasGender => gender != null;
-  bool get hasAge => age != null && age! > 0;
+  bool get hasAge => age != null && age! >= 5 && age! <= 120;
   bool get hasCountry => country != null && country!.isNotEmpty;
   bool get hasMeasurements =>
       heightCm != null && heightCm! > 0 &&
-          currentWeightKg != null && currentWeightKg! > 0 &&
+          currentWeightKg != null && currentWeightKg! >= 10 && currentWeightKg! <= 200 &&
           goalWeightKg != null && goalWeightKg! > 0;
   bool get hasCredentials =>
       email != null && email!.contains('@') &&
           password != null && password!.length >= 10;
 
   bool get isComplete =>
-      hasName &&
-          hasGoals &&
-          hasGender &&
-          hasAge &&
-          hasCountry &&
-          hasMeasurements &&
-          hasCredentials;
-
-  // ──────────────────────────────────────────────────────────────
-  // JSON serialization (for shared_preferences, backend, etc.)
-  // ──────────────────────────────────────────────────────────────
+      hasName && hasGoals && hasGender && hasAge &&
+          hasCountry && hasMeasurements && hasCredentials;
 
   Map<String, dynamic> toJson() {
     return {
       'name': name,
+      'fullName': fullName,
       'goals': goals.toList(),
       'gender': gender,
       'age': age,
@@ -50,14 +42,13 @@ class OnboardingData {
       'currentWeightKg': currentWeightKg,
       'goalWeightKg': goalWeightKg,
       'email': email,
-      // password → NEVER save in plain text in production!
-      // If you really need to persist credentials → use secure storage (flutter_secure_storage)
     };
   }
 
   factory OnboardingData.fromJson(Map<String, dynamic> json) {
     return OnboardingData()
       ..name = json['name'] as String?
+      ..fullName = json['fullName'] as String?
       ..goals = (json['goals'] as List<dynamic>?)?.cast<String>().toSet() ?? {}
       ..gender = json['gender'] as String?
       ..age = json['age'] as int?
@@ -68,9 +59,9 @@ class OnboardingData {
       ..email = json['email'] as String?;
   }
 
-  // Optional: copyWith for easy updates (very useful in forms)
   OnboardingData copyWith({
     String? name,
+    String? fullName,
     Set<String>? goals,
     String? gender,
     int? age,
@@ -83,6 +74,7 @@ class OnboardingData {
   }) {
     return OnboardingData()
       ..name = name ?? this.name
+      ..fullName = fullName ?? this.fullName
       ..goals = goals ?? this.goals
       ..gender = gender ?? this.gender
       ..age = age ?? this.age
@@ -94,9 +86,9 @@ class OnboardingData {
       ..password = password ?? this.password;
   }
 
-  // Optional: clear / reset method
   void clear() {
     name = null;
+    fullName = null;
     goals.clear();
     gender = null;
     age = null;

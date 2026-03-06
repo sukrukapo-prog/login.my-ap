@@ -36,15 +36,16 @@ class WelcomeScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 28),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center, // ← centered
                 children: [
                   const Spacer(flex: 4),
-                  // Logo
+
+                  // Logo — centered
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 40, height: 40,
                         decoration: BoxDecoration(
                           color: const Color(0xFF3B82F6),
                           borderRadius: BorderRadius.circular(10),
@@ -64,8 +65,11 @@ class WelcomeScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 24),
+
+                  // Title — centered
                   const Text(
                     'Welcome to\nFitMetrics',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 38,
@@ -75,8 +79,11 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
+
+                  // Subtitle — centered
                   const Text(
                     'Your journey to holistic wellness and\na healthier lifestyle starts right here.',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 15,
@@ -84,6 +91,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                   const Spacer(flex: 2),
+
                   // Get Started button
                   SizedBox(
                     width: double.infinity,
@@ -105,37 +113,32 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                       child: const Text(
                         'Get Started',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
+
                   // Already have account
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Already have an account? ',
-                          style: TextStyle(color: Colors.white60, fontSize: 14),
-                        ),
-                        GestureDetector(
-                          onTap: () => Navigator.pushNamed(context, AppRoutes.login),
-                          child: const Text(
-                            'Log in',
-                            style: TextStyle(
-                              color: Color(0xFF3B82F6),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Already have an account? ',
+                        style: TextStyle(color: Colors.white60, fontSize: 14),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pushNamed(context, AppRoutes.login),
+                        child: const Text(
+                          'Log in',
+                          style: TextStyle(
+                            color: Color(0xFF3B82F6),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 32),
                 ],

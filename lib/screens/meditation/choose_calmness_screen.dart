@@ -1,8 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/screens/meditation/meditation_player_screen.dart';
+import 'package:fitmetrics/core/audio_service.dart';
 
-class ChooseCalmnessScreen extends StatelessWidget {
+class ChooseCalmnessScreen extends StatefulWidget {
   const ChooseCalmnessScreen({Key? key}) : super(key: key);
+
+  @override
+  State<ChooseCalmnessScreen> createState() => _ChooseCalmnessScreenState();
+}
+
+class _ChooseCalmnessScreenState extends State<ChooseCalmnessScreen> {
+
+  @override
+  void initState() {
+    super.initState();
+    AudioService().pauseMusic();
+  }
+
+  @override
+  void dispose() {
+    AudioService().resumeMusic();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

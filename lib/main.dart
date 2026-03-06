@@ -1,25 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitmetrics/routes.dart';
+import 'package:fitmetrics/core/audio_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Check if user is already registered/logged in
+  await AudioService().init();
   final prefs = await SharedPreferences.getInstance();
   final isRegistered = prefs.getBool('isRegistered') ?? false;
-
-  // Decide starting route
   final String startRoute = isRegistered ? AppRoutes.main : AppRoutes.welcome;
-
   runApp(FitMetricsApp(initialRoute: startRoute));
 }
 
 class FitMetricsApp extends StatelessWidget {
-  final String? initialRoute;  // optional – no 'required'
-
+  final String? initialRoute;
   const FitMetricsApp({super.key, this.initialRoute});
-
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +46,7 @@ class FitMetricsApp extends StatelessWidget {
           hintStyle: const TextStyle(color: Colors.white54),
         ),
       ),
-      initialRoute: initialRoute ?? AppRoutes.welcome,  // fallback if null
+      initialRoute: initialRoute ?? AppRoutes.welcome,
       onGenerateRoute: AppRoutes.generateRoute,
     );
   }

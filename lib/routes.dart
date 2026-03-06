@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
+import 'package:fitmetrics/core/page_transitions.dart';
 
 import 'package:fitmetrics/screens/welcome_screen.dart';
 import 'package:fitmetrics/screens/name_screen.dart';
@@ -10,6 +11,8 @@ import 'package:fitmetrics/screens/create_account_screen.dart';
 import 'package:fitmetrics/screens/success_screen.dart';
 import 'package:fitmetrics/screens/login_screen.dart';
 import 'package:fitmetrics/screens/main_tab_screen.dart';
+import 'package:fitmetrics/screens/settings_screen.dart';
+import 'package:fitmetrics/screens/progress_screen.dart';
 
 class AppRoutes {
   static const String welcome       = '/welcome';
@@ -21,83 +24,79 @@ class AppRoutes {
   static const String success       = '/success';
   static const String login         = '/login';
   static const String main          = '/main';
+  static const String settings      = '/settings';
+  static const String progress      = '/progress';
 
-  static Route<dynamic> generateRoute(RouteSettings settings) {
-    final args = settings.arguments;
+  static Route<dynamic> generateRoute(RouteSettings routeSettings) {
+    final args = routeSettings.arguments;
 
-    switch (settings.name) {
+    switch (routeSettings.name) {
       case welcome:
-        return MaterialPageRoute(builder: (_) => const WelcomeScreen());
+        return FadePageRoute(page: const WelcomeScreen());
 
       case name:
-        return MaterialPageRoute(
-          builder: (_) => NameScreen(
-            data: args is OnboardingData ? args : OnboardingData(),
-          ),
+        return SlidePageRoute(
+          page: NameScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case personalInfo:
-        return MaterialPageRoute(
-          builder: (_) => PersonalInfoScreen(
-            data: args is OnboardingData ? args : OnboardingData(),
-          ),
+        return SlidePageRoute(
+          page: PersonalInfoScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case personalize:
-        return MaterialPageRoute(
-          builder: (_) => PersonalizeScreen(
-            data: args is OnboardingData ? args : OnboardingData(),
-          ),
+        return SlidePageRoute(
+          page: PersonalizeScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case goals:
-        return MaterialPageRoute(
-          builder: (_) => GoalsScreen(
-            data: args is OnboardingData ? args : OnboardingData(),
-          ),
+        return SlidePageRoute(
+          page: GoalsScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case createAccount:
-        return MaterialPageRoute(
-          builder: (_) => CreateAccountScreen(
-            data: args is OnboardingData ? args : OnboardingData(),
-          ),
+        return SlidePageRoute(
+          page: CreateAccountScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case success:
-        return MaterialPageRoute(
-          builder: (_) => SuccessScreen(
-            data: args is OnboardingData ? args : OnboardingData(),
-          ),
+        return SlidePageRoute(
+          page: SuccessScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case login:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return SlidePageRoute(
+          page: const LoginScreen(),
+          direction: SlideDirection.bottomToTop,
+        );
 
       case main:
-        return MaterialPageRoute(
-          builder: (_) => MainTabScreen(
+        return FadePageRoute(
+          page: MainTabScreen(
             userData: args is OnboardingData ? args : OnboardingData(),
           ),
         );
 
-      default:
-        return _errorRoute(settings.name);
-    }
-  }
+      case settings:
+        return SlidePageRoute(
+          page: const SettingsScreen(),
+          direction: SlideDirection.bottomToTop,
+        );
 
-  static Route<dynamic> _errorRoute(String? routeName) {
-    return MaterialPageRoute(
-      builder: (_) => Scaffold(
-        backgroundColor: const Color(0xFF0F1624),
-        body: Center(
-          child: Text(
-            'Route not found:\n$routeName',
-            style: const TextStyle(color: Colors.white70, fontSize: 18),
-            textAlign: TextAlign.center,
+      case progress:
+        return SlidePageRoute(page: const ProgressScreen());
+
+      default:
+        return MaterialPageRoute(
+          builder: (_) => Scaffold(
+            backgroundColor: const Color(0xFF0F1624),
+            body: Center(
+              child: Text('Route not found: ${routeSettings.name}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                  textAlign: TextAlign.center),
+            ),
           ),
-        ),
-      ),
-    );
+        );
+    }
   }
 }

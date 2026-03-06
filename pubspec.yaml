@@ -65,6 +65,7 @@ flutter:
     - assets/images/meditation/audio/birds.mp3
     - assets/images/meditation/audio/morning.mp3
     - assets/images/meditation/audio/nature.mp3
+    - assets/images/meditation/audio/excited.mp3
 
     - assets/images/avatars/animal_bear.png
     - assets/images/avatars/animal_dolphin.png

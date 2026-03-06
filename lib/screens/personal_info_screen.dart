@@ -12,6 +12,7 @@ class PersonalInfoScreen extends StatefulWidget {
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final _ageController = TextEditingController();
+  final _fullNameController = TextEditingController();
   String? _gender;
   double _heightCm = 170;
   double _weightKg = 70;
@@ -28,27 +29,40 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     if (widget.data.gender != null) _gender = widget.data.gender;
     if (widget.data.heightCm != null) _heightCm = widget.data.heightCm!;
     if (widget.data.currentWeightKg != null) _weightKg = widget.data.currentWeightKg!;
+    // Pre-fill full name if already set, else use preferred name
+    _fullNameController.text = widget.data.fullName ?? widget.data.name ?? '';
   }
 
   @override
   void dispose() {
     _ageController.dispose();
+    _fullNameController.dispose();
     super.dispose();
   }
 
   void _next() {
-    if (_ageController.text.trim().isEmpty) {
+    final ageText = _ageController.text.trim();
+    if (ageText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter your age')));
+      return;
+    }
+    final age = int.tryParse(ageText);
+    if (age == null || age < 5 || age > 120) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid age (5–120)')));
       return;
     }
     if (_gender == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select your gender')));
       return;
     }
-    widget.data.age = int.tryParse(_ageController.text.trim());
+    widget.data.age = age;
     widget.data.gender = _gender;
     widget.data.heightCm = _heightCm;
     widget.data.currentWeightKg = _weightKg;
+    // Save full name separately
+    final fullName = _fullNameController.text.trim();
+    if (fullName.isNotEmpty) widget.data.fullName = fullName;
+
     Navigator.pushNamed(context, AppRoutes.personalize, arguments: widget.data);
   }
 
@@ -108,8 +122,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     ),
                     const SizedBox(height: 28),
 
-                    // Full Name (display only)
-                    const Text('Full Name', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                    // Preferred Name (display only)
+                    const Text('Preferred Name',
+                        style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
                     Container(
                       width: double.infinity,
@@ -125,6 +140,30 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     ),
                     const SizedBox(height: 20),
 
+                    // Full Name (editable, different from preferred name)
+                    const Text('Full Name',
+                        style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    const Text('Your real full name (can be different from preferred name)',
+                        style: TextStyle(color: Colors.white38, fontSize: 11)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _fullNameController,
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      decoration: InputDecoration(
+                        hintText: 'e.g. John Michael Smith',
+                        hintStyle: const TextStyle(color: Colors.white30),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.07),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
                     // Age + Gender row
                     Row(
                       children: [
@@ -132,7 +171,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Age', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                              const Text('Age',
+                                  style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 4),
+                              const Text('5 – 120',
+                                  style: TextStyle(color: Colors.white38, fontSize: 11)),
                               const SizedBox(height: 8),
                               TextField(
                                 controller: _ageController,
@@ -158,8 +201,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Gender', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 8),
+                              const Text('Gender',
+                                  style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 20),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
                                 decoration: BoxDecoration(
@@ -175,8 +219,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                     isExpanded: true,
                                     icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white38),
                                     items: ['Male', 'Female', 'Other'].map((g) =>
-                                        DropdownMenuItem(value: g, child: Text(g))
-                                    ).toList(),
+                                        DropdownMenuItem(value: g, child: Text(g))).toList(),
                                     onChanged: (v) => setState(() => _gender = v),
                                   ),
                                 ),
@@ -192,7 +235,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Height', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                        const Text('Height',
+                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
                         Row(
                           children: [
                             _UnitToggle(label: 'cm', active: !_heightInFeet, onTap: () => setState(() => _heightInFeet = false)),
@@ -211,10 +255,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       ),
                       child: Column(
                         children: [
-                          Text(
-                            _formatHeight(),
-                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                          ),
+                          Text(_formatHeight(),
+                              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
                           SliderTheme(
                             data: SliderTheme.of(context).copyWith(
@@ -240,7 +282,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Weight', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                        const Text('Weight',
+                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
                         Row(
                           children: [
                             _UnitToggle(label: 'kg', active: !_weightInLbs, onTap: () => setState(() => _weightInLbs = false)),
@@ -250,7 +293,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 4),
+                    const Text('10 – 200 kg',
+                        style: TextStyle(color: Colors.white38, fontSize: 11)),
+                    const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -259,14 +305,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       ),
                       child: Column(
                         children: [
-                          Text(
-                            _formatWeight(),
-                            style: const TextStyle(
-                              color: Color(0xFF3B82F6),
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          Text(_formatWeight(),
+                              style: const TextStyle(
+                                  color: Color(0xFF3B82F6), fontSize: 28, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
                           SliderTheme(
                             data: SliderTheme.of(context).copyWith(
@@ -278,8 +319,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             ),
                             child: Slider(
                               value: _weightKg,
-                              min: 30,
-                              max: 200,
+                              min: 10,   // ← realistic minimum
+                              max: 200,  // ← realistic maximum
                               onChanged: (v) => setState(() => _weightKg = v),
                             ),
                           ),
@@ -303,7 +344,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
-                  child: const Text('Continue', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+                  child: const Text('Continue',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
                 ),
               ),
             ),
@@ -318,7 +360,6 @@ class _UnitToggle extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-
   const _UnitToggle({required this.label, required this.active, required this.onTap});
 
   @override
@@ -331,14 +372,12 @@ class _UnitToggle extends StatelessWidget {
           color: active ? const Color(0xFF3B82F6) : Colors.white.withOpacity(0.08),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? Colors.white : Colors.white54,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: Text(label,
+            style: TextStyle(
+              color: active ? Colors.white : Colors.white54,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            )),
       ),
     );
   }
