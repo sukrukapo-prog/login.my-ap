@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
-import 'package:fitmetrics/widgets/progress_dots.dart';
 import 'package:fitmetrics/routes.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   final OnboardingData data;
-
   const PersonalInfoScreen({super.key, required this.data});
 
   @override
@@ -13,30 +11,23 @@ class PersonalInfoScreen extends StatefulWidget {
 }
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
+  final _ageController = TextEditingController();
   String? _gender;
-  late TextEditingController _ageController;
-  String? _country;
+  double _heightCm = 170;
+  double _weightKg = 70;
+  bool _heightInFeet = false;
+  bool _weightInLbs = false;
 
-  final List<String> _countries = [
-    'India',
-    'United States',
-    'United Kingdom',
-    'Canada',
-    'Australia',
-    'Germany',
-    'France',
-    'Other'
-  ];
+  static const int totalSteps = 6;
+  static const int currentStep = 2;
 
   @override
   void initState() {
     super.initState();
-    _ageController = TextEditingController(text: widget.data.age?.toString() ?? '');
-    _gender = widget.data.gender;
-    _country = widget.data.country;
-
-    // Real-time UI update when age changes
-    _ageController.addListener(() => setState(() {}));
+    if (widget.data.age != null) _ageController.text = widget.data.age.toString();
+    if (widget.data.gender != null) _gender = widget.data.gender;
+    if (widget.data.heightCm != null) _heightCm = widget.data.heightCm!;
+    if (widget.data.currentWeightKg != null) _weightKg = widget.data.currentWeightKg!;
   }
 
   @override
@@ -45,168 +36,335 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     super.dispose();
   }
 
-  bool get _isValid =>
-      _gender != null &&
-          _ageController.text.trim().isNotEmpty &&
-          int.tryParse(_ageController.text.trim()) != null &&
-          int.parse(_ageController.text.trim()) > 0 &&
-          _country != null;
+  void _next() {
+    if (_ageController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter your age')));
+      return;
+    }
+    if (_gender == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select your gender')));
+      return;
+    }
+    widget.data.age = int.tryParse(_ageController.text.trim());
+    widget.data.gender = _gender;
+    widget.data.heightCm = _heightCm;
+    widget.data.currentWeightKg = _weightKg;
+    Navigator.pushNamed(context, AppRoutes.personalize, arguments: widget.data);
+  }
 
-  String? get _ageError {
-    final text = _ageController.text.trim();
-    if (text.isEmpty) return 'Age is required';
-    final age = int.tryParse(text);
-    if (age == null || age <= 0) return 'Enter a valid age';
-    return null;
+  String _formatHeight() {
+    if (_heightInFeet) {
+      final totalInches = _heightCm / 2.54;
+      final feet = (totalInches ~/ 12);
+      final inches = (totalInches % 12).round();
+      return "$feet'$inches\"";
+    }
+    return '${_heightCm.round()} cm';
+  }
+
+  String _formatWeight() {
+    if (_weightInLbs) {
+      return '${(_weightKg * 2.20462).toStringAsFixed(1)} lbs';
+    }
+    return '${_weightKg.toStringAsFixed(1)} kg';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F1624),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-
-              IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, size: 28),
-                onPressed: () => Navigator.pop(context),
-              ),
-
-              const SizedBox(height: 8),
-
-              const ProgressDots(current: 3),
-
-              const SizedBox(height: 32),
-
-              const Text(
-                "Tell us a little bit about yourself",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-              ),
-
-              const SizedBox(height: 32),
-
-              const Text('Please select which sex we should use to calculate your calorie needs'),
-
-              const SizedBox(height: 16),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: ListTile(
-                      title: const Text('Male'),
-                      leading: Radio<String>(
-                        value: 'Male',
-                        groupValue: _gender,
-                        activeColor: const Color(0xFF3B82F6),
-                        onChanged: (value) => setState(() => _gender = value),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
                       ),
-                      contentPadding: EdgeInsets.zero,
                     ),
-                  ),
-                  Expanded(
-                    child: ListTile(
-                      title: const Text('Female'),
-                      leading: Radio<String>(
-                        value: 'Female',
-                        groupValue: _gender,
-                        activeColor: const Color(0xFF3B82F6),
-                        onChanged: (value) => setState(() => _gender = value),
+                    const SizedBox(height: 20),
+                    _ProgressBar(current: currentStep, total: totalSteps),
+                    const SizedBox(height: 32),
+                    const Text(
+                      'Personal Details',
+                      style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      "Let's get to know you better to personalize your plan.",
+                      style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.5),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Full Name (display only)
+                    const Text('Full Name', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.07),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      contentPadding: EdgeInsets.zero,
+                      child: Text(
+                        widget.data.name ?? '',
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 20),
 
-              if (_gender == null)
-                const Padding(
-                  padding: EdgeInsets.only(left: 16, top: 4),
-                  child: Text(
-                    'Please select gender',
-                    style: TextStyle(color: Colors.redAccent, fontSize: 14),
-                  ),
+                    // Age + Gender row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Age', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _ageController,
+                                keyboardType: TextInputType.number,
+                                style: const TextStyle(color: Colors.white, fontSize: 16),
+                                decoration: InputDecoration(
+                                  hintText: '25',
+                                  hintStyle: const TextStyle(color: Colors.white30),
+                                  filled: true,
+                                  fillColor: Colors.white.withOpacity(0.07),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Gender', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.07),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _gender,
+                                    hint: const Text('Select', style: TextStyle(color: Colors.white30)),
+                                    dropdownColor: const Color(0xFF1A2540),
+                                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                                    isExpanded: true,
+                                    icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white38),
+                                    items: ['Male', 'Female', 'Other'].map((g) =>
+                                        DropdownMenuItem(value: g, child: Text(g))
+                                    ).toList(),
+                                    onChanged: (v) => setState(() => _gender = v),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Height
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Height', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                        Row(
+                          children: [
+                            _UnitToggle(label: 'cm', active: !_heightInFeet, onTap: () => setState(() => _heightInFeet = false)),
+                            const SizedBox(width: 6),
+                            _UnitToggle(label: 'ft/in', active: _heightInFeet, onTap: () => setState(() => _heightInFeet = true)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.07),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            _formatHeight(),
+                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor: const Color(0xFF3B82F6),
+                              inactiveTrackColor: Colors.white12,
+                              thumbColor: const Color(0xFF3B82F6),
+                              overlayShape: SliderComponentShape.noOverlay,
+                              trackHeight: 3,
+                            ),
+                            child: Slider(
+                              value: _heightCm,
+                              min: 100,
+                              max: 250,
+                              onChanged: (v) => setState(() => _heightCm = v),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Weight
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Weight', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+                        Row(
+                          children: [
+                            _UnitToggle(label: 'kg', active: !_weightInLbs, onTap: () => setState(() => _weightInLbs = false)),
+                            const SizedBox(width: 6),
+                            _UnitToggle(label: 'lbs', active: _weightInLbs, onTap: () => setState(() => _weightInLbs = true)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.07),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            _formatWeight(),
+                            style: const TextStyle(
+                              color: Color(0xFF3B82F6),
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor: const Color(0xFF3B82F6),
+                              inactiveTrackColor: Colors.white12,
+                              thumbColor: const Color(0xFF3B82F6),
+                              overlayShape: SliderComponentShape.noOverlay,
+                              trackHeight: 3,
+                            ),
+                            child: Slider(
+                              value: _weightKg,
+                              min: 30,
+                              max: 200,
+                              onChanged: (v) => setState(() => _weightKg = v),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
-
-              const SizedBox(height: 24),
-
-              const Text('How old are you?'),
-              const SizedBox(height: 8),
-
-              TextField(
-                controller: _ageController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white.withAlpha(20),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  hintText: 'Your age',
-                  errorText: _ageError,
-                ),
-                style: const TextStyle(color: Colors.white),
               ),
-
-              const SizedBox(height: 24),
-
-              const Text('Where do you live?'),
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
-                value: _country,
-                hint: const Text('Select Country'),
-                items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                onChanged: (v) => setState(() => _country = v),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white.withAlpha(20),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  errorText: _country == null ? 'Please select country' : null,
-                ),
-              ),
-
-              const Spacer(),
-
-              SizedBox(
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isValid
-                      ? () {
-                    widget.data.gender = _gender;
-                    widget.data.age = int.tryParse(_ageController.text.trim());
-                    widget.data.country = _country;
-
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.measurements,
-                      arguments: widget.data,
-                    );
-                  }
-                      : null,
+                  onPressed: _next,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
-                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
-                  child: const Text('Next', style: TextStyle(fontSize: 18)),
+                  child: const Text('Continue', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-              const SizedBox(height: 32),
-            ],
+class _UnitToggle extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _UnitToggle({required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFF3B82F6) : Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: active ? Colors.white : Colors.white54,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ProgressBar extends StatelessWidget {
+  final int current;
+  final int total;
+  const _ProgressBar({required this.current, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(total, (i) {
+        final isActive = i < current;
+        return Expanded(
+          child: Container(
+            margin: const EdgeInsets.only(right: 4),
+            height: 4,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(2),
+              color: isActive ? const Color(0xFF3B82F6) : Colors.white.withOpacity(0.15),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

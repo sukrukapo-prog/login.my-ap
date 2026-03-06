@@ -1,112 +1,160 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ← add this import
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'package:fitmetrics/models/onboarding_data.dart';
-import 'package:fitmetrics/routes.dart';
+import 'package:fitmetrics/screens/avatar_selection_screen.dart';
 
-class SuccessScreen extends StatelessWidget {
+class SuccessScreen extends StatefulWidget {
   final OnboardingData data;
-
   const SuccessScreen({super.key, required this.data});
+
+  @override
+  State<SuccessScreen> createState() => _SuccessScreenState();
+}
+
+class _SuccessScreenState extends State<SuccessScreen> {
+  final List<TextEditingController> _controllers =
+  List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  bool _isVerifying = false;
+  String? _error;
+
+  static const int totalSteps = 6;
+  static const int currentStep = 6;
+
+  @override
+  void dispose() {
+    for (var c in _controllers) c.dispose();
+    for (var f in _focusNodes) f.dispose();
+    super.dispose();
+  }
+
+  void _onDigitEntered(int index, String value) {
+    if (value.length == 1 && index < 5) _focusNodes[index + 1].requestFocus();
+    if (value.isEmpty && index > 0) _focusNodes[index - 1].requestFocus();
+  }
+
+  String get _enteredCode => _controllers.map((c) => c.text).join();
+
+  void _verify() async {
+    if (_enteredCode.length < 6) {
+      setState(() => _error = 'Please enter the full 6-digit code');
+      return;
+    }
+    setState(() { _isVerifying = true; _error = null; });
+    await Future.delayed(const Duration(milliseconds: 800));
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isRegistered', true);
+    await prefs.setString('userData', jsonEncode(widget.data.toJson()));
+    setState(() => _isVerifying = false);
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => AvatarSelectionScreen(data: widget.data)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F1624),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 40.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 900),
-                curve: Curves.elasticOut,
-                builder: (context, value, child) {
-                  return Transform.scale(scale: value, child: Opacity(opacity: value, child: child));
-                },
-                child: const Icon(Icons.celebration_rounded, size: 140, color: Color(0xFF3B82F6)),
-              ),
-
-              const SizedBox(height: 48),
-
-              Text(
-                'Welcome aboard, ${data.name ?? "FitMetrics User"}!',
-                style: const TextStyle(fontSize: 38, fontWeight: FontWeight.w800, height: 1.15, letterSpacing: 0.4),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                "Your fitness journey begins today.\nWe're excited to help you become the strongest, healthiest version of yourself.",
-                style: TextStyle(fontSize: 18, color: Colors.white70, height: 1.5),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 60),
-
-              SizedBox(
-                width: double.infinity,
-                height: 64,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    // SAVE HERE – this is what makes it remember
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setBool('isRegistered', true);
-                    await prefs.setString('username', data.name ?? "User");
-
-                    Navigator.pushReplacementNamed(
-                      context,
-                      AppRoutes.main,
-                      arguments: data,
-                    );
-                  },
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 24),
-                  label: const Text('Start Your Journey', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3B82F6),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                    elevation: 0,
-                  ),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                        child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: List.generate(6, (i) => Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 4),
+                          height: 4,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(2),
+                            color: i < currentStep ? const Color(0xFF3B82F6) : Colors.white.withOpacity(0.15),
+                          ),
+                        ),
+                      )),
+                    ),
+                    const SizedBox(height: 40),
+                    Container(
+                      width: 72, height: 72,
+                      decoration: BoxDecoration(color: const Color(0xFF3B82F6).withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+                      child: const Icon(Icons.mark_email_read_outlined, color: Color(0xFF3B82F6), size: 36),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Verify your email', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 8),
+                    Text('We sent a 6-digit code to ${widget.data.email ?? 'your email'}',
+                        style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                    const SizedBox(height: 6),
+                    const Text('(Demo: enter any 6 digits)', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 13)),
+                    const SizedBox(height: 36),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(6, (i) => SizedBox(
+                        width: 48, height: 56,
+                        child: TextField(
+                          controller: _controllers[i],
+                          focusNode: _focusNodes[i],
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          maxLength: 1,
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          decoration: InputDecoration(
+                            counterText: '',
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.07),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5)),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          onChanged: (v) => _onDigitEntered(i, v),
+                        ),
+                      )),
+                    ),
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                      ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 40),
-
-              TextButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      backgroundColor: const Color(0xFF1E293B),
-                      title: const Text("Reset Onboarding?", style: TextStyle(color: Colors.white)),
-                      content: const Text("This will clear your progress and take you back to the beginning.", style: TextStyle(color: Colors.white70)),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white70))),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            Navigator.popUntil(context, (route) => route.isFirst);
-                          },
-                          child: const Text("Reset", style: TextStyle(color: Colors.redAccent)),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: const Text('Start Over', style: TextStyle(color: Colors.white60, fontSize: 16, decoration: TextDecoration.underline)),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: SizedBox(
+                width: double.infinity, height: 56,
+                child: ElevatedButton(
+                  onPressed: _isVerifying ? null : _verify,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B82F6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: _isVerifying
+                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Verify & Continue', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+                ),
               ),
-
-              const Spacer(),
-
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: Text("FitMetrics • Your Personal Fitness Companion", style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 14)),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

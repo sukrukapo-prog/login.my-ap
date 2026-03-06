@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 // ── Scene model ────────────────────────────────────────────────────────────────
 class CalmnessScene {
@@ -189,6 +191,16 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
     });
   }
 
+  Future<void> _saveMeditationTime() async {
+    final minutesSpent = (_totalSeconds - _remainingSeconds) ~/ 60;
+    if (minutesSpent <= 0) return;
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now();
+    final key = 'meditation_mins_${today.year}_${today.month}_${today.day}';
+    final existing = prefs.getInt(key) ?? 0;
+    await prefs.setInt(key, existing + minutesSpent);
+  }
+
   void _adjustTime(int minutes) {
     setState(() {
       _totalSeconds = (_totalSeconds + minutes * 60).clamp(60, 3600);
@@ -234,7 +246,11 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
             const SizedBox(width: 12),
             Expanded(
               child: TextButton(
-                onPressed: () { Navigator.of(context).pop(); Navigator.of(context).pop(); },
+                onPressed: () {
+                  _saveMeditationTime();
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                },
                 style: TextButton.styleFrom(
                   backgroundColor: widget.scene.accentColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),

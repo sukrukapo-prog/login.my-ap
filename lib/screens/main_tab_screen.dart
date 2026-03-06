@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 
-// Import your tab screens (adjust paths if you moved them)
 import 'package:fitmetrics/screens/home_screen.dart';
 import 'package:fitmetrics/screens/workout_screen.dart';
 import 'package:fitmetrics/screens/meditation/meditation_screen.dart';
@@ -18,7 +17,7 @@ class MainTabScreen extends StatefulWidget {
 }
 
 class _MainTabScreenState extends State<MainTabScreen> {
-  int _currentIndex = 2; // Start on Meditation
+  int _currentIndex = 0; // ← Start on Home (was 2/Meditation before)
 
   late final List<Widget> _screens;
 
@@ -46,21 +45,19 @@ class _MainTabScreenState extends State<MainTabScreen> {
         showUnselectedLabels: true,
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-        },
+        onTap: (index) => setState(() => _currentIndex = index),
         items: [
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.fitness_center_outlined),
             activeIcon: Icon(Icons.fitness_center),
             label: 'Workout',
           ),
-          // ── Meditation tab with custom image + scale animation ──
+          // ── Meditation tab — YOUR original icon kept exactly ──
           BottomNavigationBarItem(
             icon: AnimatedScale(
               scale: _currentIndex == 2 ? 1.15 : 1.0,
@@ -84,12 +81,12 @@ class _MainTabScreenState extends State<MainTabScreen> {
             ),
             label: 'Meditation',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.restaurant_outlined),
             activeIcon: Icon(Icons.restaurant),
             label: 'Food',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',
