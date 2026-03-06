@@ -30,7 +30,7 @@ const List<CalmnessScene> calmnessScenes = [
   CalmnessScene(
     name: 'Rainy Vibe',
     videoPath: 'assets/images/meditation/videos/rain.mp4',
-    audioPath: 'meditation/images/audio/rain.mp3',
+    audioPath: 'meditation/audio/rain.mp3',
     figurePath: 'assets/images/meditation/figures/rain.png',
     sceneIcon: Icons.cloud,
     gradientColors: [Color(0xFF2C3E50), Color(0xFF4CA1AF)],
@@ -39,7 +39,7 @@ const List<CalmnessScene> calmnessScenes = [
   CalmnessScene(
     name: 'Ocean',
     videoPath: 'assets/images/meditation/videos/ocean.mp4',
-    audioPath: 'meditation/images/audio/ocean.mp3',
+    audioPath: 'meditation/audio/ocean.mp3',
     figurePath: 'assets/images/meditation/figures/ocean.png',
     sceneIcon: Icons.waves,
     gradientColors: [Color(0xFF1A6B8A), Color(0xFF0D3D56)],
@@ -48,7 +48,7 @@ const List<CalmnessScene> calmnessScenes = [
   CalmnessScene(
     name: 'Night',
     videoPath: 'assets/images/meditation/videos/night.mp4',
-    audioPath: 'meditation/images/audio/night.mp3',
+    audioPath: 'meditation/audio/night.mp3',
     figurePath: 'assets/images/meditation/figures/night.png',
     sceneIcon: Icons.nightlight_round,
     gradientColors: [Color(0xFF0F0C29), Color(0xFF302B63)],
@@ -57,7 +57,7 @@ const List<CalmnessScene> calmnessScenes = [
   CalmnessScene(
     name: 'Birds',
     videoPath: 'assets/images/meditation/videos/birds.mp4',
-    audioPath: 'meditation/images/audio/birds.mp3',
+    audioPath: 'meditation/audio/birds.mp3',
     figurePath: 'assets/images/meditation/figures/birds.png',
     sceneIcon: Icons.flutter_dash,
     gradientColors: [Color(0xFF5B7A8E), Color(0xFFB0C4DE)],
@@ -66,7 +66,7 @@ const List<CalmnessScene> calmnessScenes = [
   CalmnessScene(
     name: 'Morning',
     videoPath: 'assets/images/meditation/videos/morning.mp4',
-    audioPath: 'meditation/images/audio/morning.mp3',
+    audioPath: 'meditation/audio/morning.mp3',
     figurePath: 'assets/images/meditation/figures/morning.png',
     sceneIcon: Icons.wb_sunny,
     gradientColors: [Color(0xFFf7971e), Color(0xFFffd200)],
@@ -75,7 +75,7 @@ const List<CalmnessScene> calmnessScenes = [
   CalmnessScene(
     name: 'Nature',
     videoPath: 'assets/images/meditation/videos/nature.mp4',
-    audioPath: 'meditation/images/audio/nature.mp3',
+    audioPath: 'meditation/audio/nature.mp3',
     figurePath: 'assets/images/meditation/figures/nature.png',
     sceneIcon: Icons.eco,
     gradientColors: [Color(0xFF134E5E), Color(0xFF71B280)],
@@ -164,8 +164,14 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
     } else {
       _startCountdown();
       try {
+        print('Trying to play: ${widget.scene.audioPath}');
+        await _audioPlayer.stop();
+        await _audioPlayer.setVolume(1.0);
         await _audioPlayer.play(AssetSource(widget.scene.audioPath));
-      } catch (_) {}
+        print('Playing successfully');
+      } catch (e) {
+        print('Audio error: $e');
+      }
       if (_videoReady) _videoController?.play();
     }
     setState(() => _isPlaying = !_isPlaying);
