@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/screens/meditation/meditation_player_screen.dart';
 
 class ChooseCalmnessScreen extends StatelessWidget {
   const ChooseCalmnessScreen({Key? key}) : super(key: key);
@@ -13,7 +14,7 @@ class ChooseCalmnessScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Back Button
+              // Back Button — YOUR original colors kept
               GestureDetector(
                 onTap: () => Navigator.of(context).pop(),
                 child: Container(
@@ -51,7 +52,7 @@ class ChooseCalmnessScreen extends StatelessWidget {
 
               const SizedBox(height: 20.0),
 
-              // Title
+              // Title — YOUR original text kept
               const Text(
                 'Find Your Calmness',
                 style: TextStyle(
@@ -63,7 +64,7 @@ class ChooseCalmnessScreen extends StatelessWidget {
 
               const SizedBox(height: 6.0),
 
-              // Subtitle
+              // Subtitle — YOUR original text kept
               const Text(
                 'Choose a sound that soothes your mind',
                 style: TextStyle(
@@ -83,36 +84,43 @@ class ChooseCalmnessScreen extends StatelessWidget {
                   mainAxisSpacing: 12.0,
                   childAspectRatio: 0.85,
                   physics: const NeverScrollableScrollPhysics(),
-                  children: const [
+                  children: [
+                    // ← Only change: added scene + onTap, kept all visuals
                     _CalmnessCard(
                       title: 'Rain',
                       imagePath: 'assets/images/meditation/calmness/rain.png',
                       icon: Icons.cloud,
+                      scene: calmnessScenes[0],
                     ),
                     _CalmnessCard(
                       title: 'Ocean',
                       imagePath: 'assets/images/meditation/calmness/ocean.png',
                       icon: Icons.waves,
+                      scene: calmnessScenes[1],
                     ),
                     _CalmnessCard(
                       title: 'Night',
                       imagePath: 'assets/images/meditation/calmness/night.png',
                       icon: Icons.nightlight_round,
+                      scene: calmnessScenes[2],
                     ),
                     _CalmnessCard(
                       title: 'Birds',
                       imagePath: 'assets/images/meditation/calmness/birds.png',
                       icon: Icons.flutter_dash,
+                      scene: calmnessScenes[3],
                     ),
                     _CalmnessCard(
                       title: 'Morning',
                       imagePath: 'assets/images/meditation/calmness/morning.png',
                       icon: Icons.wb_sunny,
+                      scene: calmnessScenes[4],
                     ),
                     _CalmnessCard(
                       title: 'Nature',
                       imagePath: 'assets/images/meditation/calmness/nature.png',
                       icon: Icons.eco,
+                      scene: calmnessScenes[5],
                     ),
                   ],
                 ),
@@ -129,109 +137,120 @@ class _CalmnessCard extends StatelessWidget {
   final String title;
   final String imagePath;
   final IconData icon;
+  final CalmnessScene scene; // ← only new param added
 
   const _CalmnessCard({
     Key? key,
     required this.title,
     required this.imagePath,
     required this.icon,
+    required this.scene,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16.0),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Background image (replace imagePath with real assets)
-          Image.asset(
-            imagePath,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              // Fallback gradient background if image not found
-              return Container(
+    // ← Wrapped in GestureDetector — only addition to your build method
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MeditationPlayerScreen(scene: scene),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.0),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // YOUR original image + fallback — unchanged
+            Image.asset(
+              imagePath,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _gradientForTitle(title),
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      icon,
+                      color: Colors.white.withOpacity(0.5),
+                      size: 48.0,
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            // YOUR original overlay — unchanged
+            Positioned.fill(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: _gradientForTitle(title),
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.6),
+                    ],
+                    stops: const [0.4, 1.0],
                   ),
-                ),
-                child: Center(
-                  child: Icon(
-                    icon,
-                    color: Colors.white.withOpacity(0.5),
-                    size: 48.0,
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Dark overlay gradient at bottom
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.6),
-                  ],
-                  stops: const [0.4, 1.0],
                 ),
               ),
             ),
-          ),
 
-          // Title at top left
-          Positioned(
-            top: 12.0,
-            left: 12.0,
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15.0,
-                fontWeight: FontWeight.bold,
-                shadows: [
-                  Shadow(
-                    blurRadius: 4.0,
-                    color: Colors.black54,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Select button at bottom right
-          Positioned(
-            bottom: 10.0,
-            right: 10.0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14.0, vertical: 6.0),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.55),
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-              child: const Text(
-                'Select',
-                style: TextStyle(
+            // YOUR original title — unchanged
+            Positioned(
+              top: 12.0,
+              left: 12.0,
+              child: Text(
+                title,
+                style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 12.0,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 4.0,
+                      color: Colors.black54,
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-        ],
+
+            // YOUR original select button — unchanged
+            Positioned(
+              bottom: 10.0,
+              right: 10.0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14.0, vertical: 6.0),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+                child: const Text(
+                  'Select',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
+  // YOUR original gradients — unchanged
   List<Color> _gradientForTitle(String title) {
     switch (title) {
       case 'Rainy Vibe':
