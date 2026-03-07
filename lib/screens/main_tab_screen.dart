@@ -3,7 +3,9 @@ import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/screens/home_screen.dart';
 import 'package:fitmetrics/screens/profile_screen.dart';
 import 'package:fitmetrics/screens/meditation/meditation_screen.dart';
+import 'package:fitmetrics/screens/walkthrough_overlay.dart';
 import 'package:fitmetrics/core/audio_service.dart';
+import 'package:fitmetrics/services/local_storage.dart';
 
 class MainTabScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -15,6 +17,23 @@ class MainTabScreen extends StatefulWidget {
 
 class MainTabScreenState extends State<MainTabScreen> {
   int _currentIndex = 0;
+  bool _showWalkthrough = false;
+  int _highlightedTab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkWalkthrough();
+  }
+
+  Future<void> _checkWalkthrough() async {
+    final seen = await LocalStorage.hasSeenWalkthrough();
+    if (!seen) {
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) setState(() => _showWalkthrough = true);
+      });
+    }
+  }
 
   void setTab(int index) {
     setState(() => _currentIndex = index);
@@ -23,18 +42,35 @@ class MainTabScreenState extends State<MainTabScreen> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const HomeScreen(),                              // 0 - Home
-      const _ComingSoonScreen(label: 'Workout'),       // 1 - Workout
-      MeditationScreen(userData: widget.userData),     // 2 - Meditation
-      const _ComingSoonScreen(label: 'Food'),          // 3 - Food
-      ProfileScreen(userData: widget.userData),        // 4 - Profile
+      const HomeScreen(),
+      const _ComingSoonScreen(label: 'Workout'),
+      MeditationScreen(userData: widget.userData),
+      const _ComingSoonScreen(label: 'Food'),
+      ProfileScreen(userData: widget.userData),
     ];
 
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
+      body: Stack(
+        children: [
+          // Main content
+          IndexedStack(
+            index: _currentIndex,
+            children: screens,
+          ),
+
+          // Walkthrough overlay
+          if (_showWalkthrough)
+            WalkthroughOverlay(
+              onDone: () => setState(() => _showWalkthrough = false),
+              onTabHighlight: (tabIndex) {
+                setState(() {
+                  _highlightedTab = tabIndex;
+                  _currentIndex = tabIndex;
+                });
+              },
+            ),
+        ],
       ),
       bottomNavigationBar: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -43,7 +79,7 @@ class MainTabScreenState extends State<MainTabScreen> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withAlpha(75),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -54,6 +90,7 @@ class MainTabScreenState extends State<MainTabScreen> {
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: (i) {
+              if (_showWalkthrough) return; // disable tap during walkthrough
               AudioService().playClickSound();
               setState(() => _currentIndex = i);
             },
@@ -86,7 +123,8 @@ class MainTabScreenState extends State<MainTabScreen> {
                 activeIcon: Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFF3B82F6), width: 2),
+                    border: Border.all(
+                        color: const Color(0xFF3B82F6), width: 2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ClipRRect(
@@ -119,7 +157,6 @@ class MainTabScreenState extends State<MainTabScreen> {
   }
 }
 
-// ── Placeholder screen for Workout and Food ───────────────────────────────────
 class _ComingSoonScreen extends StatelessWidget {
   final String label;
   const _ComingSoonScreen({required this.label});
@@ -133,20 +170,21 @@ class _ComingSoonScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              label == 'Workout' ? Icons.fitness_center_outlined : Icons.restaurant_outlined,
+              label == 'Workout'
+                  ? Icons.fitness_center_outlined
+                  : Icons.restaurant_outlined,
               color: Colors.white24,
               size: 64,
             ),
             const SizedBox(height: 16),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
-            ),
+            Text(label,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
-            const Text(
-              'Coming soon',
-              style: TextStyle(color: Colors.white38, fontSize: 15),
-            ),
+            const Text('Coming soon',
+                style: TextStyle(color: Colors.white38, fontSize: 15)),
           ],
         ),
       ),

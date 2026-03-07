@@ -13,11 +13,15 @@ import 'package:fitmetrics/screens/login_screen.dart';
 import 'package:fitmetrics/screens/main_tab_screen.dart';
 import 'package:fitmetrics/screens/settings_screen.dart';
 import 'package:fitmetrics/screens/progress_screen.dart';
+import 'package:fitmetrics/screens/splash_screen.dart';
+import 'package:fitmetrics/screens/onboarding_screen.dart';
 import 'package:fitmetrics/screens/leaderboard_screen.dart';
 import 'package:fitmetrics/screens/notification_history_screen.dart';
 
 class AppRoutes {
-  static const String welcome       = '/welcome';
+  static const String splash              = '/';
+  static const String onboarding          = '/onboarding';
+  static const String welcome             = '/welcome';
   static const String name          = '/name';
   static const String personalInfo  = '/personal-info';
   static const String personalize   = '/personalize';
@@ -87,8 +91,20 @@ class AppRoutes {
           direction: SlideDirection.bottomToTop,
         );
 
+      case splash:
+        return FadePageRoute(page: const SplashScreen());
+
+      case onboarding:
+        return FadePageRoute(page: const OnboardingScreen());
+
       case progress:
         return SlidePageRoute(page: const ProgressScreen());
+
+      case leaderboard:
+        return SlidePageRoute(page: const LeaderboardScreen());
+
+      case notificationHistory:
+        return SlidePageRoute(page: const NotificationHistoryScreen());
 
       default:
         return MaterialPageRoute(

@@ -9,7 +9,9 @@ class LocalStorage {
   // ── Keys ────────────────────────────────────────────────────────────────────
   static const String _keyRegistered = 'isRegistered';
   static const String _keyUserData   = 'userData';
-  static const String _keyAvatarId   = 'avatarId';
+  static const String _keyAvatarId       = 'avatarId';
+  static const String _keySeenOnboarding  = 'seenOnboarding';
+  static const String _keySeenWalkthrough = 'seenWalkthrough';
 
   // ── Auth ────────────────────────────────────────────────────────────────────
 
@@ -27,6 +29,26 @@ class LocalStorage {
   static Future<bool> isRegistered() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyRegistered) ?? false;
+  }
+
+  static Future<bool> hasSeenOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keySeenOnboarding) ?? false;
+  }
+
+  static Future<void> setSeenOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keySeenOnboarding, true);
+  }
+
+  static Future<bool> hasSeenWalkthrough() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keySeenWalkthrough) ?? false;
+  }
+
+  static Future<void> setSeenWalkthrough() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keySeenWalkthrough, true);
   }
 
   static Future<OnboardingData?> getUserData() async {

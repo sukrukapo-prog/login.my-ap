@@ -1,19 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/routes.dart';
-import 'package:fitmetrics/core/audio_service.dart';
-import 'package:fitmetrics/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AudioService().init();
-  final isLoggedIn = await AuthService.isLoggedIn();
-  final String startRoute = isLoggedIn ? AppRoutes.main : AppRoutes.welcome;
-  runApp(FitMetricsApp(initialRoute: startRoute));
+  runApp(const FitMetricsApp());
 }
 
 class FitMetricsApp extends StatelessWidget {
-  final String? initialRoute;
-  const FitMetricsApp({super.key, this.initialRoute});
+  const FitMetricsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +39,7 @@ class FitMetricsApp extends StatelessWidget {
           hintStyle: const TextStyle(color: Colors.white54),
         ),
       ),
-      initialRoute: initialRoute ?? AppRoutes.welcome,
+      initialRoute: AppRoutes.splash, // ← always start with splash
       onGenerateRoute: AppRoutes.generateRoute,
     );
   }
