@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:fitmetrics/core/app_settings.dart';
 import 'package:fitmetrics/core/audio_service.dart';
-import 'package:fitmetrics/models/onboarding_data.dart';
+import 'package:fitmetrics/services/local_storage.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -28,25 +26,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _refresh() => setState(() {});
 
   Future<void> _loadName() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('userData');
-    if (jsonString != null) {
-      final data = OnboardingData.fromJson(jsonDecode(jsonString));
-      _nameController.text = data.name ?? '';
-    }
+    final data = await LocalStorage.getUserData();
+    _nameController.text = data?.name ?? '';
   }
 
   Future<void> _saveName() async {
     final newName = _nameController.text.trim();
     if (newName.isEmpty) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('userData');
-    if (jsonString != null) {
-      final data = OnboardingData.fromJson(jsonDecode(jsonString));
-      data.name = newName;
-      await prefs.setString('userData', jsonEncode(data.toJson()));
-    }
+    await LocalStorage.updateDisplayName(newName);
     await _settings.setDisplayName(newName);
     setState(() => _showNameField = false);
     if (mounted) {
@@ -184,9 +171,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       ),
                                       child: Icon(
                                         i == 0 ? Icons.flutter_dash
-                                          : i == 1 ? Icons.wb_sunny_outlined
-                                          : i == 2 ? Icons.waves
-                                          : Icons.bolt,
+                                            : i == 1 ? Icons.wb_sunny_outlined
+                                            : i == 2 ? Icons.waves
+                                            : Icons.bolt,
                                         color: isSelected ? Colors.white : Colors.white54,
                                         size: 20,
                                       ),

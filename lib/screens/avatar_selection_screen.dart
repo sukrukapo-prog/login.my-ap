@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
+import 'package:fitmetrics/services/local_storage.dart';
 
 class AvatarSelectionScreen extends StatefulWidget {
   final OnboardingData data;
@@ -29,8 +29,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('avatarId', _selectedAvatarId!);
+    await LocalStorage.saveAvatarId(_selectedAvatarId!);
 
     if (mounted) {
       Navigator.pushReplacementNamed(

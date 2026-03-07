@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.11.0
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -83,5 +83,29 @@ flutter:
     - assets/images/avatars/male_sporty.png
     - assets/images/avatars/male_swimmer.png
     - assets/images/avatars/male_zen.png
+
+    - assets/images/meditation/movement_meditation/walking_turtle.jpg
+    - assets/images/meditation/movement_meditation/the_fountain.jpg
+    - assets/images/meditation/movement_meditation/rising_tide.jpg
+    - assets/images/meditation/movement_meditation/flowing_water.jpg
+    - assets/images/meditation/movement_meditation/falling_rain.jpg
+    - assets/images/meditation/movement_meditation/gentle_breeze.jpg
+    - assets/images/meditation/movement_meditation/cresting_waves.jpg
+
+
+    - assets/images/meditation/movement_meditation/videos/cresting_waves_intro.mp4
+    - assets/images/meditation/movement_meditation/videos/cresting_waves_loop.mp4
+    - assets/images/meditation/movement_meditation/videos/falling_rain_intro.mp4
+    - assets/images/meditation/movement_meditation/videos/falling_rain_loop.mp4
+    - assets/images/meditation/movement_meditation/videos/flowing_water_intro.mp4
+    - assets/images/meditation/movement_meditation/videos/flowing_water_loop.mp4
+    - assets/images/meditation/movement_meditation/videos/gentle_breeze_intro.mp4
+    - assets/images/meditation/movement_meditation/videos/gentle_breeze_loop.mp4
+    - assets/images/meditation/movement_meditation/videos/rising_tide_intro.mp4
+    - assets/images/meditation/movement_meditation/videos/rising_tide_loop.mp4
+    - assets/images/meditation/movement_meditation/videos/the_fountain_intro.mp4
+    - assets/images/meditation/movement_meditation/videos/the_fountain_loop.mp4
+    - assets/images/meditation/movement_meditation/videos/walking_turtle_intro.mp4
+    - assets/images/meditation/movement_meditation/videos/walking_turtle_loop.mp4
 
 

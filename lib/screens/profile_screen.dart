@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/core/audio_service.dart';
+import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -35,8 +35,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadAvatar() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() => _avatarId = prefs.getString('avatarId'));
+    final id = await LocalStorage.getAvatarId();
+    setState(() => _avatarId = id);
   }
 
   Future<void> _saveData() async {
@@ -46,8 +46,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (age != null) _data.age = age;
     if (height != null) _data.heightCm = height;
     if (weight != null) _data.currentWeightKg = weight;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userData', jsonEncode(_data.toJson()));
+    await LocalStorage.updateStats(
+      age: age,
+      heightCm: height,
+      weightKg: weight,
+    );
     setState(() => _isEditing = false);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,8 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (_) => _AvatarPickerSheet(
         currentAvatarId: _avatarId,
         onSelected: (id) async {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('avatarId', id);
+          await LocalStorage.saveAvatarId(id);
           setState(() => _avatarId = id);
           if (mounted) Navigator.pop(context);
         },
@@ -97,8 +99,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('isRegistered', false);
+              Navigator.pop(context);
+              await AuthService.logout(); // clears all user data, avatar, meditation stats
               if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.welcome);
             },
             child: const Text('Logout', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700)),

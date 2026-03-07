@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-// lib/screens/workout_screen.dart
-import 'package:flutter/material.dart';
 
 class WorkoutScreen extends StatelessWidget {
   const WorkoutScreen({super.key});

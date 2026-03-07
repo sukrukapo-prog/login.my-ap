@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:fitmetrics/services/local_storage.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
+import 'package:fitmetrics/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,36 +27,23 @@ class _LoginScreenState extends State<LoginScreen> {
   void _login() async {
     setState(() { _errorMessage = null; _isLoading = true; });
 
-    await Future.delayed(const Duration(milliseconds: 400));
+    final result = await AuthService.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
 
-    final savedData = await LocalStorage.getUserData();
-    if (savedData == null) {
-      setState(() { _errorMessage = 'No registered user found. Please sign up.'; _isLoading = false; });
-      return;
-    }
-
-    if (_emailController.text.trim().isEmpty) {
-      setState(() { _errorMessage = 'Email is required'; _isLoading = false; });
-      return;
-    }
-    if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(_emailController.text.trim())) {
-      setState(() { _errorMessage = 'Invalid email format'; _isLoading = false; });
-      return;
-    }
-    if (_passwordController.text.trim().isEmpty) {
-      setState(() { _errorMessage = 'Password is required'; _isLoading = false; });
-      return;
-    }
-
-    if (_emailController.text.trim() != savedData.email ||
-        _passwordController.text != savedData.password) {
-      setState(() { _errorMessage = 'Incorrect email or password'; _isLoading = false; });
+    if (!result.success) {
+      setState(() { _errorMessage = result.error; _isLoading = false; });
       return;
     }
 
     setState(() => _isLoading = false);
     if (mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.main, arguments: savedData);
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.main,
+        arguments: result.userData ?? OnboardingData(),
+      );
     }
   }
 

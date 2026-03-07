@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/screens/main_tab_screen.dart';
+import 'package:fitmetrics/services/local_storage.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,17 +28,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('userData');
-    if (jsonString != null) {
-      final data = OnboardingData.fromJson(jsonDecode(jsonString));
+    final data = await LocalStorage.getUserData();
+    if (data != null) {
       _userData = data;
       _maintenanceCalories = _calculateMaintenance(data);
     }
-    _avatarId = prefs.getString('avatarId');
-    final today = DateTime.now();
-    final todayKey = 'meditation_mins_${today.year}_${today.month}_${today.day}';
-    _meditationMinutesToday = prefs.getInt(todayKey) ?? 0;
+    _avatarId = await LocalStorage.getAvatarId();
+    _meditationMinutesToday = await LocalStorage.getMeditationMinutes(DateTime.now());
     setState(() => _isLoading = false);
   }
 

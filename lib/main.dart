@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/core/audio_service.dart';
+import 'package:fitmetrics/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AudioService().init();
-  final prefs = await SharedPreferences.getInstance();
-  final isRegistered = prefs.getBool('isRegistered') ?? false;
-  final String startRoute = isRegistered ? AppRoutes.main : AppRoutes.welcome;
+  final isLoggedIn = await AuthService.isLoggedIn();
+  final String startRoute = isLoggedIn ? AppRoutes.main : AppRoutes.welcome;
   runApp(FitMetricsApp(initialRoute: startRoute));
 }
 

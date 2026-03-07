@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/screens/avatar_selection_screen.dart';
+import 'package:fitmetrics/services/auth_service.dart';
 
 class SuccessScreen extends StatefulWidget {
   final OnboardingData data;
@@ -43,9 +42,11 @@ class _SuccessScreenState extends State<SuccessScreen> {
     }
     setState(() { _isVerifying = true; _error = null; });
     await Future.delayed(const Duration(milliseconds: 800));
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isRegistered', true);
-    await prefs.setString('userData', jsonEncode(widget.data.toJson()));
+    final result = await AuthService.register(widget.data);
+    if (!result.success) {
+      setState(() { _error = result.error; _isVerifying = false; });
+      return;
+    }
     setState(() => _isVerifying = false);
     if (mounted) {
       Navigator.pushReplacement(

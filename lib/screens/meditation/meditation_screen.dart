@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/screens/meditation/widgets/meditation_card.dart';
 import 'package:fitmetrics/screens/meditation/choose_calmness_screen.dart';
+import 'package:fitmetrics/screens/meditation/movement/movement_meditation_screen.dart';
+import 'package:fitmetrics/services/local_storage.dart';
 
 class MeditationScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -29,22 +29,12 @@ class _MeditationScreenState extends State<MeditationScreen> {
   }
 
   Future<void> _loadUserData() async {
-    // First try passed-in data
     String name = widget.userData.name ?? '';
-
-    // If empty (after app restart), load from SharedPreferences
     if (name.isEmpty) {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString('userData');
-      if (jsonString != null) {
-        final data = OnboardingData.fromJson(jsonDecode(jsonString));
-        name = data.name ?? '';
-      }
+      final saved = await LocalStorage.getUserData();
+      name = saved?.name ?? '';
     }
-
-    final prefs = await SharedPreferences.getInstance();
-    final avatarId = prefs.getString('avatarId');
-
+    final avatarId = await LocalStorage.getAvatarId();
     setState(() {
       _preferredName = name;
       _avatarId = avatarId;
@@ -151,8 +141,11 @@ class _MeditationScreenState extends State<MeditationScreen> {
                       imagePath: "assets/images/meditation/movement_meditation.jpg",
                       isFeatured: true,
                       onStartPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Starting Movement Meditation...")),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MovementMeditationScreen(),
+                          ),
                         );
                       },
                     ),

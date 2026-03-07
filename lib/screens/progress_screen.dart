@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:fitmetrics/models/onboarding_data.dart';
+import 'package:fitmetrics/services/local_storage.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -23,21 +22,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
   }
 
   Future<void> _loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('userData');
-    if (jsonString != null) {
-      _userData = OnboardingData.fromJson(jsonDecode(jsonString));
-    }
-    final today = DateTime.now();
-    final todayKey = 'meditation_mins_${today.year}_${today.month}_${today.day}';
-    _meditationToday = prefs.getInt(todayKey) ?? 0;
-
-    int total = 0;
-    for (int i = 0; i < 7; i++) {
-      final d = today.subtract(Duration(days: i));
-      total += prefs.getInt('meditation_mins_${d.year}_${d.month}_${d.day}') ?? 0;
-    }
-    _meditationWeek = total;
+    _userData = await LocalStorage.getUserData();
+    _meditationToday = await LocalStorage.getMeditationMinutes(DateTime.now());
+    _meditationWeek = await LocalStorage.getMeditationMinutesForLastDays(7);
     setState(() => _isLoading = false);
   }
 
