@@ -19,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _avatarId;
   int _meditationMinutesToday = 0;
   bool _isLoading = true;
+  int _unreadNotifications = 3; // dummy — will come from Firebase later
 
   @override
   void initState() {
@@ -60,16 +61,25 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigate(String dest) {
     AudioService().playClickSound();
     if (dest == 'meditation') {
-      // Find main tab screen and switch to meditation tab
       final mainTabState = context.findAncestorStateOfType<MainTabScreenState>();
       mainTabState?.setTab(2);
     } else if (dest == 'progress') {
       Navigator.pushNamed(context, AppRoutes.progress);
+    } else if (dest == 'leaderboard') {
+      Navigator.pushNamed(context, AppRoutes.leaderboard);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${dest[0].toUpperCase()}${dest.substring(1)} — coming soon!')),
       );
     }
+  }
+
+  void _goToProfile() {
+    AudioService().playClickSound();
+    // Navigate to profile tab
+    final mainTabState = context.findAncestorStateOfType<MainTabScreenState>();
+    mainTabState?.setTab(4); // profile is tab index 4
+    setState(() => _unreadNotifications = 0);
   }
 
   @override
@@ -101,6 +111,8 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20),
+
+                // ── Top bar: greeting + bell + avatar ──────────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -113,12 +125,50 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: TextStyle(color: Colors.white54, fontSize: 13)),
                       ],
                     ),
-                    AvatarWidget(avatarId: _avatarId, size: 46, showBorder: true),
+                    Row(
+                      children: [
+                        // Bell icon → goes to profile → notification history
+                        GestureDetector(
+                          onTap: _goToProfile,
+                          child: Stack(
+                            children: [
+                              Container(
+                                width: 42, height: 42,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(15),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white.withAlpha(25)),
+                                ),
+                                child: const Icon(Icons.notifications_outlined, color: Colors.white70, size: 22),
+                              ),
+                              if (_unreadNotifications > 0)
+                                Positioned(
+                                  top: 4, right: 4,
+                                  child: Container(
+                                    width: 16, height: 16,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFEF4444),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Center(
+                                      child: Text('$_unreadNotifications',
+                                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        AvatarWidget(avatarId: _avatarId, size: 46, showBorder: true),
+                      ],
+                    ),
                   ],
                 ),
+
                 const SizedBox(height: 28),
 
-                // Calories card
+                // ── Calories card ──────────────────────────────────────────
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -129,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    border: Border.all(color: Colors.white.withAlpha(20)),
                   ),
                   child: Column(
                     children: [
@@ -155,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               width: 160, height: 160,
                               child: CircularProgressIndicator(
                                 value: 1.0, strokeWidth: 12,
-                                backgroundColor: Colors.white.withOpacity(0.08),
+                                backgroundColor: Colors.white.withAlpha(20),
                                 valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
                               ),
                             ),
@@ -188,15 +238,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 20),
 
                 if (calories == null)
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6).withOpacity(0.1),
+                      color: const Color(0xFF3B82F6).withAlpha(25),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.3)),
+                      border: Border.all(color: const Color(0xFF3B82F6).withAlpha(75)),
                     ),
                     child: const Row(
                       children: [
@@ -211,10 +262,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
 
                 const SizedBox(height: 20),
+
+                // ── Quick Access ───────────────────────────────────────────
                 const Text('Quick Access',
                     style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 14),
 
+                // Leaderboard — full width, first
+                _LeaderboardCard(onTap: () => _navigate('leaderboard')),
+                const SizedBox(height: 12),
+
+                // 2x2 grid — existing cards
                 GridView.count(
                   crossAxisCount: 2, shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -242,6 +300,93 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// ── Leaderboard full width card ────────────────────────────────────────────────
+class _LeaderboardCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _LeaderboardCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFFF59E0B).withAlpha(40),
+              const Color(0xFFFFD700).withAlpha(15),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFF59E0B).withAlpha(80)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B).withAlpha(40),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.emoji_events, color: Color(0xFFF59E0B), size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Leaderboard',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withAlpha(40),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text('You are #4',
+                            style: TextStyle(color: Color(0xFFF59E0B), fontSize: 11, fontWeight: FontWeight.w700)),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('View rankings →',
+                          style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Top 3 mini avatars
+            Row(
+              children: [
+                for (int i = 1; i <= 3; i++)
+                  Transform.translate(
+                    offset: Offset(-(i - 1) * 10.0, 0),
+                    child: Container(
+                      width: 30, height: 30,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFF0F1624), width: 2),
+                        color: const Color(0xFFF59E0B).withAlpha(40),
+                      ),
+                      child: const Icon(Icons.person, color: Colors.white54, size: 16),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Existing widgets (unchanged) ───────────────────────────────────────────────
 class _MeditationCard extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
@@ -255,9 +400,9 @@ class _MeditationCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withAlpha(25),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withAlpha(50)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,8 +429,7 @@ class _MeditationCard extends StatelessWidget {
 }
 
 class _StatItem extends StatelessWidget {
-  final String label;
-  final String value;
+  final String label, value;
   final Color color;
   final IconData? icon;
   const _StatItem({required this.label, required this.value, required this.color, this.icon});
@@ -304,8 +448,7 @@ class _StatItem extends StatelessWidget {
 }
 
 class _QuickCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
+  final String title, subtitle;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
@@ -319,9 +462,9 @@ class _QuickCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withAlpha(25),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withAlpha(50)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

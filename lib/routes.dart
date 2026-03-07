@@ -13,6 +13,8 @@ import 'package:fitmetrics/screens/login_screen.dart';
 import 'package:fitmetrics/screens/main_tab_screen.dart';
 import 'package:fitmetrics/screens/settings_screen.dart';
 import 'package:fitmetrics/screens/progress_screen.dart';
+import 'package:fitmetrics/screens/leaderboard_screen.dart';
+import 'package:fitmetrics/screens/notification_history_screen.dart';
 
 class AppRoutes {
   static const String welcome       = '/welcome';
@@ -25,7 +27,9 @@ class AppRoutes {
   static const String login         = '/login';
   static const String main          = '/main';
   static const String settings      = '/settings';
-  static const String progress      = '/progress';
+  static const String progress             = '/progress';
+  static const String leaderboard         = '/leaderboard';
+  static const String notificationHistory = '/notification-history';
 
   static Route<dynamic> generateRoute(RouteSettings routeSettings) {
     final args = routeSettings.arguments;

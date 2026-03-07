@@ -5,6 +5,7 @@ import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
 import 'package:fitmetrics/services/auth_service.dart';
+import 'package:fitmetrics/routes.dart' show AppRoutes;
 
 class ProfileScreen extends StatefulWidget {
   final OnboardingData userData;
