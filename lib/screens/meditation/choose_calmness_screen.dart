@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:fitmetrics/services/local_storage.dart';
 import 'package:fitmetrics/core/haptic_service.dart';
 import 'package:fitmetrics/screens/meditation/meditation_player_screen.dart';
@@ -174,6 +175,14 @@ class _CalmnessCard extends StatefulWidget {
 
 class _CalmnessCardState extends State<_CalmnessCard> {
   bool _isFav = false;
+  bool _isPreviewing = false;
+  final AudioPlayer _previewPlayer = AudioPlayer();
+
+  @override
+  void dispose() {
+    _previewPlayer.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -181,6 +190,23 @@ class _CalmnessCardState extends State<_CalmnessCard> {
     LocalStorage.isFavorite(widget.title).then((v) {
       if (mounted) setState(() => _isFav = v);
     });
+  }
+
+  Future<void> _startPreview() async {
+    setState(() => _isPreviewing = true);
+    try {
+      final path = widget.scene.audioPath.replaceFirst('assets/', '');
+      await _previewPlayer.play(AssetSource(path));
+      await Future.delayed(const Duration(seconds: 5));
+      await _stopPreview();
+    } catch (_) {
+      setState(() => _isPreviewing = false);
+    }
+  }
+
+  Future<void> _stopPreview() async {
+    await _previewPlayer.stop();
+    if (mounted) setState(() => _isPreviewing = false);
   }
 
   Future<void> _toggleFav() async {
@@ -204,6 +230,26 @@ class _CalmnessCardState extends State<_CalmnessCard> {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // Preview overlay
+            if (_isPreviewing)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.black.withAlpha(120),
+                  ),
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.music_note, color: Colors.white, size: 30),
+                        SizedBox(height: 6),
+                        Text('Hold to preview', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             // Fav heart
             Positioned(
               top: 8, right: 8,

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
@@ -115,10 +116,12 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
   late Animation<double>   _pulseAnimation;
   late AnimationController _fadeController;
   late Animation<double>   _fadeAnimation;
+  late ConfettiController  _confettiCtrl;
 
   @override
   void initState() {
     super.initState();
+    _confettiCtrl = ConfettiController(duration: const Duration(seconds: 3));
     _remainingSeconds = _totalSeconds;
 
     // Breathing pulse for figure
@@ -322,6 +325,7 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
     _countdownTimer?.cancel();
     _audioPlayer.dispose();
     _videoController?.dispose();
+    _confettiCtrl.dispose();
     _pulseController.dispose();
     _fadeController.dispose();
     super.dispose();
@@ -342,6 +346,17 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
             child: Stack(
               fit: StackFit.expand,
               children: [
+
+                // Confetti overlay
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConfettiWidget(
+                    confettiController: _confettiCtrl,
+                    blastDirectionality: BlastDirectionality.explosive,
+                    numberOfParticles: 30,
+                    colors: const [Color(0xFF3B82F6), Color(0xFF8B5CF6), Color(0xFFF59E0B), Color(0xFF10B981)],
+                  ),
+                ),
 
                 // ── Video / gradient background ──────────────────────────────
                 _videoReady && _videoController != null

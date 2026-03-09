@@ -268,6 +268,16 @@ class LocalStorage {
     };
   }
 
+  static Future<bool> isFirstLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    return !(prefs.getBool('has_opened_app') ?? false);
+  }
+
+  static Future<void> markFirstLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_opened_app', true);
+  }
+
   static Future<void> incrementTotalSessions() async {
     final prefs = await SharedPreferences.getInstance();
     final current = prefs.getInt('total_sessions') ?? 0;

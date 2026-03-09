@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/screens/meditation/widgets/meditation_card.dart';
@@ -17,6 +18,7 @@ class MeditationScreen extends StatefulWidget {
 
 class _MeditationScreenState extends State<MeditationScreen> {
   String? _selectedMood;
+  bool _isLoadingCards = true;
   double _cardScale1 = 1.0;
   double _cardScale2 = 1.0;
   String _preferredName = '';
@@ -38,6 +40,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
     setState(() {
       _preferredName = name;
       _avatarId = avatarId;
+      _isLoadingCards = false;
     });
   }
 
@@ -125,60 +128,66 @@ class _MeditationScreenState extends State<MeditationScreen> {
                 const SizedBox(height: 48),
 
                 // Movement card
-                GestureDetector(
-                  onTapDown: (_) => setState(() => _cardScale1 = 0.96),
-                  onTapUp: (_) => setState(() => _cardScale1 = 1.0),
-                  onTapCancel: () => setState(() => _cardScale1 = 1.0),
-                  child: AnimatedScale(
-                    scale: _cardScale1,
-                    duration: const Duration(milliseconds: 120),
-                    child: MeditationCard(
-                      title: "lets start Movement Meditation",
-                      instructor: username,
-                      subtitle: "Awaken Your Body & Mind",
-                      buttonText: "Start",
-                      buttonColor: Colors.green,
-                      imagePath: "assets/images/meditation/movement_meditation.jpg",
-                      isFeatured: true,
-                      onStartPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MovementMeditationScreen(),
-                          ),
-                        );
-                      },
+                if (_isLoadingCards)
+                  const _ShimmerCard()
+                else
+                  GestureDetector(
+                    onTapDown: (_) => setState(() => _cardScale1 = 0.96),
+                    onTapUp: (_) => setState(() => _cardScale1 = 1.0),
+                    onTapCancel: () => setState(() => _cardScale1 = 1.0),
+                    child: AnimatedScale(
+                      scale: _cardScale1,
+                      duration: const Duration(milliseconds: 120),
+                      child: MeditationCard(
+                        title: "lets start Movement Meditation",
+                        instructor: username,
+                        subtitle: "Awaken Your Body & Mind",
+                        buttonText: "Start",
+                        buttonColor: Colors.green,
+                        imagePath: "assets/images/meditation/movement_meditation.jpg",
+                        isFeatured: true,
+                        onStartPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const MovementMeditationScreen(),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
 
                 const SizedBox(height: 28),
 
                 // Music card
-                GestureDetector(
-                  onTapDown: (_) => setState(() => _cardScale2 = 0.96),
-                  onTapUp: (_) => setState(() => _cardScale2 = 1.0),
-                  onTapCancel: () => setState(() => _cardScale2 = 1.0),
-                  child: AnimatedScale(
-                    scale: _cardScale2,
-                    duration: const Duration(milliseconds: 120),
-                    child: MeditationCard(
-                      title: "Relax your breathing with music",
-                      instructor: username,
-                      subtitle: "Calm Your Mind",
-                      buttonText: "Start",
-                      buttonColor: const Color(0xFF3B82F6),
-                      imagePath: "assets/images/meditation/music_meditation.jpg",
-                      isFeatured: false,
-                      onStartPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ChooseCalmnessScreen()),
-                        );
-                      },
+                if (_isLoadingCards)
+                  const _ShimmerCard()
+                else
+                  GestureDetector(
+                    onTapDown: (_) => setState(() => _cardScale2 = 0.96),
+                    onTapUp: (_) => setState(() => _cardScale2 = 1.0),
+                    onTapCancel: () => setState(() => _cardScale2 = 1.0),
+                    child: AnimatedScale(
+                      scale: _cardScale2,
+                      duration: const Duration(milliseconds: 120),
+                      child: MeditationCard(
+                        title: "Relax your breathing with music",
+                        instructor: username,
+                        subtitle: "Calm Your Mind",
+                        buttonText: "Start",
+                        buttonColor: const Color(0xFF3B82F6),
+                        imagePath: "assets/images/meditation/music_meditation.jpg",
+                        isFeatured: false,
+                        onStartPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ChooseCalmnessScreen()),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
 
                 const SizedBox(height: 48),
                 Center(
@@ -267,6 +276,27 @@ class _MeditationScreenState extends State<MeditationScreen> {
               child: Text(label),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Shimmer placeholder card ───────────────────────────────────────────────────
+class _ShimmerCard extends StatelessWidget {
+  const _ShimmerCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFF1A2540),
+      highlightColor: const Color(0xFF2A3550),
+      child: Container(
+        height: 190,
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A2540),
+          borderRadius: BorderRadius.circular(24),
         ),
       ),
     );

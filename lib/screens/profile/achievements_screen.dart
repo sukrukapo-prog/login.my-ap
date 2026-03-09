@@ -24,6 +24,11 @@ class Achievement {
 }
 
 final List<Achievement> allAchievements = [
+  // Welcome
+  const Achievement(id: 'first_login', emoji: '🎉', title: 'Welcome!',
+      description: 'Open FitMetrics for the first time', category: 'session',
+      requiredValue: 0, color: Color(0xFF10B981)),
+
   // Sessions
   const Achievement(id: 'first_session', emoji: '🌱', title: 'First Step',
       description: 'Complete your first session', category: 'session',
@@ -87,6 +92,7 @@ class AchievementsScreen extends StatefulWidget {
 class _AchievementsScreenState extends State<AchievementsScreen>
     with SingleTickerProviderStateMixin {
   Map<String, int> _stats = {};
+  bool _firstLogin = false;
   bool _isLoading = true;
   String _filter = 'All';
   late AnimationController _animCtrl;
@@ -109,6 +115,7 @@ class _AchievementsScreenState extends State<AchievementsScreen>
 
   Future<void> _loadStats() async {
     final stats = await LocalStorage.getAllTimeStats();
+    final alreadyOpened = !(await LocalStorage.isFirstLogin());
     setState(() {
       _stats = stats;
       _isLoading = false;
@@ -122,7 +129,7 @@ class _AchievementsScreenState extends State<AchievementsScreen>
     final minutes = _stats['totalMinutes'] ?? 0;
 
     switch (a.category) {
-      case 'session': return sessions >= a.requiredValue;
+      case 'session': return a.id == 'first_login' ? _firstLogin : sessions >= a.requiredValue;
       case 'streak':  return streak  >= a.requiredValue;
       case 'time':    return minutes >= a.requiredValue;
       default:        return false;

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/core/push_notification_service.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/core/app_settings.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await PushNotificationService.init();
   await AppSettings().load(); // load theme + settings before app starts
   runApp(const FitMetricsApp());
 }

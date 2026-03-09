@@ -7,8 +7,6 @@ import 'package:fitmetrics/screens/walkthrough/walkthrough_overlay.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
 import 'package:fitmetrics/core/smart_notification_service.dart';
-import 'package:fitmetrics/core/smart_notification_service.dart';
-import 'package:fitmetrics/core/haptic_service.dart';
 
 class MainTabScreen extends StatefulWidget {
   final OnboardingData userData;

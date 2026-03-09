@@ -21,6 +21,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
   bool _showPersonalDetails = false;
   Map<String, int> _allTimeStats = {};
+  List<int> _weeklyData = List.filled(7, 0);
+  String _latestBadgeEmoji = '';
+  String _latestBadgeTitle = '';
   int _dailyGoal = 15;
   bool _showGoalPicker = false;
 
@@ -166,7 +169,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onTap: _changeAvatar,
                       child: Stack(
                         children: [
-                          AvatarWidget(avatarId: _avatarId, size: 90, showBorder: true),
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6), Color(0xFFF59E0B)],
+                              ),
+                            ),
+                            child: AvatarWidget(avatarId: _avatarId, size: 90, showBorder: false),
+                          ),
                           Positioned(
                             bottom: 0, right: 0,
                             child: Container(
@@ -182,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(_data.name ?? 'User',
+                    Text(_data.fullName ?? _data.name ?? 'User',
                         style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 4),
                     Text(_data.email ?? '',
@@ -225,6 +237,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: _showPersonalDetails
                     ? Column(
                   children: [
+                    _InfoRow(label: 'Full Name', value: _data.fullName ?? '—'),
+                    const Divider(color: Colors.white12, height: 1),
                     _InfoRow(label: 'Preferred Name', value: _data.name ?? '—'),
                     const Divider(color: Colors.white12, height: 1),
                     _InfoRow(label: 'Email', value: _data.email ?? '—'),

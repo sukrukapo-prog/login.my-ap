@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:fitmetrics/screens/meditation/movement/movement_session_model.dart';
@@ -40,6 +41,7 @@ class _MovementPlayerScreenState extends State<MovementPlayerScreen>
 
   // ── Animations ─────────────────────────────────────────────────────────────
   late AnimationController _fadeCtrl;
+  late ConfettiController _confettiCtrl;
   late Animation<double>   _fadeAnim;
   late AnimationController _slideCtrl;
   late Animation<Offset>   _slideAnim;
@@ -48,6 +50,7 @@ class _MovementPlayerScreenState extends State<MovementPlayerScreen>
   void initState() {
     super.initState();
 
+    _confettiCtrl = ConfettiController(duration: const Duration(seconds: 3));
     _fadeCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 600))..forward();
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
@@ -157,6 +160,7 @@ class _MovementPlayerScreenState extends State<MovementPlayerScreen>
         _activeVideo?.pause();
         _saveTime();
         setState(() { _isPlaying = false; _remainingSeconds = 0; });
+        _confettiCtrl.play();
         _showCompletionDialog();
       } else {
         setState(() => _remainingSeconds--);
@@ -343,6 +347,7 @@ class _MovementPlayerScreenState extends State<MovementPlayerScreen>
     _introCtrl?.removeListener(_watchIntroEnd);
     _introCtrl?.dispose();
     _loopCtrl?.dispose();
+    _confettiCtrl.dispose();
     _fadeCtrl.dispose();
     _slideCtrl.dispose();
     AudioService().resumeMusic();
