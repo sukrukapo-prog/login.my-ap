@@ -2,21 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/core/page_transitions.dart';
 
-import 'package:fitmetrics/screens/welcome_screen.dart';
-import 'package:fitmetrics/screens/name_screen.dart';
-import 'package:fitmetrics/screens/personal_info_screen.dart';
-import 'package:fitmetrics/screens/personalize_screen.dart';
-import 'package:fitmetrics/screens/goals_screen.dart';
-import 'package:fitmetrics/screens/create_account_screen.dart';
-import 'package:fitmetrics/screens/success_screen.dart';
-import 'package:fitmetrics/screens/login_screen.dart';
+import 'package:fitmetrics/screens/notifications/meditation_history_screen.dart';
+import 'package:fitmetrics/screens/auth/welcome_screen.dart';
+import 'package:fitmetrics/screens/auth/name_screen.dart';
+import 'package:fitmetrics/screens/auth/personal_info_screen.dart';
+import 'package:fitmetrics/screens/auth/personalize_screen.dart';
+import 'package:fitmetrics/screens/auth/goals_screen.dart';
+import 'package:fitmetrics/screens/auth/create_account_screen.dart';
+import 'package:fitmetrics/screens/auth/success_screen.dart';
+import 'package:fitmetrics/screens/auth/login_screen.dart';
 import 'package:fitmetrics/screens/main_tab_screen.dart';
-import 'package:fitmetrics/screens/settings_screen.dart';
-import 'package:fitmetrics/screens/progress_screen.dart';
-import 'package:fitmetrics/screens/splash_screen.dart';
-import 'package:fitmetrics/screens/onboarding_screen.dart';
-import 'package:fitmetrics/screens/leaderboard_screen.dart';
-import 'package:fitmetrics/screens/notification_history_screen.dart';
+import 'package:fitmetrics/screens/settings/settings_screen.dart';
+import 'package:fitmetrics/screens/progress/progress_screen.dart';
+import 'package:fitmetrics/screens/auth/splash_screen.dart';
+import 'package:fitmetrics/screens/auth/onboarding_screen.dart';
+import 'package:fitmetrics/screens/leaderboard/leaderboard_screen.dart';
+import 'package:fitmetrics/screens/notifications/notification_history_screen.dart';
+import 'package:fitmetrics/screens/profile/achievements_screen.dart';
 
 class AppRoutes {
   static const String splash              = '/';
@@ -34,6 +36,8 @@ class AppRoutes {
   static const String progress             = '/progress';
   static const String leaderboard         = '/leaderboard';
   static const String notificationHistory = '/notification-history';
+  static const String meditationHistory   = '/meditation-history';
+  static const String achievements         = '/achievements';
 
   static Route<dynamic> generateRoute(RouteSettings routeSettings) {
     final args = routeSettings.arguments;
@@ -105,6 +109,12 @@ class AppRoutes {
 
       case notificationHistory:
         return SlidePageRoute(page: const NotificationHistoryScreen());
+
+      case meditationHistory:
+        return SlidePageRoute(page: const MeditationHistoryScreen());
+
+      case achievements:
+        return SlidePageRoute(page: const AchievementsScreen());
 
       default:
         return MaterialPageRoute(

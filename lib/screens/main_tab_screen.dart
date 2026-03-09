@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
-import 'package:fitmetrics/screens/home_screen.dart';
-import 'package:fitmetrics/screens/profile_screen.dart';
+import 'package:fitmetrics/screens/home/home_screen.dart';
+import 'package:fitmetrics/screens/profile/profile_screen.dart';
 import 'package:fitmetrics/screens/meditation/meditation_screen.dart';
-import 'package:fitmetrics/screens/walkthrough_overlay.dart';
+import 'package:fitmetrics/screens/walkthrough/walkthrough_overlay.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/core/smart_notification_service.dart';
+import 'package:fitmetrics/core/smart_notification_service.dart';
+import 'package:fitmetrics/core/haptic_service.dart';
 
 class MainTabScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -28,10 +31,13 @@ class MainTabScreenState extends State<MainTabScreen> {
 
   Future<void> _checkWalkthrough() async {
     final seen = await LocalStorage.hasSeenWalkthrough();
-    if (!seen) {
-      Future.delayed(const Duration(milliseconds: 1000), () {
-        if (mounted) setState(() => _showWalkthrough = true);
-      });
+    if (!seen && mounted) {
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _showWalkthrough = true);
+        });
+      }
     }
   }
 
@@ -110,33 +116,9 @@ class MainTabScreenState extends State<MainTabScreen> {
                 activeIcon: Icon(Icons.open_with),
                 label: 'Workout',
               ),
-              BottomNavigationBarItem(
-                icon: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: Image.asset(
-                    'assets/images/meditation/meditation_icon.jpg',
-                    width: 24, height: 24, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.self_improvement),
-                  ),
-                ),
-                activeIcon: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                        color: const Color(0xFF3B82F6), width: 2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(5),
-                    child: Image.asset(
-                      'assets/images/meditation/meditation_icon.jpg',
-                      width: 22, height: 22, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.self_improvement),
-                    ),
-                  ),
-                ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.self_improvement_outlined),
+                activeIcon: Icon(Icons.self_improvement),
                 label: 'Meditation',
               ),
               const BottomNavigationBarItem(

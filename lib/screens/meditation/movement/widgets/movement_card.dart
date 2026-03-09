@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/core/haptic_service.dart';
 import 'package:fitmetrics/screens/meditation/movement/movement_session_model.dart';
 
 /// A single expandable movement meditation card.
 /// Tap to expand/collapse the bullet points and full Start button.
-class MovementCard extends StatelessWidget {
+class MovementCard extends StatefulWidget {
   final MovementSession session;
   final bool isExpanded;
   final VoidCallback onTap;
@@ -18,19 +20,40 @@ class MovementCard extends StatelessWidget {
   });
 
   @override
+  State<MovementCard> createState() => _MovementCardState();
+}
+
+class _MovementCardState extends State<MovementCard> {
+  bool _isFav = false;
+
+  @override
+  void initState() {
+    super.initState();
+    LocalStorage.isFavorite(widget.session.id).then((v) {
+      if (mounted) setState(() => _isFav = v);
+    });
+  }
+
+  Future<void> _toggleFav() async {
+    HapticService.medium();
+    await LocalStorage.toggleFavorite(widget.session.id);
+    setState(() => _isFav = !_isFav);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isExpanded
-                ? session.accentColor.withAlpha(110)
+            color: widget.isExpanded
+                ? widget.session.accentColor.withAlpha(110)
                 : Colors.white.withAlpha(18),
-            width: isExpanded ? 1.5 : 1,
+            width: widget.isExpanded ? 1.5 : 1,
           ),
         ),
         child: ClipRRect(
@@ -43,22 +66,41 @@ class MovementCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
+                    // Heart fav button
+                    Positioned(
+                      top: 8, right: 8,
+                      child: GestureDetector(
+                        onTap: _toggleFav,
+                        child: Container(
+                          width: 34, height: 34,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withAlpha(100),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _isFav ? Icons.favorite : Icons.favorite_border,
+                            color: _isFav ? Colors.redAccent : Colors.white70,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
                     // Image with gradient fallback
                     Image.asset(
-                      session.imagePath,
+                      widget.session.imagePath,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: session.gradientColors,
+                            colors: widget.session.gradientColors,
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                         ),
                         child: Center(
                           child: Icon(
-                            session.icon,
-                            color: session.accentColor.withAlpha(120),
+                            widget.session.icon,
+                            color: widget.session.accentColor.withAlpha(120),
                             size: 56,
                           ),
                         ),
@@ -91,7 +133,7 @@ class MovementCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            session.title,
+                            widget.session.title,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 17,
@@ -106,13 +148,13 @@ class MovementCard extends StatelessWidget {
                             children: [
                               _MetaBadge(
                                 icon: Icons.timer_outlined,
-                                label: session.duration,
-                                color: session.accentColor,
+                                label: widget.session.duration,
+                                color: widget.session.accentColor,
                               ),
                               const SizedBox(width: 8),
                               _MetaBadge(
                                 icon: Icons.bar_chart,
-                                label: session.difficulty,
+                                label: widget.session.difficulty,
                                 color: Colors.white54,
                               ),
                             ],
@@ -126,7 +168,7 @@ class MovementCard extends StatelessWidget {
                       bottom: 12,
                       right: 12,
                       child: GestureDetector(
-                        onTap: onStart,
+                        onTap: widget.onStart,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 7),
@@ -143,7 +185,7 @@ class MovementCard extends StatelessWidget {
                             children: [
                               Icon(
                                 Icons.play_circle_outline,
-                                color: session.accentColor,
+                                color: widget.session.accentColor,
                                 size: 14,
                               ),
                               const SizedBox(width: 5),
@@ -166,7 +208,7 @@ class MovementCard extends StatelessWidget {
                       top: 12,
                       right: 12,
                       child: AnimatedRotation(
-                        turns: isExpanded ? 0.5 : 0,
+                        turns: widget.isExpanded ? 0.5 : 0,
                         duration: const Duration(milliseconds: 280),
                         child: Container(
                           width: 28,
@@ -190,7 +232,7 @@ class MovementCard extends StatelessWidget {
               // ── Expandable info section ────────────────────────────────────
               AnimatedCrossFade(
                 duration: const Duration(milliseconds: 280),
-                crossFadeState: isExpanded
+                crossFadeState: widget.isExpanded
                     ? CrossFadeState.showSecond
                     : CrossFadeState.showFirst,
                 firstChild: const SizedBox.shrink(),
@@ -199,7 +241,7 @@ class MovementCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        session.gradientColors[0].withAlpha(220),
+                        widget.session.gradientColors[0].withAlpha(220),
                         const Color(0xFF0F1624),
                       ],
                       begin: Alignment.topCenter,
@@ -211,7 +253,7 @@ class MovementCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Bullet points
-                      ...session.bulletPoints.map(
+                      ...widget.session.bulletPoints.map(
                             (point) => Padding(
                           padding: const EdgeInsets.only(bottom: 9),
                           child: Row(
@@ -223,7 +265,7 @@ class MovementCard extends StatelessWidget {
                                 height: 6,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: session.accentColor,
+                                  color: widget.session.accentColor,
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -248,7 +290,7 @@ class MovementCard extends StatelessWidget {
                         width: double.infinity,
                         height: 46,
                         child: ElevatedButton.icon(
-                          onPressed: onStart,
+                          onPressed: widget.onStart,
                           icon: const Icon(Icons.play_arrow_rounded, size: 20),
                           label: const Text(
                             'Start Session',
@@ -258,7 +300,7 @@ class MovementCard extends StatelessWidget {
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: session.accentColor,
+                            backgroundColor: widget.session.accentColor,
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(

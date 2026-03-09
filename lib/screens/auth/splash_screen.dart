@@ -14,11 +14,9 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
 
-  late AnimationController _logoCtrl;
-  late AnimationController _textCtrl;
+  late AnimationController _mainCtrl;
   late AnimationController _pulseCtrl;
 
-  late Animation<double> _logoScale;
   late Animation<double> _logoFade;
   late Animation<double> _textFade;
   late Animation<Offset> _textSlide;
@@ -28,37 +26,37 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    _logoCtrl = AnimationController(
+    // Single main controller — logo fades in, text slides up together
+    _mainCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 900));
-    _logoScale = Tween<double>(begin: 0.4, end: 1.0).animate(
-        CurvedAnimation(parent: _logoCtrl, curve: Curves.elasticOut));
+
     _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _logoCtrl,
-            curve: const Interval(0.0, 0.6, curve: Curves.easeIn)));
+        CurvedAnimation(parent: _mainCtrl,
+            curve: const Interval(0.0, 0.7, curve: Curves.easeIn)));
 
-    _textCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
     _textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _textCtrl, curve: Curves.easeIn));
-    _textSlide = Tween<Offset>(
-        begin: const Offset(0, 0.3), end: Offset.zero).animate(
-        CurvedAnimation(parent: _textCtrl, curve: Curves.easeOut));
+        CurvedAnimation(parent: _mainCtrl,
+            curve: const Interval(0.3, 1.0, curve: Curves.easeIn)));
 
+    _textSlide = Tween<Offset>(
+        begin: const Offset(0, 0.25), end: Offset.zero).animate(
+        CurvedAnimation(parent: _mainCtrl,
+            curve: const Interval(0.3, 1.0, curve: Curves.easeOut)));
+
+    // Subtle pulse glow — starts after main anim
     _pulseCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1400))
+        vsync: this, duration: const Duration(milliseconds: 1600))
       ..repeat(reverse: true);
-    _pulse = Tween<double>(begin: 0.7, end: 1.0).animate(
+    _pulse = Tween<double>(begin: 0.85, end: 1.0).animate(
         CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
 
     _startSequence();
   }
 
   Future<void> _startSequence() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _logoCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 800));
-    _textCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 1800));
+    await Future.delayed(const Duration(milliseconds: 200));
+    _mainCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 2200));
     _navigate();
   }
 
@@ -80,8 +78,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _logoCtrl.dispose();
-    _textCtrl.dispose();
+    _mainCtrl.dispose();
     _pulseCtrl.dispose();
     super.dispose();
   }
@@ -94,18 +91,18 @@ class _SplashScreenState extends State<SplashScreen>
         fit: StackFit.expand,
         children: [
 
-          // Pulsing glow behind logo
+          // Pulsing glow
           AnimatedBuilder(
             animation: _pulse,
             builder: (_, __) => Center(
               child: Container(
-                width: 280 * _pulse.value,
-                height: 280 * _pulse.value,
+                width: 260 * _pulse.value,
+                height: 260 * _pulse.value,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFF3B82F6).withAlpha(35),
+                      const Color(0xFF3B82F6).withAlpha(30),
                       Colors.transparent,
                     ],
                   ),
@@ -120,47 +117,41 @@ class _SplashScreenState extends State<SplashScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
 
-                // App logo from assets
-                AnimatedBuilder(
-                  animation: _logoCtrl,
-                  builder: (_, __) => FadeTransition(
-                    opacity: _logoFade,
-                    child: Transform.scale(
-                      scale: _logoScale.value,
-                      child: Container(
-                        width: 110, height: 110,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF3B82F6).withAlpha(90),
-                              blurRadius: 35,
-                              spreadRadius: 5,
-                            ),
-                          ],
+                // Logo — simple fade in, no scale bounce
+                FadeTransition(
+                  opacity: _logoFade,
+                  child: Container(
+                    width: 110, height: 110,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF3B82F6).withAlpha(80),
+                          blurRadius: 30,
+                          spreadRadius: 4,
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(30),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 110,
-                            height: 110,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
-                              child: const Center(
-                                child: Text('F', style: TextStyle(
-                                  color: Colors.white, fontSize: 52,
-                                  fontWeight: FontWeight.w900,
-                                )),
-                              ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 110, height: 110,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          child: const Center(
+                            child: Text('F', style: TextStyle(
+                              color: Colors.white, fontSize: 52,
+                              fontWeight: FontWeight.w900,
+                            )),
                           ),
                         ),
                       ),
@@ -168,9 +159,9 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
 
-                const SizedBox(height: 26),
+                const SizedBox(height: 24),
 
-                // App name + tagline
+                // Text slides up
                 SlideTransition(
                   position: _textSlide,
                   child: FadeTransition(

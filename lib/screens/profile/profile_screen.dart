@@ -5,7 +5,7 @@ import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
 import 'package:fitmetrics/services/auth_service.dart';
-import 'package:fitmetrics/routes.dart' show AppRoutes;
+import 'package:fitmetrics/core/haptic_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -19,7 +19,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late OnboardingData _data;
   String? _avatarId;
   bool _isEditing = false;
-  bool _showPersonalDetails = false; // hidden by default
+  bool _showPersonalDetails = false;
+  Map<String, int> _allTimeStats = {};
+  int _dailyGoal = 15;
+  bool _showGoalPicker = false;
 
   late TextEditingController _ageController;
   late TextEditingController _heightController;
@@ -33,6 +36,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _heightController = TextEditingController(text: _data.heightCm?.toStringAsFixed(0) ?? '');
     _weightController = TextEditingController(text: _data.currentWeightKg?.toStringAsFixed(1) ?? '');
     _loadAvatar();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    final stats = await LocalStorage.getAllTimeStats();
+    final goal = await LocalStorage.getDailyGoalMinutes();
+    setState(() {
+      _allTimeStats = stats;
+      _dailyGoal = goal;
+    });
   }
 
   Future<void> _loadAvatar() async {
@@ -83,6 +96,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _openSettings() {
     AudioService().playClickSound();
     Navigator.pushNamed(context, AppRoutes.settings);
+  }
+
+  void _openAchievements() {
+    HapticService.light();
+    Navigator.pushNamed(context, AppRoutes.achievements);
+  }
+
+  void _openMeditationHistory() {
+    HapticService.light();
+    Navigator.pushNamed(context, AppRoutes.meditationHistory);
+  }
+
+  void _openNotifications() {
+    HapticService.light();
+    Navigator.pushNamed(context, AppRoutes.notificationHistory);
   }
 
   void _logout() {
@@ -218,7 +246,102 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Update Stats
+              // All-time stats
+              _SectionCard(
+                title: 'My Stats',
+                child: Column(
+                  children: [
+                    _InfoRow(label: '🕐 Total Hours', value: '${_allTimeStats["totalHours"] ?? 0}h meditated'),
+                    const Divider(color: Colors.white12, height: 1),
+                    _InfoRow(label: '🔥 Current Streak', value: '${_allTimeStats["streakDays"] ?? 0} days'),
+                    const Divider(color: Colors.white12, height: 1),
+                    _InfoRow(label: '🏆 Longest Streak', value: '${_allTimeStats["longestStreak"] ?? 0} days'),
+                    const Divider(color: Colors.white12, height: 1),
+                    _InfoRow(label: '🧘 Total Sessions', value: '${_allTimeStats["totalSessions"] ?? 0} completed'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Daily goal
+              _SectionCard(
+                title: 'Daily Goal',
+                trailing: GestureDetector(
+                  onTap: () {
+                    HapticService.light();
+                    setState(() => _showGoalPicker = !_showGoalPicker);
+                  },
+                  child: Text(
+                    _showGoalPicker ? 'Done' : 'Change',
+                    style: const TextStyle(color: Color(0xFF3B82F6),
+                        fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.flag_outlined,
+                              color: Color(0xFF3B82F6), size: 20),
+                          const SizedBox(width: 10),
+                          Text('$_dailyGoal minutes per day',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 14,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                    if (_showGoalPicker) ...[
+                      const Divider(color: Colors.white12, height: 1),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8, runSpacing: 8,
+                        children: [5, 10, 15, 20, 30, 45, 60].map((mins) {
+                          final sel = mins == _dailyGoal;
+                          return GestureDetector(
+                            onTap: () async {
+                              HapticService.medium();
+                              await LocalStorage.setDailyGoalMinutes(mins);
+                              setState(() {
+                                _dailyGoal = mins;
+                                _showGoalPicker = false;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: sel
+                                    ? const Color(0xFF3B82F6)
+                                    : Colors.white.withAlpha(15),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: sel
+                                      ? const Color(0xFF3B82F6)
+                                      : Colors.white.withAlpha(30),
+                                ),
+                              ),
+                              child: Text('${mins}m',
+                                  style: TextStyle(
+                                    color: sel ? Colors.white : Colors.white54,
+                                    fontSize: 13,
+                                    fontWeight: sel ? FontWeight.w700 : FontWeight.normal,
+                                  )),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Update Stats"
+
               _SectionCard(
                 title: 'Update Stats',
                 trailing: _isEditing
@@ -249,6 +372,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               _MenuCard(items: [
                 _MenuItem(icon: Icons.color_lens_outlined, label: 'Change Avatar', onTap: _changeAvatar),
+                _MenuItem(icon: Icons.emoji_events_outlined, label: 'Achievements', onTap: _openAchievements),
+                _MenuItem(icon: Icons.history, label: 'Meditation History', onTap: _openMeditationHistory),
                 _MenuItem(icon: Icons.settings_outlined, label: 'Settings', onTap: _openSettings),
               ]),
               const SizedBox(height: 12),

@@ -5,6 +5,7 @@ import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/screens/main_tab_screen.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/core/haptic_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -60,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _navigate(String dest) {
     AudioService().playClickSound();
+    HapticService.medium();
     if (dest == 'meditation') {
       final mainTabState = context.findAncestorStateOfType<MainTabScreenState>();
       mainTabState?.setTab(2);
@@ -76,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _goToProfile() {
     AudioService().playClickSound();
+    HapticService.light();
     // Navigate to profile tab
     final mainTabState = context.findAncestorStateOfType<MainTabScreenState>();
     mainTabState?.setTab(4); // profile is tab index 4

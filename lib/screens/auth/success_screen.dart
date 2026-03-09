@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
-import 'package:fitmetrics/screens/avatar_selection_screen.dart';
+import 'package:fitmetrics/screens/auth/avatar_selection_screen.dart';
 import 'package:fitmetrics/services/auth_service.dart';
 
 class SuccessScreen extends StatefulWidget {

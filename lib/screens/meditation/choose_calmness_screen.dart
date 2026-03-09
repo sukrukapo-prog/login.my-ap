@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/core/haptic_service.dart';
 import 'package:fitmetrics/screens/meditation/meditation_player_screen.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 
@@ -152,11 +154,11 @@ class _ChooseCalmnessScreenState extends State<ChooseCalmnessScreen> {
   }
 }
 
-class _CalmnessCard extends StatelessWidget {
+class _CalmnessCard extends StatefulWidget {
   final String title;
   final String imagePath;
   final IconData icon;
-  final CalmnessScene scene; // ← only new param added
+  final CalmnessScene scene;
 
   const _CalmnessCard({
     Key? key,
@@ -167,13 +169,34 @@ class _CalmnessCard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<_CalmnessCard> createState() => _CalmnessCardState();
+}
+
+class _CalmnessCardState extends State<_CalmnessCard> {
+  bool _isFav = false;
+
+  @override
+  void initState() {
+    super.initState();
+    LocalStorage.isFavorite(widget.title).then((v) {
+      if (mounted) setState(() => _isFav = v);
+    });
+  }
+
+  Future<void> _toggleFav() async {
+    HapticService.medium();
+    await LocalStorage.toggleFavorite(widget.title);
+    setState(() => _isFav = !_isFav);
+  }
+
+  @override
   Widget build(BuildContext context) {
     // ← Wrapped in GestureDetector — only addition to your build method
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => MeditationPlayerScreen(scene: scene),
+          builder: (_) => MeditationPlayerScreen(scene: widget.scene),
         ),
       ),
       child: ClipRRect(
@@ -181,22 +204,41 @@ class _CalmnessCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // Fav heart
+            Positioned(
+              top: 8, right: 8,
+              child: GestureDetector(
+                onTap: _toggleFav,
+                child: Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(120),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isFav ? Icons.favorite : Icons.favorite_border,
+                    color: _isFav ? Colors.redAccent : Colors.white70,
+                    size: 17,
+                  ),
+                ),
+              ),
+            ),
             // YOUR original image + fallback — unchanged
             Image.asset(
-              imagePath,
+              widget.imagePath,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: _gradientForTitle(title),
+                      colors: _gradientForTitle(widget.title),
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                   ),
                   child: Center(
                     child: Icon(
-                      icon,
+                      widget.icon,
                       color: Colors.white.withOpacity(0.5),
                       size: 48.0,
                     ),
@@ -227,7 +269,7 @@ class _CalmnessCard extends StatelessWidget {
               top: 12.0,
               left: 12.0,
               child: Text(
-                title,
+                widget.title,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 15.0,
@@ -271,7 +313,7 @@ class _CalmnessCard extends StatelessWidget {
 
   // YOUR original gradients — unchanged
   List<Color> _gradientForTitle(String title) {
-    switch (title) {
+    switch (widget.title) {
       case 'Rainy Vibe':
         return [const Color(0xFF2C3E50), const Color(0xFF4CA1AF)];
       case 'Ocean':

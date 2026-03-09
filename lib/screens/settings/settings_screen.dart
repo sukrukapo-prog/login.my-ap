@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/core/app_settings.dart';
 import 'package:fitmetrics/core/audio_service.dart';
+import 'package:fitmetrics/core/smart_notification_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/core/haptic_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,15 +17,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final AudioService _audio = AudioService();
   final _nameController = TextEditingController();
   bool _showNameField = false;
+  bool _streakProtection = true;
+  bool _dailyReminder = true;
+  bool _milestoneNotif = true;
 
   @override
   void initState() {
     super.initState();
     _settings.addListener(_refresh);
+    _loadNotifSettings();
     _loadName();
   }
 
   void _refresh() => setState(() {});
+
+  Future<void> _loadNotifSettings() async {
+    final sp = await SmartNotificationService.isStreakProtectionEnabled();
+    final dr = await SmartNotificationService.isDailyReminderEnabled();
+    final ms = await SmartNotificationService.isMilestoneEnabled();
+    if (mounted) setState(() { _streakProtection = sp; _dailyReminder = dr; _milestoneNotif = ms; });
+  }
 
   Future<void> _loadName() async {
     final data = await LocalStorage.getUserData();
@@ -63,7 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () { HapticService.light(); Navigator.pop(context); },
                     child: Container(
                       width: 40, height: 40,
                       decoration: BoxDecoration(
@@ -94,14 +107,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         icon: Icons.music_note_outlined,
                         label: 'Background Music',
                         value: _settings.musicEnabled,
-                        onChanged: (_) async => await _audio.toggleMusic(),
+                        onChanged: (_) async { HapticService.light(); await _audio.toggleMusic(); },
                       ),
                       const _Divider(),
                       _ToggleRow(
                         icon: Icons.touch_app_outlined,
                         label: 'Sound Effects',
                         value: _settings.soundEffectsEnabled,
-                        onChanged: (v) async => await _settings.setSoundEffects(v),
+                        onChanged: (v) async { HapticService.light(); await _settings.setSoundEffects(v); },
                       ),
                       const _Divider(),
                       // Volume slider
@@ -155,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         return Column(
                           children: [
                             GestureDetector(
-                              onTap: () async => await _audio.changeTrack(i),
+                              onTap: () async { HapticService.selection(); await _audio.changeTrack(i); },
                               child: Container(
                                 color: Colors.transparent,
                                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -207,6 +220,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       }),
                     ),
 
+                    const SizedBox(height: 16),
+
+                    // ── Notifications ──────────────────────────────────
+                    _SectionLabel('Notifications'),
+                    _Card(children: [
+                      _ToggleRow(
+                        icon: Icons.local_fire_department_outlined,
+                        label: 'Streak Protection',
+                        value: _streakProtection,
+                        onChanged: (v) async {
+                          HapticService.light();
+                          await SmartNotificationService.setStreakProtection(v);
+                          setState(() => _streakProtection = v);
+                        },
+                      ),
+                      const _Divider(),
+                      _ToggleRow(
+                        icon: Icons.notifications_outlined,
+                        label: 'Daily Reminder',
+                        value: _dailyReminder,
+                        onChanged: (v) async {
+                          HapticService.light();
+                          await SmartNotificationService.setDailyReminder(v);
+                          setState(() => _dailyReminder = v);
+                        },
+                      ),
+                      const _Divider(),
+                      _ToggleRow(
+                        icon: Icons.emoji_events_outlined,
+                        label: 'Milestone Alerts',
+                        value: _milestoneNotif,
+                        onChanged: (v) async {
+                          HapticService.light();
+                          await SmartNotificationService.setMilestone(v);
+                          setState(() => _milestoneNotif = v);
+                        },
+                      ),
+                    ]),
                     const SizedBox(height: 16),
 
                     // ── Account ────────────────────────────────────
@@ -286,23 +337,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _SectionLabel('Appearance'),
                     _Card(children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
                           children: [
-                            const Icon(Icons.palette_outlined, color: Colors.white54, size: 20),
+                            Icon(
+                              _settings.isDarkMode
+                                  ? Icons.dark_mode_outlined
+                                  : Icons.light_mode_outlined,
+                              color: _settings.isDarkMode
+                                  ? const Color(0xFF3B82F6)
+                                  : const Color(0xFFF59E0B),
+                              size: 20,
+                            ),
                             const SizedBox(width: 12),
-                            const Text('App Theme',
+                            const Text('Dark Mode',
                                 style: TextStyle(color: Colors.white70, fontSize: 14)),
                             const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Text('Coming Soon',
-                                  style: TextStyle(color: Colors.white38, fontSize: 12)),
+                            Switch(
+                              value: _settings.isDarkMode,
+                              onChanged: (v) async {
+                                HapticService.light();
+                                await _settings.setAppTheme(v ? 'dark' : 'light');
+                              },
+                              activeColor: const Color(0xFF3B82F6),
+                              inactiveTrackColor: Colors.white12,
                             ),
                           ],
                         ),

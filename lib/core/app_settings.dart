@@ -69,6 +69,15 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get isDarkMode => _appTheme == 'dark';
+
+  Future<void> setAppTheme(String theme) async {
+    _appTheme = theme;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('appTheme', theme);
+    notifyListeners();
+  }
+
   Future<void> setDisplayName(String name) async {
     _displayName = name;
     final prefs = await SharedPreferences.getInstance();
