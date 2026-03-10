@@ -6,6 +6,7 @@ import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
 import 'package:fitmetrics/services/auth_service.dart';
 import 'package:fitmetrics/core/haptic_service.dart';
+import 'package:fitmetrics/screens/profile/feedback/feedback_sheet.dart' show FeedbackScreen;
 
 class ProfileScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -116,6 +117,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.pushNamed(context, AppRoutes.notificationHistory);
   }
 
+  void _openFeedback() {
+    HapticService.light();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const FeedbackScreen(),
+    );
+  }
+
   void _logout() {
     showDialog(
       context: context,
@@ -132,7 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await AuthService.logout(); // clears all user data, avatar, meditation stats
+              await AuthService.logout();
               if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.welcome);
             },
             child: const Text('Logout', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700)),
@@ -224,7 +235,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Personal Details — hidden by default, toggle to show
+              // Personal Details
               _SectionCard(
                 title: 'Personal Details',
                 trailing: GestureDetector(
@@ -354,8 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Update Stats"
-
+              // Update Stats
               _SectionCard(
                 title: 'Update Stats',
                 trailing: _isEditing
@@ -386,6 +396,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               _MenuCard(items: [
                 _MenuItem(icon: Icons.color_lens_outlined, label: 'Change Avatar', onTap: _changeAvatar),
+                _MenuItem(icon: Icons.feedback_outlined, label: 'Send Feedback', onTap: _openFeedback),
                 _MenuItem(icon: Icons.emoji_events_outlined, label: 'Achievements', onTap: _openAchievements),
                 _MenuItem(icon: Icons.history, label: 'Meditation History', onTap: _openMeditationHistory),
                 _MenuItem(icon: Icons.settings_outlined, label: 'Settings', onTap: _openSettings),
