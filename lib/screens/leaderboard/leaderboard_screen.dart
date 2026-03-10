@@ -64,55 +64,41 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     super.dispose();
   }
 
-  // ── Load leaderboard data ──────────────────────────────────────────────────
   Future<void> _load() async {
     setState(() { _isLoading = true; _error = null; });
     try {
-      final usersSnap = await _db.collection('users').get();
-      final entries   = <LeaderboardEntry>[];
+      // Publish own score first
+      await _publishMyScore();
 
-      for (final doc in usersSnap.docs) {
-        final data = doc.data();
-        final uid  = doc.id;
+      // Read from public leaderboard collection (no security rule issues)
+      final snap = await _db.collection('leaderboard').get();
+      final entries = <LeaderboardEntry>[];
+
+      for (final doc in snap.docs) {
+        final d = doc.data();
+        final uid = doc.id;
         int minutes = 0;
         int streak  = 0;
         int sessions = 0;
 
-        try {
-          if (_filterIndex == 0) {
-            // Today
-            final medDoc = await _db.collection('users').doc(uid)
-                .collection('meditation').doc(_dateKey(DateTime.now())).get();
-            minutes = (medDoc.data()?['minutes'] as int?) ?? 0;
-          } else if (_filterIndex == 1) {
-            // This week
-            final now = DateTime.now();
-            for (int i = 0; i < 7; i++) {
-              final medDoc = await _db.collection('users').doc(uid)
-                  .collection('meditation')
-                  .doc(_dateKey(now.subtract(Duration(days: i)))).get();
-              minutes += (medDoc.data()?['minutes'] as int?) ?? 0;
-            }
-          } else {
-            // All time
-            final statsDoc = await _db.collection('users').doc(uid)
-                .collection('stats').doc('summary').get();
-            minutes  = (statsDoc.data()?['totalMinutes']  as int?) ?? 0;
-            sessions = (statsDoc.data()?['totalSessions'] as int?) ?? 0;
-            streak   = await _calcStreak(uid);
-          }
-        } catch (e) {
-          developer.log('[Leaderboard] fetch error $uid: $e');
+        if (_filterIndex == 0) {
+          minutes = (d['todayMinutes'] as int?) ?? 0;
+        } else if (_filterIndex == 1) {
+          minutes = (d['weekMinutes'] as int?) ?? 0;
+        } else {
+          minutes  = (d['totalMinutes']  as int?) ?? 0;
+          streak   = (d['streakDays']    as int?) ?? 0;
+          sessions = (d['totalSessions'] as int?) ?? 0;
         }
 
         entries.add(LeaderboardEntry(
           uid: uid,
-          username: (data['name'] as String?)?.isNotEmpty == true
-              ? data['name'] as String
-              : (data['email'] as String?)?.split('@').first ?? 'User',
-          avatarId:     data['avatarId'] as String?,
-          totalMinutes: minutes,
-          streakDays:   streak,
+          username: (d['name'] as String?)?.isNotEmpty == true
+              ? d['name'] as String
+              : (d['email'] as String?)?.split('@').first ?? 'User',
+          avatarId:      d['avatarId'] as String?,
+          totalMinutes:  minutes,
+          streakDays:    streak,
           totalSessions: sessions,
           isCurrentUser: uid == _myUid,
         ));
@@ -127,6 +113,44 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     } catch (e) {
       developer.log('[Leaderboard] load error: $e');
       if (mounted) setState(() { _error = 'Could not load leaderboard.'; _isLoading = false; });
+    }
+  }
+
+  Future<void> _publishMyScore() async {
+    if (_myUid == null) return;
+    try {
+      final myUid = _myUid!;
+      final userDoc  = await _db.collection('users').doc(myUid).get();
+      final userData = userDoc.data() ?? {};
+      final statsDoc = await _db.collection('users').doc(myUid)
+          .collection('stats').doc('summary').get();
+      final stats = statsDoc.data() ?? {};
+
+      final now = DateTime.now();
+      int todayMin = 0, weekMin = 0;
+      for (int i = 0; i < 7; i++) {
+        final key = _dateKey(now.subtract(Duration(days: i)));
+        final doc = await _db.collection('users').doc(myUid)
+            .collection('meditation').doc(key).get();
+        final m = (doc.data()?['minutes'] as int?) ?? 0;
+        weekMin += m;
+        if (i == 0) todayMin = m;
+      }
+      final streak = await _calcStreak(myUid);
+
+      await _db.collection('leaderboard').doc(myUid).set({
+        'name':          userData['name'] ?? userData['email'] ?? 'User',
+        'email':         userData['email'] ?? '',
+        'avatarId':      userData['avatarId'],
+        'totalMinutes':  (stats['totalMinutes']  as int?) ?? 0,
+        'totalSessions': (stats['totalSessions'] as int?) ?? 0,
+        'streakDays':    streak,
+        'todayMinutes':  todayMin,
+        'weekMinutes':   weekMin,
+        'updatedAt':     FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      developer.log('[Leaderboard] publishMyScore error: $e');
     }
   }
 
@@ -161,7 +185,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     return null;
   }
 
-  // ── User profile sheet ─────────────────────────────────────────────────────
   void _showUserProfile(BuildContext context, LeaderboardEntry entry, int rank) {
     HapticService.light();
     showModalBottomSheet(
@@ -170,11 +193,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (_) => _UserProfileSheet(
-        entry: entry,
-        rank: rank,
-        db: _db,
-      ),
+      builder: (_) => _UserProfileSheet(entry: entry, rank: rank, db: _db),
     );
   }
 
@@ -188,8 +207,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       backgroundColor: const Color(0xFF0F1624),
       body: SafeArea(
         child: Column(children: [
-
-          // ── Header ──────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Row(children: [
@@ -206,8 +223,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               ),
               const SizedBox(width: 14),
               const Expanded(child: Text('Leaderboard',
-                  style: TextStyle(color: Colors.white, fontSize: 20,
-                      fontWeight: FontWeight.w800))),
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800))),
               if (myRank != null)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -216,17 +232,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: const Color(0xFF3B82F6).withAlpha(60))),
                   child: Text('You #$myRank',
-                      style: const TextStyle(color: Color(0xFF3B82F6),
-                          fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: const TextStyle(color: Color(0xFF3B82F6), fontSize: 12, fontWeight: FontWeight.w700)),
                 ),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: _load,
                 child: Container(
                   width: 36, height: 36,
-                  decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(10),
-                      borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(10), borderRadius: BorderRadius.circular(10)),
                   child: const Icon(Icons.refresh, color: Colors.white54, size: 18),
                 ),
               ),
@@ -235,7 +248,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
           const SizedBox(height: 16),
 
-          // ── Filter tabs ──────────────────────────────────────────────────
           SizedBox(
             height: 34,
             child: ListView.builder(
@@ -245,11 +257,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               itemBuilder: (_, i) {
                 final sel = i == _filterIndex;
                 return GestureDetector(
-                  onTap: () {
-                    HapticService.selection();
-                    setState(() => _filterIndex = i);
-                    _load();
-                  },
+                  onTap: () { HapticService.selection(); setState(() => _filterIndex = i); _load(); },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.only(right: 8),
@@ -257,8 +265,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                     decoration: BoxDecoration(
                         color: sel ? const Color(0xFF3B82F6) : Colors.white.withAlpha(12),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: sel ? const Color(0xFF3B82F6) : Colors.white.withAlpha(20))),
+                        border: Border.all(color: sel ? const Color(0xFF3B82F6) : Colors.white.withAlpha(20))),
                     child: Center(child: Text(_filters[i],
                         style: TextStyle(
                             color: sel ? Colors.white : Colors.white54,
@@ -272,7 +279,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
           const SizedBox(height: 20),
 
-          // ── Body ─────────────────────────────────────────────────────────
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6)))
@@ -282,32 +288,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               const SizedBox(height: 12),
               Text(_error!, style: const TextStyle(color: Colors.white54)),
               const SizedBox(height: 16),
-              TextButton(onPressed: _load,
-                  child: const Text('Retry',
-                      style: TextStyle(color: Color(0xFF3B82F6)))),
+              TextButton(onPressed: _load, child: const Text('Retry', style: TextStyle(color: Color(0xFF3B82F6)))),
             ]))
                 : _entries.isEmpty
-                ? const Center(child: Text('No users yet',
-                style: TextStyle(color: Colors.white38)))
+                ? const Center(child: Text('No users yet', style: TextStyle(color: Colors.white38)))
                 : FadeTransition(
               opacity: _fadeCtrl,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
                 children: [
-                  if (top3.isNotEmpty)
-                    _Podium(
-                      entries: top3,
-                      onTap: (entry, rank) =>
-                          _showUserProfile(context, entry, rank),
-                    ),
+                  if (top3.isNotEmpty) _Podium(entries: top3, onTap: (e, r) => _showUserProfile(context, e, r)),
                   const SizedBox(height: 8),
                   const Divider(color: Colors.white12),
                   const SizedBox(height: 12),
                   ...rest.asMap().entries.map((e) => _LeaderRow(
-                    entry: e.value,
-                    rank: e.key + 4,
-                    onTap: () => _showUserProfile(
-                        context, e.value, e.key + 4),
+                    entry: e.value, rank: e.key + 4,
+                    onTap: () => _showUserProfile(context, e.value, e.key + 4),
                   )),
                 ],
               ),
@@ -327,15 +323,9 @@ class _Podium extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors  = [
-      const Color(0xFFFFD700),
-      const Color(0xFFC0C0C0),
-      const Color(0xFFCD7F32),
-    ];
+    final colors  = [const Color(0xFFFFD700), const Color(0xFFC0C0C0), const Color(0xFFCD7F32)];
     final heights = [110.0, 80.0, 60.0];
-    final order   = entries.length == 1 ? [0]
-        : entries.length == 2 ? [1, 0]
-        : [1, 0, 2];
+    final order   = entries.length == 1 ? [0] : entries.length == 2 ? [1, 0] : [1, 0, 2];
 
     return SizedBox(
       height: 250,
@@ -344,59 +334,42 @@ class _Podium extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: order.map((i) {
           if (i >= entries.length) return const SizedBox(width: 100);
-          final e       = entries[i];
+          final e = entries[i];
           final isFirst = i == 0;
-          final rank    = i + 1;
           return GestureDetector(
-            onTap: () => onTap(e, rank),
+            onTap: () => onTap(e, i + 1),
             child: SizedBox(
               width: 100,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (isFirst) Text('👑', style: TextStyle(fontSize: 22)),
+                  if (isFirst) const Text('👑', style: TextStyle(fontSize: 22)),
                   const SizedBox(height: 4),
                   Container(
                     padding: EdgeInsets.all(isFirst ? 3 : 2),
                     decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: colors[i], width: isFirst ? 3 : 2)),
-                    child: AvatarWidget(
-                        avatarId: e.avatarId, size: isFirst ? 62 : 50),
+                    child: AvatarWidget(avatarId: e.avatarId, size: isFirst ? 62 : 50),
                   ),
                   const SizedBox(height: 6),
                   Text(e.username,
                       style: TextStyle(
-                          color: e.isCurrentUser
-                              ? const Color(0xFF3B82F6)
-                              : Colors.white,
+                          color: e.isCurrentUser ? const Color(0xFF3B82F6) : Colors.white,
                           fontSize: 11, fontWeight: FontWeight.w700),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center),
+                      maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
                   const SizedBox(height: 2),
-                  Text('${e.totalScore} pts',
-                      style: TextStyle(
-                          color: colors[i],
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800)),
+                  Text('${e.totalScore} pts', style: TextStyle(color: colors[i], fontSize: 12, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
                   Container(
                     height: heights[i],
                     decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                            colors: [colors[i].withAlpha(80), colors[i].withAlpha(30)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter),
-                        borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(8)),
+                        gradient: LinearGradient(colors: [colors[i].withAlpha(80), colors[i].withAlpha(30)],
+                            begin: Alignment.topCenter, end: Alignment.bottomCenter),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                         border: Border.all(color: colors[i].withAlpha(60))),
-                    child: Center(
-                        child: Text('#$rank',
-                            style: TextStyle(
-                                color: colors[i],
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900))),
+                    child: Center(child: Text('#${i + 1}',
+                        style: TextStyle(color: colors[i], fontSize: 18, fontWeight: FontWeight.w900))),
                   ),
                 ],
               ),
@@ -424,59 +397,36 @@ class _LeaderRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-            color: isMe
-                ? const Color(0xFF3B82F6).withAlpha(20)
-                : Colors.white.withAlpha(8),
+            color: isMe ? const Color(0xFF3B82F6).withAlpha(20) : Colors.white.withAlpha(8),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color: isMe
-                    ? const Color(0xFF3B82F6).withAlpha(80)
-                    : Colors.white.withAlpha(15))),
+            border: Border.all(color: isMe ? const Color(0xFF3B82F6).withAlpha(80) : Colors.white.withAlpha(15))),
         child: Row(children: [
-          SizedBox(
-              width: 28,
-              child: Text('#$rank',
-                  style: TextStyle(
-                      color: isMe ? const Color(0xFF3B82F6) : Colors.white54,
-                      fontSize: 13, fontWeight: FontWeight.w800))),
+          SizedBox(width: 28, child: Text('#$rank',
+              style: TextStyle(color: isMe ? const Color(0xFF3B82F6) : Colors.white54,
+                  fontSize: 13, fontWeight: FontWeight.w800))),
           const SizedBox(width: 8),
           AvatarWidget(avatarId: entry.avatarId, size: 40),
           const SizedBox(width: 10),
-          Expanded(child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(entry.username,
-                    style: TextStyle(
-                        color: isMe ? const Color(0xFF3B82F6) : Colors.white,
-                        fontSize: 14, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 3),
-                Row(children: [
-                  const Icon(Icons.local_fire_department,
-                      color: Color(0xFFF59E0B), size: 12),
-                  const SizedBox(width: 2),
-                  Text('${entry.streakDays}d streak',
-                      style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                  const SizedBox(width: 10),
-                  const Icon(Icons.self_improvement,
-                      color: Color(0xFF8B5CF6), size: 12),
-                  const SizedBox(width: 2),
-                  Text('${entry.totalMinutes}m',
-                      style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                  const SizedBox(width: 10),
-                  const Icon(Icons.check_circle_outline,
-                      color: Color(0xFF10B981), size: 12),
-                  const SizedBox(width: 2),
-                  Text('${entry.totalSessions} sessions',
-                      style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                ]),
-              ])),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(entry.username, style: TextStyle(
+                color: isMe ? const Color(0xFF3B82F6) : Colors.white,
+                fontSize: 14, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 3),
+            Row(children: [
+              const Icon(Icons.local_fire_department, color: Color(0xFFF59E0B), size: 12),
+              const SizedBox(width: 2),
+              Text('${entry.streakDays}d', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+              const SizedBox(width: 8),
+              const Icon(Icons.self_improvement, color: Color(0xFF8B5CF6), size: 12),
+              const SizedBox(width: 2),
+              Text('${entry.totalMinutes}m', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+            ]),
+          ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('${entry.totalScore}',
-                style: TextStyle(
-                    color: isMe ? const Color(0xFF3B82F6) : Colors.white,
-                    fontSize: 16, fontWeight: FontWeight.w900)),
-            const Text('pts',
-                style: TextStyle(color: Colors.white38, fontSize: 10)),
+            Text('${entry.totalScore}', style: TextStyle(
+                color: isMe ? const Color(0xFF3B82F6) : Colors.white,
+                fontSize: 16, fontWeight: FontWeight.w900)),
+            const Text('pts', style: TextStyle(color: Colors.white38, fontSize: 10)),
           ]),
           const SizedBox(width: 4),
           const Icon(Icons.chevron_right, color: Colors.white24, size: 18),
@@ -491,11 +441,7 @@ class _UserProfileSheet extends StatefulWidget {
   final LeaderboardEntry entry;
   final int rank;
   final FirebaseFirestore db;
-  const _UserProfileSheet({
-    required this.entry,
-    required this.rank,
-    required this.db,
-  });
+  const _UserProfileSheet({required this.entry, required this.rank, required this.db});
 
   @override
   State<_UserProfileSheet> createState() => _UserProfileSheetState();
@@ -507,31 +453,21 @@ class _UserProfileSheetState extends State<_UserProfileSheet>
   List<Map<String, String>> _unlockedBadges = [];
   late AnimationController _animCtrl;
 
-  static const _rankColors = [
-    Color(0xFFFFD700),
-    Color(0xFFC0C0C0),
-    Color(0xFFCD7F32),
-  ];
+  static const _rankColors = [Color(0xFFFFD700), Color(0xFFC0C0C0), Color(0xFFCD7F32)];
 
   @override
   void initState() {
     super.initState();
-    _animCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 500));
+    _animCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
     _loadBadges();
   }
 
   @override
-  void dispose() {
-    _animCtrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _animCtrl.dispose(); super.dispose(); }
 
   Future<void> _loadBadges() async {
     try {
-      // Load stats for this user from Firestore
-      final statsDoc = await widget.db
-          .collection('users').doc(widget.entry.uid)
+      final statsDoc = await widget.db.collection('users').doc(widget.entry.uid)
           .collection('stats').doc('summary').get();
       final data     = statsDoc.data() ?? {};
       final sessions = (data['totalSessions'] as int?) ?? 0;
@@ -546,9 +482,7 @@ class _UserProfileSheetState extends State<_UserProfileSheet>
           case 'streak':  unlocked = streak   >= a.requiredValue; break;
           case 'time':    unlocked = minutes  >= a.requiredValue; break;
         }
-        if (unlocked) {
-          badges.add({'emoji': a.emoji, 'title': a.title, 'id': a.id});
-        }
+        if (unlocked) badges.add({'emoji': a.emoji, 'title': a.title, 'id': a.id});
       }
 
       if (mounted) {
@@ -560,195 +494,102 @@ class _UserProfileSheetState extends State<_UserProfileSheet>
     }
   }
 
-  String _formatMinutes(int mins) {
-    if (mins >= 60) {
-      final h = mins ~/ 60;
-      final m = mins % 60;
-      return m > 0 ? '${h}h ${m}m' : '${h}h';
-    }
+  String _fmt(int mins) {
+    if (mins >= 60) { final h = mins ~/ 60; final m = mins % 60; return m > 0 ? '${h}h ${m}m' : '${h}h'; }
     return '${mins}m';
   }
 
   @override
   Widget build(BuildContext context) {
-    final e       = widget.entry;
-    final rank    = widget.rank;
+    final e = widget.entry;
+    final rank = widget.rank;
     final rankColor = rank <= 3 ? _rankColors[rank - 1] : Colors.white54;
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.6,
-      minChildSize: 0.4,
-      maxChildSize: 0.92,
-      expand: false,
+      initialChildSize: 0.6, minChildSize: 0.4, maxChildSize: 0.92, expand: false,
       builder: (_, scrollCtrl) => Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF1A2540),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
+            color: Color(0xFF1A2540),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
         child: ListView(
           controller: scrollCtrl,
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
           children: [
-
-            // Handle
-            Center(child: Container(
-                width: 36, height: 4,
-                decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2)))),
-
+            Center(child: Container(width: 36, height: 4,
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 24),
-
-            // Avatar + rank badge
-            Center(child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: rankColor, width: 3),
-                      boxShadow: [BoxShadow(
-                          color: rankColor.withAlpha(80),
-                          blurRadius: 20,
-                          spreadRadius: 2)]),
-                  child: AvatarWidget(avatarId: e.avatarId, size: 80),
-                ),
-                Positioned(
-                  bottom: -6, right: -6,
-                  child: Container(
-                    width: 30, height: 30,
-                    decoration: BoxDecoration(
-                        color: rankColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: const Color(0xFF1A2540), width: 2)),
-                    child: Center(child: Text('#$rank',
-                        style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900))),
-                  ),
-                ),
-              ],
-            )),
-
+            Center(child: Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: rankColor, width: 3),
+                    boxShadow: [BoxShadow(color: rankColor.withAlpha(80), blurRadius: 20, spreadRadius: 2)]),
+                child: AvatarWidget(avatarId: e.avatarId, size: 80),
+              ),
+              Positioned(bottom: -6, right: -6, child: Container(
+                width: 30, height: 30,
+                decoration: BoxDecoration(color: rankColor, shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF1A2540), width: 2)),
+                child: Center(child: Text('#$rank',
+                    style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w900))),
+              )),
+            ])),
             const SizedBox(height: 16),
-
-            // Name
             Center(child: Text(e.username,
                 style: TextStyle(
-                    color: e.isCurrentUser
-                        ? const Color(0xFF3B82F6)
-                        : Colors.white,
+                    color: e.isCurrentUser ? const Color(0xFF3B82F6) : Colors.white,
                     fontSize: 22, fontWeight: FontWeight.w800))),
-
             if (e.isCurrentUser) ...[
               const SizedBox(height: 4),
-              const Center(child: Text('That\'s you! 👋',
-                  style: TextStyle(color: Color(0xFF3B82F6), fontSize: 13))),
+              const Center(child: Text("That's you! 👋", style: TextStyle(color: Color(0xFF3B82F6), fontSize: 13))),
             ],
-
             const SizedBox(height: 24),
-
-            // Stats cards
             Row(children: [
-              _StatCard(
-                  icon: Icons.self_improvement,
-                  label: 'Meditated',
-                  value: _formatMinutes(e.totalMinutes),
-                  color: const Color(0xFF8B5CF6)),
+              _StatCard(icon: Icons.self_improvement, label: 'Meditated', value: _fmt(e.totalMinutes), color: const Color(0xFF8B5CF6)),
               const SizedBox(width: 10),
-              _StatCard(
-                  icon: Icons.local_fire_department,
-                  label: 'Streak',
-                  value: '${e.streakDays}d',
-                  color: const Color(0xFFF59E0B)),
+              _StatCard(icon: Icons.local_fire_department, label: 'Streak', value: '${e.streakDays}d', color: const Color(0xFFF59E0B)),
               const SizedBox(width: 10),
-              _StatCard(
-                  icon: Icons.emoji_events,
-                  label: 'Score',
-                  value: '${e.totalScore}',
-                  color: rankColor),
+              _StatCard(icon: Icons.emoji_events, label: 'Score', value: '${e.totalScore}', color: rankColor),
             ]),
-
-            const SizedBox(height: 10),
-
-            _StatCard(
-                icon: Icons.check_circle_outline,
-                label: 'Sessions Completed',
-                value: '${e.totalSessions}',
-                color: const Color(0xFF10B981),
-                wide: true),
-
             const SizedBox(height: 24),
-
-            // Badges section
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('Achievements',
-                  style: TextStyle(color: Colors.white,
-                      fontSize: 16, fontWeight: FontWeight.w700)),
-              if (!_loading)
-                Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                        color: const Color(0xFFFFD700).withAlpha(30),
-                        borderRadius: BorderRadius.circular(8)),
-                    child: Text('${_unlockedBadges.length} unlocked',
-                        style: const TextStyle(
-                            color: Color(0xFFFFD700),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700))),
+              const Text('Achievements', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+              if (!_loading) Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: const Color(0xFFFFD700).withAlpha(30), borderRadius: BorderRadius.circular(8)),
+                  child: Text('${_unlockedBadges.length} unlocked',
+                      style: const TextStyle(color: Color(0xFFFFD700), fontSize: 11, fontWeight: FontWeight.w700))),
             ]),
-
             const SizedBox(height: 12),
-
             if (_loading)
-              const Center(child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(
-                      color: Color(0xFF3B82F6), strokeWidth: 2)))
+              const Center(child: Padding(padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(color: Color(0xFF3B82F6), strokeWidth: 2)))
             else if (_unlockedBadges.isEmpty)
               Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(6),
-                      borderRadius: BorderRadius.circular(14)),
-                  child: const Center(child: Text('No achievements yet',
-                      style: TextStyle(color: Colors.white38, fontSize: 13))))
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(6), borderRadius: BorderRadius.circular(14)),
+                  child: const Center(child: Text('No achievements yet', style: TextStyle(color: Colors.white38, fontSize: 13))))
             else
               Wrap(
                 spacing: 8, runSpacing: 8,
                 children: _unlockedBadges.asMap().entries.map((entry) {
-                  final i = entry.key;
-                  final b = entry.value;
+                  final i = entry.key; final b = entry.value;
                   return AnimatedBuilder(
                     animation: _animCtrl,
                     builder: (_, child) {
                       final delay = (i * 0.05).clamp(0.0, 0.8);
-                      final t = ((_animCtrl.value - delay) / (1 - delay))
-                          .clamp(0.0, 1.0);
-                      return Opacity(
-                          opacity: t,
-                          child: Transform.scale(scale: 0.7 + (0.3 * t), child: child));
+                      final t = ((_animCtrl.value - delay) / (1 - delay)).clamp(0.0, 1.0);
+                      return Opacity(opacity: t, child: Transform.scale(scale: 0.7 + (0.3 * t), child: child));
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(8),
-                          borderRadius: BorderRadius.circular(12),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: Colors.white.withAlpha(8), borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.white.withAlpha(20))),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Text(b['emoji']!,
-                            style: const TextStyle(fontSize: 18)),
+                        Text(b['emoji']!, style: const TextStyle(fontSize: 18)),
                         const SizedBox(width: 8),
-                        Text(b['title']!,
-                            style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600)),
+                        Text(b['title']!, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
                       ]),
                     ),
                   );
@@ -768,46 +609,22 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color color;
   final bool wide;
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-    this.wide = false,
-  });
+  const _StatCard({required this.icon, required this.label, required this.value, required this.color, this.wide = false});
 
   @override
   Widget build(BuildContext context) {
     final inner = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-          color: color.withAlpha(20),
-          borderRadius: BorderRadius.circular(14),
+          color: color.withAlpha(20), borderRadius: BorderRadius.circular(14),
           border: Border.all(color: color.withAlpha(60))),
-      child: wide
-          ? Row(children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 10),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(
-              color: color.withAlpha(180),
-              fontSize: 11, fontWeight: FontWeight.w600)),
-          Text(value, style: TextStyle(
-              color: color, fontSize: 18, fontWeight: FontWeight.w800)),
-        ]),
-      ])
-          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(icon, color: color, size: 18),
         const SizedBox(height: 6),
-        Text(value, style: TextStyle(
-            color: color, fontSize: 17, fontWeight: FontWeight.w800)),
-        Text(label, style: TextStyle(
-            color: color.withAlpha(160),
-            fontSize: 10, fontWeight: FontWeight.w600)),
+        Text(value, style: TextStyle(color: color, fontSize: 17, fontWeight: FontWeight.w800)),
+        Text(label, style: TextStyle(color: color.withAlpha(160), fontSize: 10, fontWeight: FontWeight.w600)),
       ]),
     );
-
-    return wide ? SizedBox(width: double.infinity, child: inner)
-        : Expanded(child: inner);
+    return wide ? SizedBox(width: double.infinity, child: inner) : Expanded(child: inner);
   }
 }

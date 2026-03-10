@@ -11,6 +11,7 @@ dependencies:
   firebase_core: ^3.0.0
   firebase_auth: ^5.0.0
   cloud_firestore: ^5.0.0
+  firebase_messaging: ^15.2.10
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
@@ -114,5 +115,3 @@ flutter:
     - assets/images/meditation/movement_meditation/videos/the_fountain_loop.mp4
     - assets/images/meditation/movement_meditation/videos/walking_turtle_intro.mp4
     - assets/images/meditation/movement_meditation/videos/walking_turtle_loop.mp4
-
-

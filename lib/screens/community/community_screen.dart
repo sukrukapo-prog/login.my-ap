@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fitmetrics/services/auth_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/notification_service.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/core/haptic_service.dart';
 import 'package:fitmetrics/screens/profile/achievements_screen.dart'
@@ -100,6 +101,12 @@ class _CommunityScreenState extends State<CommunityScreen>
   bool _sending = false;
   final _showEmojiBar = ValueNotifier<bool>(false);
 
+  // Mention autocomplete
+  List<_UserHint> _allUsers = [];
+  List<_UserHint> _mentionSuggestions = [];
+  String? _mentionQuery; // non-null when actively typing @...
+  StreamSubscription? _notifSub;
+
   static const _quickEmojis = ['🔥', '💪', '🧘', '❤️', '👏', '✨', '😄', '🎉'];
   static const _reactEmojis = ['🔥', '💪', '❤️', '👏', '✨', '😄'];
 
@@ -107,14 +114,18 @@ class _CommunityScreenState extends State<CommunityScreen>
   void initState() {
     super.initState();
     _loadMe();
+    _loadUsers();
+    _msgCtrl.addListener(_onTextChanged);
   }
 
   @override
   void dispose() {
+    _msgCtrl.removeListener(_onTextChanged);
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     _focusNode.dispose();
     _showEmojiBar.dispose();
+    _notifSub?.cancel();
     super.dispose();
   }
 
@@ -156,6 +167,111 @@ class _CommunityScreenState extends State<CommunityScreen>
       _myBadges = badges;
       _myTotalMinutes = stats['totalMinutes'] ?? 0;
     });
+    // Reload users without self, then start notification listener
+    await _loadUsers();
+    _listenForMentions();
+  }
+
+  Future<void> _loadUsers() async {
+    try {
+      final snap = await _db.collection('users').get();
+      final users = snap.docs
+          .where((d) => d.id != _myUid)
+          .map((d) => _UserHint(
+        uid: d.id,
+        name: (d.data()['name'] as String?)?.isNotEmpty == true
+            ? d.data()['name'] as String
+            : (d.data()['email'] as String?)?.split('@').first ?? 'User',
+        avatarId: d.data()['avatarId'] as String?,
+      ))
+          .toList();
+      if (mounted) setState(() => _allUsers = users);
+    } catch (e) {
+      developer.log('[Community] loadUsers error: $e');
+    }
+  }
+
+  void _onTextChanged() {
+    final text = _msgCtrl.text;
+    final cursor = _msgCtrl.selection.baseOffset;
+    if (cursor < 0) return;
+
+    // Find the last @ before cursor
+    final before = text.substring(0, cursor);
+    final atIndex = before.lastIndexOf('@');
+
+    if (atIndex == -1) {
+      if (_mentionQuery != null) setState(() { _mentionQuery = null; _mentionSuggestions = []; });
+      return;
+    }
+
+    // Make sure there's no space between @ and cursor (active mention)
+    final query = before.substring(atIndex + 1);
+    if (query.contains(' ')) {
+      if (_mentionQuery != null) setState(() { _mentionQuery = null; _mentionSuggestions = []; });
+      return;
+    }
+
+    final filtered = _allUsers
+        .where((u) => u.name.toLowerCase().startsWith(query.toLowerCase()))
+        .take(5)
+        .toList();
+
+    setState(() {
+      _mentionQuery = query;
+      _mentionSuggestions = filtered;
+    });
+  }
+
+  void _selectMention(_UserHint user) {
+    HapticService.light();
+    final text = _msgCtrl.text;
+    final cursor = _msgCtrl.selection.baseOffset;
+    final before = text.substring(0, cursor);
+    final atIndex = before.lastIndexOf('@');
+    final after = text.substring(cursor);
+
+    final newText = '${text.substring(0, atIndex)}@${user.name} $after';
+    _msgCtrl.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: atIndex + user.name.length + 2),
+    );
+    setState(() { _mentionQuery = null; _mentionSuggestions = []; });
+  }
+
+  List<String> _extractMentionedUids(String text) {
+    final uids = <String>[];
+    for (final user in _allUsers) {
+      if (text.contains('@${user.name}')) uids.add(user.uid);
+    }
+    return uids;
+  }
+
+  void _listenForMentions() {
+    if (_myUid == null) return;
+    _notifSub?.cancel();
+    _notifSub = _db
+        .collection('users')
+        .doc(_myUid)
+        .collection('notifications')
+        .where('read', isEqualTo: false)
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((snap) {
+      for (final doc in snap.docs) {
+        final d = doc.data();
+        if (d['type'] == 'mention' && mounted) {
+          NotificationService.showInAppBanner(
+            context: context,
+            senderName: d['senderName'] as String? ?? 'Someone',
+            messageText: d['messageText'] as String? ?? '',
+          );
+          // Mark as read
+          doc.reference.update({'read': true});
+        }
+      }
+    });
   }
 
   Future<void> _send() async {
@@ -165,9 +281,10 @@ class _CommunityScreenState extends State<CommunityScreen>
     setState(() => _sending = true);
     _msgCtrl.clear();
     _showEmojiBar.value = false;
+    setState(() { _mentionQuery = null; _mentionSuggestions = []; });
 
     try {
-      await _db.collection('community_messages').add({
+      final docRef = await _db.collection('community_messages').add({
         'uid': _myUid,
         'displayName': _myName,
         'avatarId': _myAvatarId,
@@ -180,6 +297,19 @@ class _CommunityScreenState extends State<CommunityScreen>
             .map((b) => {'id': b.id, 'emoji': b.emoji, 'title': b.title})
             .toList(),
       });
+
+      // Send mention notifications
+      final mentionedUids = _extractMentionedUids(text);
+      for (final uid in mentionedUids) {
+        if (uid != _myUid) {
+          await NotificationService.sendMentionNotification(
+            mentionedUid: uid,
+            senderName: _myName,
+            messageText: text,
+            messageId: docRef.id,
+          );
+        }
+      }
 
       // Scroll to bottom after send
       await Future.delayed(const Duration(milliseconds: 200));
@@ -268,6 +398,7 @@ class _CommunityScreenState extends State<CommunityScreen>
           children: [
             _buildHeader(),
             Expanded(child: _buildMessageList()),
+            if (_mentionSuggestions.isNotEmpty) _buildMentionSuggestions(),
             ValueListenableBuilder<bool>(
               valueListenable: _showEmojiBar,
               builder: (_, show, __) => Column(
@@ -463,6 +594,44 @@ class _CommunityScreenState extends State<CommunityScreen>
           Text('Share your progress with the community',
               style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 14)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMentionSuggestions() {
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 200),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A2540),
+        border: Border(
+          top: BorderSide(color: Colors.white.withAlpha(15)),
+          bottom: BorderSide(color: Colors.white.withAlpha(15)),
+        ),
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        itemCount: _mentionSuggestions.length,
+        itemBuilder: (_, i) {
+          final user = _mentionSuggestions[i];
+          return GestureDetector(
+            onTap: () => _selectMention(user),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  AvatarWidget(avatarId: user.avatarId, size: 32),
+                  const SizedBox(width: 12),
+                  Text('@${user.name}',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -1046,14 +1215,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                                 fontStyle: FontStyle.italic)),
                       ],
                     )
-                        : Text(
-                      message.text,
-                      style: TextStyle(
-                        color: isMe ? Colors.white : Colors.white.withAlpha(220),
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                    ),
+                        : _buildMentionText(message.text, isMe),
                   ),
 
                   // Time
@@ -1106,6 +1268,38 @@ class _MessageBubbleState extends State<_MessageBubble>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMentionText(String text, bool isMe) {
+    final baseColor = isMe ? Colors.white : Colors.white.withAlpha(220);
+    // Find all @mentions
+    final regex = RegExp(r'@\w+');
+    final spans = <TextSpan>[];
+    int last = 0;
+    for (final match in regex.allMatches(text)) {
+      if (match.start > last) {
+        spans.add(TextSpan(text: text.substring(last, match.start)));
+      }
+      spans.add(TextSpan(
+        text: match.group(0),
+        style: TextStyle(
+          color: isMe ? Colors.white : const Color(0xFF60A5FA),
+          fontWeight: FontWeight.w700,
+          backgroundColor: isMe
+              ? Colors.white.withAlpha(30)
+              : const Color(0xFF3B82F6).withAlpha(30),
+        ),
+      ));
+      last = match.end;
+    }
+    if (last < text.length) spans.add(TextSpan(text: text.substring(last)));
+
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(color: baseColor, fontSize: 14, height: 1.4),
+        children: spans,
       ),
     );
   }
@@ -1179,4 +1373,12 @@ class _StatPill extends StatelessWidget {
       ]),
     );
   }
+}
+
+// ── User hint model for @mention autocomplete ──────────────────────────────────
+class _UserHint {
+  final String uid;
+  final String name;
+  final String? avatarId;
+  const _UserHint({required this.uid, required this.name, this.avatarId});
 }
