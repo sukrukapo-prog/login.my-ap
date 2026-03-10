@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 
 /// Single source of truth for all local persistence.
-/// All screens must use this class — never call SharedPreferences directly.
+/// Every write method also writes to Firestore (dual-write pattern).
+/// On login, FirestoreService.syncToLocal() restores all data from Firestore.
 class LocalStorage {
-  // ── Keys ────────────────────────────────────────────────────────────────────
-  static const String _keyRegistered = 'isRegistered';
-  static const String _keyUserData   = 'userData';
+  static const String _keyRegistered     = 'isRegistered';
+  static const String _keyUserData       = 'userData';
   static const String _keyAvatarId       = 'avatarId';
   static const String _keySeenOnboarding  = 'seenOnboarding';
   static const String _keySeenWalkthrough = 'seenWalkthrough';
@@ -63,19 +64,21 @@ class LocalStorage {
     }
   }
 
-  /// Wipes every user-related key. Call this on logout.
   static Future<void> clear() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyRegistered);
       await prefs.remove(_keyUserData);
       await prefs.remove(_keyAvatarId);
+      await prefs.remove('total_sessions');
+      await prefs.remove('daily_goal_minutes');
+      await prefs.remove('meditation_favorites');
+      await prefs.remove('meditation_history');
+      await prefs.remove('has_opened_app');
       final keys = prefs.getKeys()
           .where((k) => k.startsWith('meditation_mins_'))
           .toList();
-      for (final k in keys) {
-        await prefs.remove(k);
-      }
+      for (final k in keys) await prefs.remove(k);
       developer.log('[LocalStorage] All user data cleared.');
     } catch (e, st) {
       developer.log('[LocalStorage] clear error', error: e, stackTrace: st);
@@ -92,16 +95,17 @@ class LocalStorage {
   static Future<void> saveAvatarId(String id) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyAvatarId, id);
+    // Dual-write to Firestore
+    FirestoreService.saveAvatarId(id);
   }
 
   // ── Meditation stats ────────────────────────────────────────────────────────
 
-  /// Zero-padded ISO date key: meditation_mins_2026-03-07
   static String _meditationKey(DateTime date) {
     final y = date.year.toString();
     final m = date.month.toString().padLeft(2, '0');
     final d = date.day.toString().padLeft(2, '0');
-    return 'meditation_mins_' + y + '-' + m + '-' + d;
+    return 'meditation_mins_$y-$m-$d';
   }
 
   static Future<int> getMeditationMinutes(DateTime date) async {
@@ -115,10 +119,11 @@ class LocalStorage {
     final key = _meditationKey(date);
     final existing = prefs.getInt(key) ?? 0;
     await prefs.setInt(key, existing + minutes);
-    developer.log('[LocalStorage] Meditation +' + minutes.toString() + ' min on ' + key);
+    developer.log('[LocalStorage] Meditation +$minutes min on $key');
+    // Dual-write to Firestore
+    FirestoreService.addMeditationMinutes(date, minutes);
   }
 
-  /// Total minutes over last [days] days (including today).
   static Future<int> getMeditationMinutesForLastDays(int days) async {
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now();
@@ -138,6 +143,8 @@ class LocalStorage {
       if (data == null) return;
       data.name = name;
       await saveUserData(data);
+      // Dual-write to Firestore
+      FirestoreService.updateDisplayName(name);
     } catch (e, st) {
       developer.log('[LocalStorage] updateDisplayName error', error: e, stackTrace: st);
     }
@@ -155,6 +162,8 @@ class LocalStorage {
       if (heightCm != null) data.heightCm = heightCm;
       if (age != null) data.age = age;
       await saveUserData(data);
+      // Dual-write to Firestore
+      FirestoreService.updateStats(weightKg: weightKg, heightCm: heightCm, age: age);
     } catch (e, st) {
       developer.log('[LocalStorage] updateStats error', error: e, stackTrace: st);
     }
@@ -176,6 +185,8 @@ class LocalStorage {
       favs.add(sessionId);
     }
     await prefs.setStringList('meditation_favorites', favs);
+    // Dual-write to Firestore
+    FirestoreService.toggleFavorite(sessionId);
   }
 
   static Future<bool> isFavorite(String sessionId) async {
@@ -188,16 +199,17 @@ class LocalStorage {
   static Future<List<Map<String, dynamic>>> getMeditationHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList('meditation_history') ?? [];
-    return raw.map((e) => Map<String, dynamic>.from(
-        (e.split('|').asMap()..remove(0)).isEmpty
-            ? {}
-            : {
-          'sessionId': e.split('|')[0],
-          'sessionName': e.split('|')[1],
-          'type': e.split('|')[2],
-          'minutes': int.tryParse(e.split('|')[3]) ?? 0,
-          'timestamp': e.split('|')[4],
-        })).toList();
+    return raw.map((e) {
+      final parts = e.split('|');
+      if (parts.length < 5) return <String, dynamic>{};
+      return {
+        'sessionId': parts[0],
+        'sessionName': parts[1],
+        'type': parts[2],
+        'minutes': int.tryParse(parts[3]) ?? 0,
+        'timestamp': parts[4],
+      };
+    }).where((m) => m.isNotEmpty).toList();
   }
 
   static Future<void> addMeditationHistory({
@@ -209,9 +221,16 @@ class LocalStorage {
     final prefs = await SharedPreferences.getInstance();
     final history = prefs.getStringList('meditation_history') ?? [];
     final entry = '$sessionId|$sessionName|$type|$minutes|${DateTime.now().toIso8601String()}';
-    history.insert(0, entry); // newest first
-    if (history.length > 50) history.removeLast(); // keep last 50
+    history.insert(0, entry);
+    if (history.length > 50) history.removeLast();
     await prefs.setStringList('meditation_history', history);
+    // Dual-write to Firestore
+    FirestoreService.addMeditationHistory(
+      sessionId: sessionId,
+      sessionName: sessionName,
+      type: type,
+      minutes: minutes,
+    );
   }
 
   // ── Daily goal ──────────────────────────────────────────────────────────────
@@ -224,6 +243,8 @@ class LocalStorage {
   static Future<void> setDailyGoalMinutes(int minutes) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('daily_goal_minutes', minutes);
+    // Dual-write to Firestore
+    FirestoreService.setDailyGoalMinutes(minutes);
   }
 
   // ── All-time stats ──────────────────────────────────────────────────────────
@@ -232,24 +253,18 @@ class LocalStorage {
     final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys().where((k) => k.startsWith('meditation_mins_')).toList();
     int totalMins = 0;
-    int streakDays = 0;
     int longestStreak = 0;
     int currentStreak = 0;
     final today = DateTime.now();
 
-    // Calculate total minutes
-    for (final k in keys) {
-      totalMins += prefs.getInt(k) ?? 0;
-    }
+    for (final k in keys) totalMins += prefs.getInt(k) ?? 0;
 
-    // Calculate current streak
     for (int i = 0; i < 365; i++) {
       final d = today.subtract(Duration(days: i));
       final y = d.year.toString();
-      final m = d.month.toString().padLeft(2, '0');
+      final mo = d.month.toString().padLeft(2, '0');
       final day = d.day.toString().padLeft(2, '0');
-      final key = 'meditation_mins_$y-$m-$day';
-      final mins = prefs.getInt(key) ?? 0;
+      final mins = prefs.getInt('meditation_mins_$y-$mo-$day') ?? 0;
       if (mins > 0) {
         currentStreak++;
         if (currentStreak > longestStreak) longestStreak = currentStreak;
@@ -257,12 +272,11 @@ class LocalStorage {
         break;
       }
     }
-    streakDays = currentStreak;
 
     return {
       'totalMinutes': totalMins,
       'totalHours': totalMins ~/ 60,
-      'streakDays': streakDays,
+      'streakDays': currentStreak,
       'longestStreak': longestStreak,
       'totalSessions': prefs.getInt('total_sessions') ?? 0,
     };
@@ -282,6 +296,8 @@ class LocalStorage {
     final prefs = await SharedPreferences.getInstance();
     final current = prefs.getInt('total_sessions') ?? 0;
     await prefs.setInt('total_sessions', current + 1);
+    // Dual-write to Firestore
+    FirestoreService.incrementTotalSessions();
   }
 
   // ── Weekly chart data ───────────────────────────────────────────────────────
@@ -297,5 +313,4 @@ class LocalStorage {
       return prefs.getInt('meditation_mins_$y-$m-$day') ?? 0;
     });
   }
-
 }

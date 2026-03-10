@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -85,10 +86,11 @@ class AuthService {
       }
 
       await LocalStorage.saveUserData(userData);
-      // sync avatarId to local storage too
       if (userData.avatarId != null) {
         await LocalStorage.saveAvatarId(userData.avatarId!);
       }
+      // Pull all Firestore data (meditation, favorites, settings) into local cache
+      await FirestoreService.syncToLocal();
 
       developer.log('[AuthService] Logged in: $uid');
       return AuthResult.success(userData: userData);
