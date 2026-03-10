@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:fitmetrics/firebase_options.dart';
 import 'package:fitmetrics/core/push_notification_service.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/core/app_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await PushNotificationService.init();
-  await AppSettings().load(); // load theme + settings before app starts
+  await AppSettings().load();
   runApp(const FitMetricsApp());
 }
 
