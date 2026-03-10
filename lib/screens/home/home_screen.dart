@@ -123,9 +123,11 @@ class _HomeScreenState extends State<HomeScreen>
     AudioService().playClickSound();
     HapticService.medium();
     if (dest == 'meditation') {
-      final mainTabState =
-      context.findAncestorStateOfType<MainTabScreenState>();
+      final mainTabState = context.findAncestorStateOfType<MainTabScreenState>();
       mainTabState?.setTab(2);
+    } else if (dest == 'community') {
+      final mainTabState = context.findAncestorStateOfType<MainTabScreenState>();
+      mainTabState?.setTab(1);
     } else if (dest == 'progress') {
       Navigator.pushNamed(context, AppRoutes.progress);
     } else if (dest == 'leaderboard') {
@@ -286,48 +288,51 @@ class _HomeScreenState extends State<HomeScreen>
                 const SizedBox(height: 18),
 
                 // ── Community Chat banner ───────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withAlpha(25),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                        color: const Color(0xFF8B5CF6).withAlpha(80)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Text('💬', style: TextStyle(fontSize: 22)),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Community Chat',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700)),
-                            Text('Connect with others on their wellness journey!',
-                                style: TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 12)),
-                          ],
+                GestureDetector(
+                  onTap: () => _navigate('community'),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B5CF6).withAlpha(25),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                          color: const Color(0xFF8B5CF6).withAlpha(80)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Text('💬', style: TextStyle(fontSize: 22)),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Community Chat',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700)),
+                              Text('Connect with others on their wellness journey!',
+                                  style: TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 12)),
+                            ],
+                          ),
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6),
-                          borderRadius: BorderRadius.circular(10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8B5CF6),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text('Open',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700)),
                         ),
-                        child: const Text('Soon',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),

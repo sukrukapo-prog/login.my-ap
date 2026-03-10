@@ -3,6 +3,7 @@ import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/core/page_transitions.dart';
 
 import 'package:fitmetrics/screens/notifications/meditation_history_screen.dart';
+import 'package:fitmetrics/screens/community/community_screen.dart';
 import 'package:fitmetrics/screens/auth/welcome_screen.dart';
 import 'package:fitmetrics/screens/auth/name_screen.dart';
 import 'package:fitmetrics/screens/auth/personal_info_screen.dart';
@@ -38,6 +39,7 @@ class AppRoutes {
   static const String notificationHistory = '/notification-history';
   static const String meditationHistory   = '/meditation-history';
   static const String achievements         = '/achievements';
+  static const String community            = '/community';
 
   static Route<dynamic> generateRoute(RouteSettings routeSettings) {
     final args = routeSettings.arguments;
@@ -115,6 +117,9 @@ class AppRoutes {
 
       case achievements:
         return SlidePageRoute(page: const AchievementsScreen());
+
+      case community:
+        return SlidePageRoute(page: const CommunityScreen());
 
       default:
         return MaterialPageRoute(

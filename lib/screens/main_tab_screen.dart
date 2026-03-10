@@ -3,6 +3,7 @@ import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/screens/home/home_screen.dart';
 import 'package:fitmetrics/screens/profile/profile_screen.dart';
 import 'package:fitmetrics/screens/meditation/meditation_screen.dart';
+import 'package:fitmetrics/screens/community/community_screen.dart';
 import 'package:fitmetrics/screens/walkthrough/walkthrough_overlay.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
@@ -47,7 +48,7 @@ class MainTabScreenState extends State<MainTabScreen> {
   Widget build(BuildContext context) {
     final screens = [
       const HomeScreen(),
-      const _ComingSoonScreen(label: 'Workout'),
+      const CommunityScreen(),
       MeditationScreen(userData: widget.userData),
       const _ComingSoonScreen(label: 'Food'),
       ProfileScreen(userData: widget.userData),
@@ -110,9 +111,9 @@ class MainTabScreenState extends State<MainTabScreen> {
                 label: 'Home',
               ),
               const BottomNavigationBarItem(
-                icon: Icon(Icons.open_with_outlined),
-                activeIcon: Icon(Icons.open_with),
-                label: 'Workout',
+                icon: Icon(Icons.people_alt_outlined),
+                activeIcon: Icon(Icons.people_alt),
+                label: 'Community',
               ),
               BottomNavigationBarItem(
                 icon: Image.asset('assets/images/meditation/meditation_icon.jpg', width: 24, height: 24, color: Colors.white54),
