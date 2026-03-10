@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 
 class MeditationCard extends StatefulWidget {
   final String title;
-  final String instructor; // kept for compatibility but no longer shown
+  final String instructor;
   final String subtitle;
   final String buttonText;
   final Color buttonColor;
   final String imagePath;
   final VoidCallback onStartPressed;
   final bool isFeatured;
-  final String? avatarImagePath; // kept for compatibility
+  final String? avatarImagePath;
+  final Color usernameColor;
 
   const MeditationCard({
     super.key,
@@ -20,6 +21,7 @@ class MeditationCard extends StatefulWidget {
     required this.buttonColor,
     required this.imagePath,
     required this.onStartPressed,
+    required this.usernameColor,
     this.isFeatured = false,
     this.avatarImagePath,
   });
@@ -72,10 +74,18 @@ class _MeditationCardState extends State<MeditationCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Title + subtitle only — no guide/avatar row
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text(
+                          widget.instructor,
+                          style: TextStyle(
+                            color: widget.usernameColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         Text(
                           widget.title,
                           style: const TextStyle(
@@ -97,8 +107,6 @@ class _MeditationCardState extends State<MeditationCard> {
                         ),
                       ],
                     ),
-
-                    // Start button
                     Align(
                       alignment: Alignment.bottomRight,
                       child: ElevatedButton(
@@ -123,8 +131,6 @@ class _MeditationCardState extends State<MeditationCard> {
                   ],
                 ),
               ),
-
-              // Featured badge
               if (widget.isFeatured)
                 Positioned(
                   top: 16, right: 16,

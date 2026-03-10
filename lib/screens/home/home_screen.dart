@@ -285,58 +285,52 @@ class _HomeScreenState extends State<HomeScreen>
 
                 const SizedBox(height: 18),
 
-                // ── Rest day banner ────────────────────────────────────────
-                if (_isRestDay) ...[
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6).withAlpha(25),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                          color: const Color(0xFF8B5CF6).withAlpha(80)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Text('💤', style: TextStyle(fontSize: 22)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Rest day?',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700)),
-                              Text(
-                                  "You haven't meditated in 2 days. Even 5 mins helps!",
-                                  style: const TextStyle(
-                                      color: Colors.white54,
-                                      fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => _navigate('meditation'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF8B5CF6),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Text('Start',
+                // ── Community Chat banner ───────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8B5CF6).withAlpha(25),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: const Color(0xFF8B5CF6).withAlpha(80)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('💬', style: TextStyle(fontSize: 22)),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Community Chat',
                                 style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 12,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w700)),
-                          ),
+                            Text('Connect with others on their wellness journey!',
+                                style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12)),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF8B5CF6),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text('Soon',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                ],
+                ),
+                const SizedBox(height: 14),
 
                 // ── Streak + Progress row ──────────────────────────────────
                 Row(

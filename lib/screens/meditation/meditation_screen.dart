@@ -145,6 +145,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                         buttonText: "Start",
                         buttonColor: Colors.green,
                         imagePath: "assets/images/meditation/movement_meditation.jpg",
+                        usernameColor: const Color(0xFF4ADE80),
                         isFeatured: true,
                         onStartPressed: () {
                           Navigator.push(
@@ -178,6 +179,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                         buttonText: "Start",
                         buttonColor: const Color(0xFF3B82F6),
                         imagePath: "assets/images/meditation/music_meditation.jpg",
+                        usernameColor: const Color(0xFF93C5FD),
                         isFeatured: false,
                         onStartPressed: () {
                           Navigator.push(
