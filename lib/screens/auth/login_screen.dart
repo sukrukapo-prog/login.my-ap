@@ -32,18 +32,42 @@ class _LoginScreenState extends State<LoginScreen> {
       _passwordController.text,
     );
 
+    if (!mounted) return;
+
     if (!result.success) {
       setState(() { _errorMessage = result.error; _isLoading = false; });
       return;
     }
 
     setState(() => _isLoading = false);
-    if (mounted) {
-      Navigator.pushReplacementNamed(
-        context,
-        AppRoutes.main,
-        arguments: result.userData ?? OnboardingData(),
+    Navigator.pushReplacementNamed(
+      context,
+      AppRoutes.main,
+      arguments: result.userData ?? OnboardingData(),
+    );
+  }
+
+  void _forgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() => _errorMessage = 'Enter your email above first.');
+      return;
+    }
+
+    setState(() { _isLoading = true; _errorMessage = null; });
+    final result = await AuthService.sendPasswordReset(email);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent! Check your inbox.'),
+          backgroundColor: Color(0xFF3B82F6),
+        ),
       );
+    } else {
+      setState(() => _errorMessage = result.error);
     }
   }
 
@@ -58,12 +82,10 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-              // Back button
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  width: 40, height: 40,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
@@ -72,7 +94,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              // Header image placeholder
               Container(
                 width: double.infinity,
                 height: 160,
@@ -91,11 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 28),
               const Text(
                 'Welcome Back',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 6),
               const Text(
@@ -103,7 +120,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(color: Colors.white54, fontSize: 15),
               ),
               const SizedBox(height: 32),
-              // Email field
+
+              // Email
               const Text('Email', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextField(
@@ -123,13 +141,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Password field
+
+              // Password
               const Text('Password', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 style: const TextStyle(color: Colors.white),
+                onSubmitted: (_) => _login(),
                 decoration: InputDecoration(
                   hintText: 'Enter your password',
                   hintStyle: const TextStyle(color: Colors.white38),
@@ -143,29 +163,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                      color: Colors.white38,
-                      size: 20,
+                      color: Colors.white38, size: 20,
                     ),
                     onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
               ),
               const SizedBox(height: 8),
+
               // Forgot password
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Forgot password — coming soon')),
-                    );
-                  },
+                  onPressed: _isLoading ? null : _forgotPassword,
                   child: const Text(
                     'Forgot password?',
                     style: TextStyle(color: Color(0xFF3B82F6), fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
+
               // Error message
               if (_errorMessage != null) ...[
                 const SizedBox(height: 4),
@@ -177,17 +194,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.red.withOpacity(0.3)),
                   ),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.redAccent, fontSize: 13),
-                  ),
+                  child: Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
                 ),
               ],
               const SizedBox(height: 20),
+
               // Login button
               SizedBox(
-                width: double.infinity,
-                height: 56,
+                width: double.infinity, height: 56,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
@@ -201,26 +215,27 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
               // Divider
               Row(
                 children: [
                   Expanded(child: Divider(color: Colors.white.withOpacity(0.12))),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text('or continue with', style: TextStyle(color: Colors.white38, fontSize: 13)),
+                    child: Text('or', style: TextStyle(color: Colors.white38, fontSize: 13)),
                   ),
                   Expanded(child: Divider(color: Colors.white.withOpacity(0.12))),
                 ],
               ),
               const SizedBox(height: 16),
-              // Google button
+
+              // Google button (coming soon)
               SizedBox(
-                width: double.infinity,
-                height: 54,
+                width: double.infinity, height: 54,
                 child: OutlinedButton.icon(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Google Sign In — coming with Firebase')),
+                      const SnackBar(content: Text('Google Sign In — coming soon!')),
                     );
                   },
                   icon: const Icon(Icons.g_mobiledata_rounded, size: 28, color: Color(0xFF4285F4)),
@@ -232,6 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 28),
+
               // Sign up link
               Center(
                 child: Row(

@@ -10,6 +10,7 @@ class OnboardingData {
   double? goalWeightKg;
   String? email;
   String? password;
+  String? avatarId;    // avatar stored in Firestore
 
   OnboardingData();
 
@@ -42,6 +43,7 @@ class OnboardingData {
       'currentWeightKg': currentWeightKg,
       'goalWeightKg': goalWeightKg,
       'email': email,
+      'avatarId': avatarId,
     };
   }
 
@@ -56,7 +58,8 @@ class OnboardingData {
       ..heightCm = (json['heightCm'] as num?)?.toDouble()
       ..currentWeightKg = (json['currentWeightKg'] as num?)?.toDouble()
       ..goalWeightKg = (json['goalWeightKg'] as num?)?.toDouble()
-      ..email = json['email'] as String?;
+      ..email = json['email'] as String?
+      ..avatarId = json['avatarId'] as String?;
   }
 
   OnboardingData copyWith({
@@ -71,6 +74,7 @@ class OnboardingData {
     double? goalWeightKg,
     String? email,
     String? password,
+    String? avatarId,
   }) {
     return OnboardingData()
       ..name = name ?? this.name
@@ -83,7 +87,8 @@ class OnboardingData {
       ..currentWeightKg = currentWeightKg ?? this.currentWeightKg
       ..goalWeightKg = goalWeightKg ?? this.goalWeightKg
       ..email = email ?? this.email
-      ..password = password ?? this.password;
+      ..password = password ?? this.password
+      ..avatarId = avatarId ?? this.avatarId;
   }
 
   void clear() {
@@ -98,5 +103,6 @@ class OnboardingData {
     goalWeightKg = null;
     email = null;
     password = null;
+    avatarId = null;
   }
 }

@@ -3,6 +3,7 @@ import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/auth_service.dart';
 
 class AvatarSelectionScreen extends StatefulWidget {
   final OnboardingData data;
@@ -30,6 +31,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
     }
 
     await LocalStorage.saveAvatarId(_selectedAvatarId!);
+    await AuthService.updateProfile(avatarId: _selectedAvatarId!);
 
     if (mounted) {
       Navigator.pushReplacementNamed(
