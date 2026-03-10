@@ -19,8 +19,10 @@ class CommunityMessage {
   final String? avatarId;
   final String text;
   final DateTime timestamp;
-  final Map<String, List<String>> reactions; // emoji → [uid, ...]
+  final Map<String, List<String>> reactions;
   final List<_UnlockedBadge> badges;
+  final int totalMinutes;
+  final bool isDeleted;
 
   CommunityMessage({
     required this.id,
@@ -31,6 +33,8 @@ class CommunityMessage {
     required this.timestamp,
     required this.reactions,
     required this.badges,
+    this.totalMinutes = 0,
+    this.isDeleted = false,
   });
 
   factory CommunityMessage.fromDoc(DocumentSnapshot doc) {
@@ -56,6 +60,8 @@ class CommunityMessage {
       timestamp: (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       reactions: reactions,
       badges: badges,
+      totalMinutes: (d['totalMinutes'] as int?) ?? 0,
+      isDeleted: (d['deleted'] as bool?) ?? false,
     );
   }
 }
@@ -90,8 +96,9 @@ class _CommunityScreenState extends State<CommunityScreen>
   String _myName = 'User';
   String? _myAvatarId;
   List<_UnlockedBadge> _myBadges = [];
+  int _myTotalMinutes = 0;
   bool _sending = false;
-  bool _showEmojiBar = false;
+  final _showEmojiBar = ValueNotifier<bool>(false);
 
   static const _quickEmojis = ['🔥', '💪', '🧘', '❤️', '👏', '✨', '😄', '🎉'];
   static const _reactEmojis = ['🔥', '💪', '❤️', '👏', '✨', '😄'];
@@ -107,6 +114,7 @@ class _CommunityScreenState extends State<CommunityScreen>
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     _focusNode.dispose();
+    _showEmojiBar.dispose();
     super.dispose();
   }
 
@@ -146,6 +154,7 @@ class _CommunityScreenState extends State<CommunityScreen>
       _myName = user?.name ?? user?.fullName ?? 'User';
       _myAvatarId = avatarId ?? user?.avatarId;
       _myBadges = badges;
+      _myTotalMinutes = stats['totalMinutes'] ?? 0;
     });
   }
 
@@ -155,7 +164,7 @@ class _CommunityScreenState extends State<CommunityScreen>
 
     setState(() => _sending = true);
     _msgCtrl.clear();
-    _showEmojiBar = false;
+    _showEmojiBar.value = false;
 
     try {
       await _db.collection('community_messages').add({
@@ -165,6 +174,7 @@ class _CommunityScreenState extends State<CommunityScreen>
         'text': text,
         'timestamp': FieldValue.serverTimestamp(),
         'reactions': {},
+        'totalMinutes': _myTotalMinutes,
         'badges': _myBadges
             .take(3)
             .map((b) => {'id': b.id, 'emoji': b.emoji, 'title': b.title})
@@ -189,6 +199,23 @@ class _CommunityScreenState extends State<CommunityScreen>
       }
     } finally {
       if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _deleteMessage(String messageId) async {
+    try {
+      await _db.collection('community_messages').doc(messageId).update({
+        'deleted': true,
+        'text': '',
+      });
+      HapticService.medium();
+    } catch (e) {
+      developer.log('[Community] delete error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not delete message.')),
+        );
+      }
     }
   }
 
@@ -241,8 +268,16 @@ class _CommunityScreenState extends State<CommunityScreen>
           children: [
             _buildHeader(),
             Expanded(child: _buildMessageList()),
-            if (_showEmojiBar) _buildQuickEmojiBar(),
-            _buildInputBar(),
+            ValueListenableBuilder<bool>(
+              valueListenable: _showEmojiBar,
+              builder: (_, show, __) => Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (show) _buildQuickEmojiBar(),
+                  _buildInputBar(),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -369,7 +404,7 @@ class _CommunityScreenState extends State<CommunityScreen>
         return GestureDetector(
           onTap: () {
             _focusNode.unfocus();
-            setState(() => _showEmojiBar = false);
+            _showEmojiBar.value = false;
           },
           child: ListView.builder(
             controller: _scrollCtrl,
@@ -389,11 +424,13 @@ class _CommunityScreenState extends State<CommunityScreen>
                 children: [
                   if (showDate) _DateDivider(msg.timestamp),
                   _MessageBubble(
+                    key: ValueKey(msg.id),
                     message: msg,
                     isMe: isMe,
                     showAvatar: showAvatar,
                     myUid: _myUid ?? '',
                     onReact: (emoji) => _react(msg.id, emoji, msg.reactions),
+                    onDelete: () => _deleteMessage(msg.id),
                   ),
                 ],
               );
@@ -417,7 +454,7 @@ class _CommunityScreenState extends State<CommunityScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('🌟', style: const TextStyle(fontSize: 48)),
+          const Text('🌟', style: TextStyle(fontSize: 48)),
           const SizedBox(height: 16),
           const Text('Be the first to say hello!',
               style: TextStyle(
@@ -469,22 +506,25 @@ class _CommunityScreenState extends State<CommunityScreen>
           GestureDetector(
             onTap: () {
               HapticService.light();
-              setState(() => _showEmojiBar = !_showEmojiBar);
-              if (_showEmojiBar) _focusNode.unfocus();
+              _showEmojiBar.value = !_showEmojiBar.value;
+              if (_showEmojiBar.value) _focusNode.unfocus();
             },
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: _showEmojiBar
-                    ? const Color(0xFF3B82F6).withAlpha(40)
-                    : Colors.white.withAlpha(10),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                _showEmojiBar ? Icons.keyboard : Icons.emoji_emotions_outlined,
-                color: _showEmojiBar ? const Color(0xFF3B82F6) : Colors.white54,
-                size: 20,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _showEmojiBar,
+              builder: (_, show, __) => Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: show
+                      ? const Color(0xFF3B82F6).withAlpha(40)
+                      : Colors.white.withAlpha(10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  show ? Icons.keyboard : Icons.emoji_emotions_outlined,
+                  color: show ? const Color(0xFF3B82F6) : Colors.white54,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -511,7 +551,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                   contentPadding:
                   EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
-                onTap: () => setState(() => _showEmojiBar = false),
+                onTap: () => _showEmojiBar.value = false,
                 onSubmitted: (_) => _send(),
               ),
             ),
@@ -556,20 +596,247 @@ class _CommunityScreenState extends State<CommunityScreen>
 
 // ── Message bubble ──────────────────────────────────────────────────────────────
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends StatefulWidget {
   final CommunityMessage message;
   final bool isMe;
   final bool showAvatar;
   final String myUid;
   final Function(String emoji) onReact;
+  final VoidCallback onDelete;
 
   const _MessageBubble({
+    super.key,
     required this.message,
     required this.isMe,
     required this.showAvatar,
     required this.myUid,
     required this.onReact,
+    required this.onDelete,
   });
+
+  @override
+  State<_MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends State<_MessageBubble>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animCtrl;
+  late Animation<double> _scaleAnim;
+  bool _isDeleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 350));
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.0)
+        .animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeInBack));
+    _animCtrl.forward(from: 1.0); // start at end (no entry animation)
+  }
+
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  void _showUserProfile(BuildContext context, CommunityMessage msg) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A2540),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(width: 36, height: 4,
+                decoration: BoxDecoration(color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 24),
+
+            // Avatar
+            AvatarWidget(avatarId: msg.avatarId, size: 72),
+            const SizedBox(height: 14),
+
+            // Name
+            Text(msg.displayName,
+                style: const TextStyle(color: Colors.white, fontSize: 20,
+                    fontWeight: FontWeight.w800)),
+            const SizedBox(height: 16),
+
+            // Stats row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _StatPill(
+                  icon: Icons.self_improvement,
+                  label: 'Meditated',
+                  value: msg.totalMinutes >= 60
+                      ? '${msg.totalMinutes ~/ 60}h ${msg.totalMinutes % 60}m'
+                      : '${msg.totalMinutes}m',
+                  color: const Color(0xFF8B5CF6),
+                ),
+              ],
+            ),
+
+            // Badges
+            if (msg.badges.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Achievements',
+                    style: TextStyle(color: Colors.white.withAlpha(120),
+                        fontSize: 12, fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8, runSpacing: 8,
+                children: msg.badges.map((b) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(10),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withAlpha(20)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(b.emoji, style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
+                    Text(b.title,
+                        style: const TextStyle(color: Colors.white70,
+                            fontSize: 13, fontWeight: FontWeight.w600)),
+                  ]),
+                )).toList(),
+              ),
+            ],
+
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showOwnerOptions(BuildContext context) {
+    HapticService.medium();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A2540),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4,
+              decoration: BoxDecoration(color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 20),
+          // React option
+          ListTile(
+            leading: const Text('😄', style: TextStyle(fontSize: 22)),
+            title: const Text('Add Reaction',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            onTap: () {
+              Navigator.pop(context);
+              _showReactionPicker(context);
+            },
+          ),
+          const Divider(color: Colors.white12),
+          // Delete option
+          ListTile(
+            leading: const Icon(Icons.delete_outline_rounded,
+                color: Color(0xFFEF4444)),
+            title: const Text('Delete Message',
+                style: TextStyle(color: Color(0xFFEF4444),
+                    fontWeight: FontWeight.w600)),
+            onTap: () {
+              Navigator.pop(context);
+              _confirmDelete(context);
+            },
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A2540),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete message?',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        content: const Text('Everyone will see "This message was deleted".',
+            style: TextStyle(color: Colors.white60, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Color(0xFFEF4444))),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      setState(() => _isDeleting = true);
+      _animCtrl.reverse().then((_) {
+        widget.onDelete();
+      });
+    }
+  }
+
+  void _showLongPressMenu(BuildContext context) {
+    HapticService.medium();
+    if (widget.isMe && !widget.message.isDeleted) {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: const Color(0xFF1A2540),
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (_) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 36, height: 4,
+                  decoration: BoxDecoration(color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 20),
+              // React option
+              ListTile(
+                leading: const Text('😊', style: TextStyle(fontSize: 22)),
+                title: const Text('Add Reaction',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showReactionPicker(context);
+                },
+              ),
+              const Divider(color: Colors.white12),
+              // Delete option
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444)),
+                title: const Text('Delete Message',
+                    style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDelete(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      _showReactionPicker(context);
+    }
+  }
 
   void _showReactionPicker(BuildContext context) {
     HapticService.light();
@@ -599,12 +866,12 @@ class _MessageBubble extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: _CommunityScreenState._reactEmojis.map((e) {
-                final count = (message.reactions[e] ?? []).length;
-                final reacted = (message.reactions[e] ?? []).contains(myUid);
+                final count = (widget.message.reactions[e] ?? []).length;
+                final reacted = (widget.message.reactions[e] ?? []).contains(widget.myUid);
                 return GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
-                    onReact(e);
+                    widget.onReact(e);
                   },
                   child: Column(
                     children: [
@@ -647,13 +914,24 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final message = widget.message;
+    final isMe = widget.isMe;
+    final showAvatar = widget.showAvatar;
     final time = _formatTime(message.timestamp);
     final allReactions = message.reactions.entries
         .where((e) => e.value.isNotEmpty)
         .toList();
 
-    return GestureDetector(
-      onLongPress: () => _showReactionPicker(context),
+    return _isDeleting
+        ? SizeTransition(
+      sizeFactor: _scaleAnim,
+      child: FadeTransition(
+        opacity: _scaleAnim,
+        child: const SizedBox(height: 48),
+      ),
+    )
+        : GestureDetector(
+      onLongPress: () => message.isDeleted ? null : _showLongPressMenu(context),
       child: Padding(
         padding: EdgeInsets.only(
           top: 2,
@@ -666,12 +944,15 @@ class _MessageBubble extends StatelessWidget {
           isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // Other user avatar
+            // Other user avatar — tappable
             if (!isMe)
               Padding(
                 padding: const EdgeInsets.only(right: 8, bottom: 4),
                 child: showAvatar
-                    ? AvatarWidget(avatarId: message.avatarId, size: 32)
+                    ? GestureDetector(
+                  onTap: () => _showUserProfile(context, message),
+                  child: AvatarWidget(avatarId: message.avatarId, size: 32),
+                )
                     : const SizedBox(width: 32),
               ),
 
@@ -681,27 +962,45 @@ class _MessageBubble extends StatelessWidget {
                 crossAxisAlignment:
                 isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
-                  // Name + badges (only for others, first in a group)
+                  // Name + badges — tappable
                   if (!isMe && showAvatar) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4, bottom: 4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(message.displayName,
-                              style: const TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600)),
-                          ...message.badges.take(3).map((b) => Padding(
-                            padding: const EdgeInsets.only(left: 4),
-                            child: Tooltip(
-                              message: b.title,
-                              child: Text(b.emoji,
-                                  style: const TextStyle(fontSize: 11)),
-                            ),
-                          )),
-                        ],
+                    GestureDetector(
+                      onTap: () => _showUserProfile(context, message),
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(message.displayName,
+                                style: const TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600)),
+                            ...message.badges.take(3).map((b) => Padding(
+                              padding: const EdgeInsets.only(left: 4),
+                              child: Tooltip(
+                                message: b.title,
+                                child: Text(b.emoji,
+                                    style: const TextStyle(fontSize: 11)),
+                              ),
+                            )),
+                            if (message.totalMinutes > 0) ...[
+                              const SizedBox(width: 5),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF8B5CF6).withAlpha(40),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text('${message.totalMinutes}m',
+                                    style: const TextStyle(
+                                        color: Color(0xFF8B5CF6),
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w700)),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -732,7 +1031,22 @@ class _MessageBubble extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Text(
+                    child: message.isDeleted
+                        ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.block_rounded,
+                            size: 13,
+                            color: Colors.white.withAlpha(60)),
+                        const SizedBox(width: 6),
+                        Text('This message was deleted',
+                            style: TextStyle(
+                                color: Colors.white.withAlpha(60),
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic)),
+                      ],
+                    )
+                        : Text(
                       message.text,
                       style: TextStyle(
                         color: isMe ? Colors.white : Colors.white.withAlpha(220),
@@ -751,16 +1065,16 @@ class _MessageBubble extends StatelessWidget {
                   ),
 
                   // Reaction chips
-                  if (allReactions.isNotEmpty)
+                  if (allReactions.isNotEmpty && !message.isDeleted)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Wrap(
                         spacing: 4,
                         children: allReactions.map((e) {
                           final count = e.value.length;
-                          final iMine = e.value.contains(myUid);
+                          final iMine = e.value.contains(widget.myUid);
                           return GestureDetector(
-                            onTap: () => onReact(e.key),
+                            onTap: () => widget.onReact(e.key),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(
@@ -834,6 +1148,35 @@ class _DateDivider extends StatelessWidget {
           Expanded(child: Divider(color: Colors.white.withAlpha(15))),
         ],
       ),
+    );
+  }
+}
+
+// ── Stat pill ──────────────────────────────────────────────────────────────────
+class _StatPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  const _StatPill({required this.icon, required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withAlpha(60)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: color, size: 16),
+        const SizedBox(width: 8),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: TextStyle(color: color.withAlpha(180), fontSize: 10, fontWeight: FontWeight.w600)),
+          Text(value, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800)),
+        ]),
+      ]),
     );
   }
 }

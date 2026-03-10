@@ -110,9 +110,7 @@ class _AchievementsScreenState extends State<AchievementsScreen>
     final minutes  = _stats['totalMinutes']  ?? 0;
 
     switch (a.category) {
-      case 'session':
-        if (a.id == 'first_login') return true; // always unlocked — app is open
-        return sessions >= a.requiredValue;
+      case 'session': return sessions >= a.requiredValue;
       case 'streak':  return streak  >= a.requiredValue;
       case 'time':    return minutes >= a.requiredValue;
       default:        return false;
