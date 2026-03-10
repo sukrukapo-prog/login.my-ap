@@ -120,6 +120,8 @@ class PushNotificationService {
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+        UILocalNotificationDateInterpretation.absoluteTime, // ← fix added
         matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (_) {
