@@ -114,9 +114,9 @@ class MainTabScreenState extends State<MainTabScreen> {
                 activeIcon: Icon(Icons.open_with),
                 label: 'Workout',
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.self_improvement_outlined),
-                activeIcon: Icon(Icons.self_improvement),
+              BottomNavigationBarItem(
+                icon: Image.asset('assets/images/meditation/meditation_icon.jpg', width: 24, height: 24, color: Colors.white54),
+                activeIcon: Image.asset('assets/images/meditation/meditation_icon.jpg', width: 24, height: 24, color: const Color(0xFF3B82F6)),
                 label: 'Meditation',
               ),
               const BottomNavigationBarItem(
