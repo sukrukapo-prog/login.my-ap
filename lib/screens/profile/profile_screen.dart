@@ -16,17 +16,15 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserver {
   late OnboardingData _data;
   String? _avatarId;
   bool _isEditing = false;
   bool _showPersonalDetails = false;
   Map<String, int> _allTimeStats = {};
-  List<int> _weeklyData = List.filled(7, 0);
-  String _latestBadgeEmoji = '';
-  String _latestBadgeTitle = '';
   int _dailyGoal = 15;
   bool _showGoalPicker = false;
+  bool _isLoading = true;
 
   late TextEditingController _ageController;
   late TextEditingController _heightController;
@@ -39,22 +37,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _ageController = TextEditingController(text: _data.age?.toString() ?? '');
     _heightController = TextEditingController(text: _data.heightCm?.toStringAsFixed(0) ?? '');
     _weightController = TextEditingController(text: _data.currentWeightKg?.toStringAsFixed(1) ?? '');
-    _loadAvatar();
-    _loadStats();
+    WidgetsBinding.instance.addObserver(this);
+    _loadAll();
   }
 
-  Future<void> _loadStats() async {
+  // Reload when app comes back to foreground
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _loadAll();
+  }
+
+  // Reload every time this tab becomes visible
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    // Always load fresh from Firestore/local — never rely on stale widget prop
+    final freshData = await AuthService.getCurrentUser();
+    final avatarId = await LocalStorage.getAvatarId();
     final stats = await LocalStorage.getAllTimeStats();
     final goal = await LocalStorage.getDailyGoalMinutes();
+
+    if (!mounted) return;
     setState(() {
+      if (freshData != null) {
+        _data = freshData;
+        _ageController.text = freshData.age?.toString() ?? '';
+        _heightController.text = freshData.heightCm?.toStringAsFixed(0) ?? '';
+        _weightController.text = freshData.currentWeightKg?.toStringAsFixed(1) ?? '';
+      }
+      _avatarId = avatarId ?? freshData?.avatarId;
       _allTimeStats = stats;
       _dailyGoal = goal;
+      _isLoading = false;
     });
-  }
-
-  Future<void> _loadAvatar() async {
-    final id = await LocalStorage.getAvatarId();
-    setState(() => _avatarId = id);
   }
 
   Future<void> _saveData() async {
@@ -64,11 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (age != null) _data.age = age;
     if (height != null) _data.heightCm = height;
     if (weight != null) _data.currentWeightKg = weight;
-    await LocalStorage.updateStats(
-      age: age,
-      heightCm: height,
-      weightKg: weight,
-    );
+    await LocalStorage.updateStats(age: age, heightCm: height, weightKg: weight);
     setState(() => _isEditing = false);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -99,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _openSettings() {
     AudioService().playClickSound();
-    Navigator.pushNamed(context, AppRoutes.settings);
+    Navigator.pushNamed(context, AppRoutes.settings).then((_) => _loadAll());
   }
 
   void _openAchievements() {
@@ -110,11 +125,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _openMeditationHistory() {
     HapticService.light();
     Navigator.pushNamed(context, AppRoutes.meditationHistory);
-  }
-
-  void _openNotifications() {
-    HapticService.light();
-    Navigator.pushNamed(context, AppRoutes.notificationHistory);
   }
 
   void _openFeedback() {
@@ -155,6 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ageController.dispose();
     _heightController.dispose();
     _weightController.dispose();
@@ -163,91 +174,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0F1624),
+        body: Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6))),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F1624),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
+      body: RefreshIndicator(
+        onRefresh: _loadAll,
+        color: const Color(0xFF3B82F6),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                const SizedBox(height: 24),
 
-              // Avatar + name
-              Center(
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: _changeAvatar,
-                      child: Stack(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6), Color(0xFFF59E0B)],
-                              ),
-                            ),
-                            child: AvatarWidget(avatarId: _avatarId, size: 90, showBorder: false),
-                          ),
-                          Positioned(
-                            bottom: 0, right: 0,
-                            child: Container(
-                              width: 28, height: 28,
+                // Avatar + name
+                Center(
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        onTap: _changeAvatar,
+                        child: Stack(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(3),
                               decoration: const BoxDecoration(
-                                color: Color(0xFF3B82F6),
                                 shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6), Color(0xFFF59E0B)],
+                                ),
                               ),
-                              child: const Icon(Icons.edit, color: Colors.white, size: 14),
+                              child: AvatarWidget(avatarId: _avatarId, size: 90, showBorder: false),
                             ),
-                          ),
-                        ],
+                            Positioned(
+                              bottom: 0, right: 0,
+                              child: Container(
+                                width: 28, height: 28,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF3B82F6),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.edit, color: Colors.white, size: 14),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(_data.fullName ?? _data.name ?? 'User',
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 4),
-                    Text(_data.email ?? '',
-                        style: const TextStyle(color: Colors.white38, fontSize: 13)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Stats row
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withOpacity(0.08)),
-                ),
-                child: Row(
-                  children: [
-                    _StatBox(label: 'Height', value: _data.heightCm != null ? '${_data.heightCm!.round()} cm' : '—'),
-                    _VertDivider(),
-                    _StatBox(label: 'Age', value: _data.age?.toString() ?? '—'),
-                    _VertDivider(),
-                    _StatBox(label: 'Weight', value: _data.currentWeightKg != null ? '${_data.currentWeightKg!.toStringAsFixed(1)} kg' : '—'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Personal Details
-              _SectionCard(
-                title: 'Personal Details',
-                trailing: GestureDetector(
-                  onTap: () => setState(() => _showPersonalDetails = !_showPersonalDetails),
-                  child: Text(
-                    _showPersonalDetails ? 'Hide' : 'Show',
-                    style: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w700, fontSize: 14),
+                      const SizedBox(height: 12),
+                      Text(_data.fullName ?? _data.name ?? 'User',
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 4),
+                      Text(_data.email ?? '',
+                          style: const TextStyle(color: Colors.white38, fontSize: 13)),
+                    ],
                   ),
                 ),
-                child: _showPersonalDetails
-                    ? Column(
-                  children: [
+                const SizedBox(height: 24),
+
+                // Stats row
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white.withOpacity(0.08)),
+                  ),
+                  child: Row(
+                    children: [
+                      _StatBox(label: 'Height', value: _data.heightCm != null ? '${_data.heightCm!.round()} cm' : '—'),
+                      _VertDivider(),
+                      _StatBox(label: 'Age', value: _data.age?.toString() ?? '—'),
+                      _VertDivider(),
+                      _StatBox(label: 'Weight', value: _data.currentWeightKg != null ? '${_data.currentWeightKg!.toStringAsFixed(1)} kg' : '—'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Personal Details
+                _SectionCard(
+                  title: 'Personal Details',
+                  trailing: GestureDetector(
+                    onTap: () => setState(() => _showPersonalDetails = !_showPersonalDetails),
+                    child: Text(
+                      _showPersonalDetails ? 'Hide' : 'Show',
+                      style: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
+                  ),
+                  child: _showPersonalDetails
+                      ? Column(children: [
                     _InfoRow(label: 'Full Name', value: _data.fullName ?? '—'),
                     const Divider(color: Colors.white12, height: 1),
                     _InfoRow(label: 'Preferred Name', value: _data.name ?? '—'),
@@ -255,27 +276,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _InfoRow(label: 'Email', value: _data.email ?? '—'),
                     const Divider(color: Colors.white12, height: 1),
                     _InfoRow(label: 'Gender', value: _data.gender ?? '—'),
-                  ],
-                )
-                    : const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Row(
-                    children: [
+                  ])
+                      : const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Row(children: [
                       Icon(Icons.lock_outline, color: Colors.white38, size: 16),
                       SizedBox(width: 8),
                       Text('Tap "Show" to reveal details',
                           style: TextStyle(color: Colors.white38, fontSize: 13)),
-                    ],
+                    ]),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              // All-time stats
-              _SectionCard(
-                title: 'My Stats',
-                child: Column(
-                  children: [
+                // All-time stats
+                _SectionCard(
+                  title: 'My Stats',
+                  child: Column(children: [
                     _InfoRow(label: '🕐 Total Hours', value: '${_allTimeStats["totalHours"] ?? 0}h meditated'),
                     const Divider(color: Colors.white12, height: 1),
                     _InfoRow(label: '🔥 Current Streak', value: '${_allTimeStats["streakDays"] ?? 0} days'),
@@ -283,40 +300,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _InfoRow(label: '🏆 Longest Streak', value: '${_allTimeStats["longestStreak"] ?? 0} days'),
                     const Divider(color: Colors.white12, height: 1),
                     _InfoRow(label: '🧘 Total Sessions', value: '${_allTimeStats["totalSessions"] ?? 0} completed'),
-                  ],
+                  ]),
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              // Daily goal
-              _SectionCard(
-                title: 'Daily Goal',
-                trailing: GestureDetector(
-                  onTap: () {
-                    HapticService.light();
-                    setState(() => _showGoalPicker = !_showGoalPicker);
-                  },
-                  child: Text(
-                    _showGoalPicker ? 'Done' : 'Change',
-                    style: const TextStyle(color: Color(0xFF3B82F6),
-                        fontWeight: FontWeight.w700, fontSize: 14),
+                // Daily goal
+                _SectionCard(
+                  title: 'Daily Goal',
+                  trailing: GestureDetector(
+                    onTap: () { HapticService.light(); setState(() => _showGoalPicker = !_showGoalPicker); },
+                    child: Text(
+                      _showGoalPicker ? 'Done' : 'Change',
+                      style: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
                   ),
-                ),
-                child: Column(
-                  children: [
+                  child: Column(children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.flag_outlined,
-                              color: Color(0xFF3B82F6), size: 20),
-                          const SizedBox(width: 10),
-                          Text('$_dailyGoal minutes per day',
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 14,
-                                  fontWeight: FontWeight.w600)),
-                        ],
-                      ),
+                      child: Row(children: [
+                        const Icon(Icons.flag_outlined, color: Color(0xFF3B82F6), size: 20),
+                        const SizedBox(width: 10),
+                        Text('$_dailyGoal minutes per day',
+                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                      ]),
                     ),
                     if (_showGoalPicker) ...[
                       const Divider(color: Colors.white12, height: 1),
@@ -329,56 +335,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onTap: () async {
                               HapticService.medium();
                               await LocalStorage.setDailyGoalMinutes(mins);
-                              setState(() {
-                                _dailyGoal = mins;
-                                _showGoalPicker = false;
-                              });
+                              setState(() { _dailyGoal = mins; _showGoalPicker = false; });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                color: sel
-                                    ? const Color(0xFF3B82F6)
-                                    : Colors.white.withAlpha(15),
+                                color: sel ? const Color(0xFF3B82F6) : Colors.white.withAlpha(15),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: sel
-                                      ? const Color(0xFF3B82F6)
-                                      : Colors.white.withAlpha(30),
-                                ),
+                                border: Border.all(color: sel ? const Color(0xFF3B82F6) : Colors.white.withAlpha(30)),
                               ),
-                              child: Text('${mins}m',
-                                  style: TextStyle(
-                                    color: sel ? Colors.white : Colors.white54,
-                                    fontSize: 13,
-                                    fontWeight: sel ? FontWeight.w700 : FontWeight.normal,
-                                  )),
+                              child: Text('${mins}m', style: TextStyle(
+                                color: sel ? Colors.white : Colors.white54,
+                                fontSize: 13,
+                                fontWeight: sel ? FontWeight.w700 : FontWeight.normal,
+                              )),
                             ),
                           );
                         }).toList(),
                       ),
                       const SizedBox(height: 8),
                     ],
-                  ],
+                  ]),
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              // Update Stats
-              _SectionCard(
-                title: 'Update Stats',
-                trailing: _isEditing
-                    ? GestureDetector(
-                  onTap: _saveData,
-                  child: const Text('Save', style: TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w700, fontSize: 14)),
-                )
-                    : GestureDetector(
-                  onTap: () => setState(() => _isEditing = true),
-                  child: const Text('Edit', style: TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w700, fontSize: 14)),
-                ),
-                child: Column(
-                  children: [
+                // Update Stats
+                _SectionCard(
+                  title: 'Update Stats',
+                  trailing: _isEditing
+                      ? GestureDetector(onTap: _saveData,
+                      child: const Text('Save', style: TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w700, fontSize: 14)))
+                      : GestureDetector(onTap: () => setState(() => _isEditing = true),
+                      child: const Text('Edit', style: TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w700, fontSize: 14))),
+                  child: Column(children: [
                     _EditableRow(label: 'Age', controller: _ageController, isEditing: _isEditing,
                         value: _data.age?.toString() ?? '—', keyboardType: TextInputType.number, suffix: 'yrs'),
                     const Divider(color: Colors.white12, height: 1),
@@ -389,25 +378,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _EditableRow(label: 'Weight', controller: _weightController, isEditing: _isEditing,
                         value: _data.currentWeightKg != null ? '${_data.currentWeightKg!.toStringAsFixed(1)} kg' : '—',
                         keyboardType: const TextInputType.numberWithOptions(decimal: true), suffix: 'kg'),
-                  ],
+                  ]),
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              _MenuCard(items: [
-                _MenuItem(icon: Icons.color_lens_outlined, label: 'Change Avatar', onTap: _changeAvatar),
-                _MenuItem(icon: Icons.feedback_outlined, label: 'Send Feedback', onTap: _openFeedback),
-                _MenuItem(icon: Icons.emoji_events_outlined, label: 'Achievements', onTap: _openAchievements),
-                _MenuItem(icon: Icons.history, label: 'Meditation History', onTap: _openMeditationHistory),
-                _MenuItem(icon: Icons.settings_outlined, label: 'Settings', onTap: _openSettings),
-              ]),
-              const SizedBox(height: 12),
+                _MenuCard(items: [
+                  _MenuItem(icon: Icons.color_lens_outlined, label: 'Change Avatar', onTap: _changeAvatar),
+                  _MenuItem(icon: Icons.feedback_outlined, label: 'Send Feedback', onTap: _openFeedback),
+                  _MenuItem(icon: Icons.emoji_events_outlined, label: 'Achievements', onTap: _openAchievements),
+                  _MenuItem(icon: Icons.history, label: 'Meditation History', onTap: _openMeditationHistory),
+                  _MenuItem(icon: Icons.settings_outlined, label: 'Settings', onTap: _openSettings),
+                ]),
+                const SizedBox(height: 12),
 
-              _MenuCard(items: [
-                _MenuItem(icon: Icons.logout, label: 'Logout', onTap: _logout, color: Colors.redAccent),
-              ]),
-              const SizedBox(height: 32),
-            ],
+                _MenuCard(items: [
+                  _MenuItem(icon: Icons.logout, label: 'Logout', onTap: _logout, color: Colors.redAccent),
+                ]),
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         ),
       ),
@@ -415,21 +404,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
+// ── Sub-widgets ────────────────────────────────────────────────────────────────
+
 class _StatBox extends StatelessWidget {
   final String label, value;
   const _StatBox({required this.label, required this.value});
   @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Expanded(
+    child: Column(children: [
+      Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+      const SizedBox(height: 4),
+      Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+    ]),
+  );
 }
 
 class _VertDivider extends StatelessWidget {
@@ -443,7 +430,6 @@ class _SectionCard extends StatelessWidget {
   final Widget child;
   final Widget? trailing;
   const _SectionCard({required this.title, required this.child, this.trailing});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -452,27 +438,18 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
-                if (trailing != null) trailing!,
-              ],
-            ),
-          ),
-          const Divider(color: Colors.white12, height: 1),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: child,
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+            if (trailing != null) trailing!,
+          ]),
+        ),
+        const Divider(color: Colors.white12, height: 1),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), child: child),
+        const SizedBox(height: 8),
+      ]),
     );
   }
 }
@@ -481,18 +458,13 @@ class _InfoRow extends StatelessWidget {
   final String label, value;
   const _InfoRow({required this.label, required this.value});
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
+      Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+    ]),
+  );
 }
 
 class _EditableRow extends StatelessWidget {
@@ -503,42 +475,33 @@ class _EditableRow extends StatelessWidget {
   const _EditableRow({required this.label, required this.controller,
     required this.isEditing, required this.value,
     required this.keyboardType, required this.suffix});
-
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
-          if (isEditing)
-            SizedBox(
-              width: 100,
-              child: TextField(
-                controller: controller,
-                keyboardType: keyboardType,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                textAlign: TextAlign.right,
-                decoration: InputDecoration(
-                  suffixText: suffix,
-                  suffixStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                  isDense: true, filled: true,
-                  fillColor: Colors.white.withOpacity(0.08),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                ),
-              ),
-            )
-          else
-            Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
+      if (isEditing)
+        SizedBox(
+          width: 100,
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            textAlign: TextAlign.right,
+            decoration: InputDecoration(
+              suffixText: suffix,
+              suffixStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+              isDense: true, filled: true,
+              fillColor: Colors.white.withOpacity(0.08),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            ),
+          ),
+        )
+      else
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+    ]),
+  );
 }
 
 class _MenuCard extends StatelessWidget {
@@ -554,22 +517,18 @@ class _MenuCard extends StatelessWidget {
       ),
       child: Column(
         children: items.asMap().entries.map((e) {
-          final i = e.key;
-          final item = e.value;
-          return Column(
-            children: [
-              ListTile(
-                leading: Icon(item.icon, color: item.color ?? Colors.white70, size: 22),
-                title: Text(item.label,
-                    style: TextStyle(color: item.color ?? Colors.white70, fontSize: 15)),
-                trailing: const Icon(Icons.chevron_right, color: Colors.white24, size: 20),
-                onTap: item.onTap,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-              ),
-              if (i < items.length - 1)
-                const Divider(color: Colors.white12, height: 1, indent: 16, endIndent: 16),
-            ],
-          );
+          final i = e.key; final item = e.value;
+          return Column(children: [
+            ListTile(
+              leading: Icon(item.icon, color: item.color ?? Colors.white70, size: 22),
+              title: Text(item.label, style: TextStyle(color: item.color ?? Colors.white70, fontSize: 15)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white24, size: 20),
+              onTap: item.onTap,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            ),
+            if (i < items.length - 1)
+              const Divider(color: Colors.white12, height: 1, indent: 16, endIndent: 16),
+          ]);
         }).toList(),
       ),
     );
@@ -584,12 +543,11 @@ class _MenuItem {
   const _MenuItem({required this.icon, required this.label, required this.onTap, this.color});
 }
 
-// ── Avatar picker bottom sheet ─────────────────────────────────────────────────
+// ── Avatar picker ──────────────────────────────────────────────────────────────
 class _AvatarPickerSheet extends StatefulWidget {
   final String? currentAvatarId;
   final Function(String) onSelected;
   const _AvatarPickerSheet({required this.currentAvatarId, required this.onSelected});
-
   @override
   State<_AvatarPickerSheet> createState() => _AvatarPickerSheetState();
 }
@@ -597,115 +555,79 @@ class _AvatarPickerSheet extends StatefulWidget {
 class _AvatarPickerSheetState extends State<_AvatarPickerSheet> {
   late String? _selected;
   String _category = 'all';
-
   @override
-  void initState() {
-    super.initState();
-    _selected = widget.currentAvatarId;
-  }
-
-  List<AppAvatar> get _filtered {
-    if (_category == 'all') return allAvatars;
-    return allAvatars.where((a) => a.category == _category).toList();
-  }
-
+  void initState() { super.initState(); _selected = widget.currentAvatarId; }
+  List<AppAvatar> get _filtered =>
+      _category == 'all' ? allAvatars : allAvatars.where((a) => a.category == _category).toList();
   @override
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.65,
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(child: Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 16),
-          const Text('Change Avatar',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _Chip(label: 'All', selected: _category == 'all', onTap: () => setState(() => _category = 'all')),
-                const SizedBox(width: 8),
-                _Chip(label: '♂ Male', selected: _category == 'male', onTap: () => setState(() => _category = 'male')),
-                const SizedBox(width: 8),
-                _Chip(label: '♀ Female', selected: _category == 'female', onTap: () => setState(() => _category = 'female')),
-                const SizedBox(width: 8),
-                _Chip(label: '🐾 Animal', selected: _category == 'animal', onTap: () => setState(() => _category = 'animal')),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4, crossAxisSpacing: 12, mainAxisSpacing: 12,
-              ),
-              itemCount: _filtered.length,
-              itemBuilder: (context, i) {
-                final avatar = _filtered[i];
-                final isSelected = _selected == avatar.id;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() => _selected = avatar.id);
-                    widget.onSelected(avatar.id);
-                  },
-                  child: Column(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected ? avatar.primaryColor : Colors.transparent,
-                            width: 3,
-                          ),
-                        ),
-                        child: AvatarWidget(avatarId: avatar.id, size: 56),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(avatar.name,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white38,
-                            fontSize: 10,
-                          ),
-                          overflow: TextOverflow.ellipsis),
-                    ],
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Center(child: Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
+        const SizedBox(height: 16),
+        const Text('Change Avatar', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 16),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            _Chip(label: 'All', selected: _category == 'all', onTap: () => setState(() => _category = 'all')),
+            const SizedBox(width: 8),
+            _Chip(label: '♂ Male', selected: _category == 'male', onTap: () => setState(() => _category = 'male')),
+            const SizedBox(width: 8),
+            _Chip(label: '♀ Female', selected: _category == 'female', onTap: () => setState(() => _category = 'female')),
+            const SizedBox(width: 8),
+            _Chip(label: '🐾 Animal', selected: _category == 'animal', onTap: () => setState(() => _category = 'animal')),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4, crossAxisSpacing: 12, mainAxisSpacing: 12),
+            itemCount: _filtered.length,
+            itemBuilder: (context, i) {
+              final avatar = _filtered[i];
+              final isSelected = _selected == avatar.id;
+              return GestureDetector(
+                onTap: () { setState(() => _selected = avatar.id); widget.onSelected(avatar.id); },
+                child: Column(children: [
+                  Container(
+                    decoration: BoxDecoration(shape: BoxShape.circle,
+                        border: Border.all(color: isSelected ? avatar.primaryColor : Colors.transparent, width: 3)),
+                    child: AvatarWidget(avatarId: avatar.id, size: 56),
                   ),
-                );
-              },
-            ),
+                  const SizedBox(height: 4),
+                  Text(avatar.name,
+                      style: TextStyle(color: isSelected ? Colors.white : Colors.white38, fontSize: 10),
+                      overflow: TextOverflow.ellipsis),
+                ]),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ]),
     );
   }
 }
 
 class _Chip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
+  final String label; final bool selected; final VoidCallback onTap;
   const _Chip({required this.label, required this.selected, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF3B82F6) : Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(label,
-            style: TextStyle(
-              color: selected ? Colors.white : Colors.white54,
-              fontSize: 12,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
-            )),
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFF3B82F6) : Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
       ),
-    );
-  }
+      child: Text(label, style: TextStyle(
+          color: selected ? Colors.white : Colors.white54,
+          fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.normal)),
+    ),
+  );
 }
