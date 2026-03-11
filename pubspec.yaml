@@ -115,3 +115,51 @@ flutter:
     - assets/images/meditation/movement_meditation/videos/the_fountain_loop.mp4
     - assets/images/meditation/movement_meditation/videos/walking_turtle_intro.mp4
     - assets/images/meditation/movement_meditation/videos/walking_turtle_loop.mp4
+
+    # ── Food section ──────────────────────────────────────────────────────────
+    - assets/images/food/breakfast_banner.jpg
+    - assets/images/food/lunch_banner.jpg
+    - assets/images/food/dinner_banner.jpg
+    - assets/images/food/drinks_banner.jpg
+    - assets/images/food/fruits_banner.jpg
+
+    - assets/images/food/breakfast/idli.webp
+    - assets/images/food/breakfast/chapati.jpg
+    - assets/images/food/breakfast/poha.jpg
+    - assets/images/food/breakfast/samosa.webp
+    - assets/images/food/breakfast/patties.jpg
+    - assets/images/food/breakfast/medu_vada.webp
+    - assets/images/food/breakfast/mirchi_bajji.jpg
+
+    - assets/images/food/lunch/rajma.jpg
+    - assets/images/food/lunch/toor_dal.jpg
+    - assets/images/food/lunch/basmati_rice.webp
+    - assets/images/food/lunch/paratha.webp
+    - assets/images/food/lunch/puri.webp
+    - assets/images/food/lunch/mutton_curry.jpg
+    - assets/images/food/lunch/shrimp_masala.jpg
+
+    - assets/images/food/dinner/fish_curry.webp
+    - assets/images/food/dinner/chicken_curry.jpg
+    - assets/images/food/dinner/veg_salad.jpg
+    - assets/images/food/dinner/curd.jpg
+
+    - assets/images/food/drinks/lemon_soda.jpeg
+    - assets/images/food/drinks/apple_juice.jpg
+    - assets/images/food/drinks/pineapple_juice.jpg
+    - assets/images/food/drinks/mango_juice.jpg
+    - assets/images/food/drinks/sprite.webp
+    - assets/images/food/drinks/7up.webp
+    - assets/images/food/drinks/fanta.jpg
+    - assets/images/food/drinks/tea.webp
+    - assets/images/food/drinks/green_tea.jpg
+    - assets/images/food/drinks/black_tea.jpg
+    - assets/images/food/drinks/coffee.webp
+    - assets/images/food/drinks/coconut_water.webp
+    - assets/images/food/drinks/lassi.webp
+
+    - assets/images/food/fruits/apple.jpg
+    - assets/images/food/fruits/mango.webp
+    - assets/images/food/fruits/chiku.webp
+    - assets/images/food/fruits/pineapple.jpg
+    - assets/images/food/fruits/mixed_fruit.jpg

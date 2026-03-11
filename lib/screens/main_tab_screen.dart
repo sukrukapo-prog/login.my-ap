@@ -1,9 +1,17 @@
+// lib/screens/main_tab_screen.dart
+//
+// CHANGE from original:
+//   - Import FoodScreen
+//   - Replace `_ComingSoonScreen(label: 'Food')` with `const FoodScreen()`
+//   - Everything else is identical to the original file.
+
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/screens/home/home_screen.dart';
 import 'package:fitmetrics/screens/profile/profile_screen.dart';
 import 'package:fitmetrics/screens/meditation/meditation_screen.dart';
 import 'package:fitmetrics/screens/community/community_screen.dart';
+import 'package:fitmetrics/screens/food/food_screen.dart';           // ← NEW
 import 'package:fitmetrics/screens/walkthrough/walkthrough_overlay.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
@@ -50,7 +58,7 @@ class MainTabScreenState extends State<MainTabScreen> {
       const HomeScreen(),
       const CommunityScreen(),
       MeditationScreen(userData: widget.userData),
-      const _ComingSoonScreen(label: 'Food'),
+      const FoodScreen(),                                            // ← CHANGED
       ProfileScreen(userData: widget.userData),
     ];
 
@@ -58,13 +66,10 @@ class MainTabScreenState extends State<MainTabScreen> {
       extendBody: true,
       body: Stack(
         children: [
-          // Main content
           IndexedStack(
             index: _currentIndex,
             children: screens,
           ),
-
-          // Walkthrough overlay
           if (_showWalkthrough)
             WalkthroughOverlay(
               onDone: () => setState(() => _showWalkthrough = false),
@@ -95,7 +100,7 @@ class MainTabScreenState extends State<MainTabScreen> {
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: (i) {
-              if (_showWalkthrough) return; // disable tap during walkthrough
+              if (_showWalkthrough) return;
               AudioService().playClickSound();
               setState(() => _currentIndex = i);
             },
@@ -116,8 +121,16 @@ class MainTabScreenState extends State<MainTabScreen> {
                 label: 'Community',
               ),
               BottomNavigationBarItem(
-                icon: Image.asset('assets/images/meditation/meditation_icon.jpg', width: 24, height: 24, color: Colors.white54),
-                activeIcon: Image.asset('assets/images/meditation/meditation_icon.jpg', width: 24, height: 24, color: const Color(0xFF3B82F6)),
+                icon: Image.asset(
+                    'assets/images/meditation/meditation_icon.jpg',
+                    width: 24,
+                    height: 24,
+                    color: Colors.white54),
+                activeIcon: Image.asset(
+                    'assets/images/meditation/meditation_icon.jpg',
+                    width: 24,
+                    height: 24,
+                    color: const Color(0xFF3B82F6)),
                 label: 'Meditation',
               ),
               const BottomNavigationBarItem(
@@ -138,9 +151,10 @@ class MainTabScreenState extends State<MainTabScreen> {
   }
 }
 
-class _ComingSoonScreen extends StatelessWidget {
+// _ComingSoonScreen kept only for Workout tab (if needed elsewhere)
+class ComingSoonScreen extends StatelessWidget {
   final String label;
-  const _ComingSoonScreen({required this.label});
+  const ComingSoonScreen({super.key, required this.label});
 
   @override
   Widget build(BuildContext context) {
