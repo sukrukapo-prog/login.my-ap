@@ -1,9 +1,5 @@
 // lib/screens/main_tab_screen.dart
-//
-// CHANGE from original:
-//   - Import FoodScreen
-//   - Replace `_ComingSoonScreen(label: 'Food')` with `const FoodScreen()`
-//   - Everything else is identical to the original file.
+// Food tab uses assets/images/food/food_icon.png in the bottom nav bar.
 
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
@@ -11,7 +7,7 @@ import 'package:fitmetrics/screens/home/home_screen.dart';
 import 'package:fitmetrics/screens/profile/profile_screen.dart';
 import 'package:fitmetrics/screens/meditation/meditation_screen.dart';
 import 'package:fitmetrics/screens/community/community_screen.dart';
-import 'package:fitmetrics/screens/food/food_screen.dart';           // ← NEW
+import 'package:fitmetrics/screens/food/food_screen.dart';
 import 'package:fitmetrics/screens/walkthrough/walkthrough_overlay.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
@@ -48,9 +44,7 @@ class MainTabScreenState extends State<MainTabScreen> {
     }
   }
 
-  void setTab(int index) {
-    setState(() => _currentIndex = index);
-  }
+  void setTab(int index) => setState(() => _currentIndex = index);
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +52,7 @@ class MainTabScreenState extends State<MainTabScreen> {
       const HomeScreen(),
       const CommunityScreen(),
       MeditationScreen(userData: widget.userData),
-      const FoodScreen(),                                            // ← CHANGED
+      const FoodScreen(),
       ProfileScreen(userData: widget.userData),
     ];
 
@@ -66,19 +60,14 @@ class MainTabScreenState extends State<MainTabScreen> {
       extendBody: true,
       body: Stack(
         children: [
-          IndexedStack(
-            index: _currentIndex,
-            children: screens,
-          ),
+          IndexedStack(index: _currentIndex, children: screens),
           if (_showWalkthrough)
             WalkthroughOverlay(
               onDone: () => setState(() => _showWalkthrough = false),
-              onTabHighlight: (tabIndex) {
-                setState(() {
-                  _highlightedTab = tabIndex;
-                  _currentIndex = tabIndex;
-                });
-              },
+              onTabHighlight: (tabIndex) => setState(() {
+                _highlightedTab = tabIndex;
+                _currentIndex   = tabIndex;
+              }),
             ),
         ],
       ),
@@ -123,21 +112,39 @@ class MainTabScreenState extends State<MainTabScreen> {
               BottomNavigationBarItem(
                 icon: Image.asset(
                     'assets/images/meditation/meditation_icon.jpg',
-                    width: 24,
-                    height: 24,
-                    color: Colors.white54),
+                    width: 24, height: 24, color: Colors.white54),
                 activeIcon: Image.asset(
                     'assets/images/meditation/meditation_icon.jpg',
-                    width: 24,
-                    height: 24,
+                    width: 24, height: 24,
                     color: const Color(0xFF3B82F6)),
                 label: 'Meditation',
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.restaurant_outlined),
-                activeIcon: Icon(Icons.restaurant),
+
+              // ── Food tab — your food_icon.png ─────────────────────────
+              BottomNavigationBarItem(
+                icon: Image.asset(
+                  'assets/images/food/food_icon.png',
+                  width: 24,
+                  height: 24,
+                  color: Colors.white38,
+                  colorBlendMode: BlendMode.srcIn,
+                  errorBuilder: (_, __, ___) => const Icon(
+                      Icons.restaurant_outlined,
+                      color: Colors.white38, size: 24),
+                ),
+                activeIcon: Image.asset(
+                  'assets/images/food/food_icon.png',
+                  width: 24,
+                  height: 24,
+                  color: const Color(0xFF3B82F6),
+                  colorBlendMode: BlendMode.srcIn,
+                  errorBuilder: (_, __, ___) => const Icon(
+                      Icons.restaurant,
+                      color: Color(0xFF3B82F6), size: 24),
+                ),
                 label: 'Food',
               ),
+
               const BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),
                 activeIcon: Icon(Icons.person),
@@ -151,7 +158,7 @@ class MainTabScreenState extends State<MainTabScreen> {
   }
 }
 
-// _ComingSoonScreen kept only for Workout tab (if needed elsewhere)
+// ── ComingSoonScreen (kept for Workout tab) ───────────────────────────────────
 class ComingSoonScreen extends StatelessWidget {
   final String label;
   const ComingSoonScreen({super.key, required this.label});

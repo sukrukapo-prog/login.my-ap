@@ -620,7 +620,8 @@ class _HomeScreenState extends State<HomeScreen>
                     _QuickCard(
                         title: 'Diet',
                         subtitle: 'Log meals & macros',
-                        icon: Icons.restaurant_menu_outlined,
+                        icon: Icons.restaurant_menu_outlined, // fallback only
+                        iconImage: 'assets/images/food/food_icon.png',
                         color: const Color(0xFF10B981),
                         onTap: () => _navigate('diet')),
                     _QuickCard(
@@ -835,6 +836,7 @@ class _StatItem extends StatelessWidget {
 class _QuickCard extends StatelessWidget {
   final String title, subtitle;
   final IconData icon;
+  final String? iconImage; // optional asset path — shown instead of icon when set
   final Color color;
   final VoidCallback onTap;
   const _QuickCard(
@@ -842,7 +844,8 @@ class _QuickCard extends StatelessWidget {
         required this.subtitle,
         required this.icon,
         required this.color,
-        required this.onTap});
+        required this.onTap,
+        this.iconImage});
 
   @override
   Widget build(BuildContext context) {
@@ -859,7 +862,18 @@ class _QuickCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, color: color, size: 26),
+            // Use image if provided, otherwise fall back to icon
+            iconImage != null
+                ? Image.asset(
+              iconImage!,
+              width: 28,
+              height: 28,
+              color: color,
+              colorBlendMode: BlendMode.srcIn,
+              errorBuilder: (_, __, ___) =>
+                  Icon(icon, color: color, size: 26),
+            )
+                : Icon(icon, color: color, size: 26),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

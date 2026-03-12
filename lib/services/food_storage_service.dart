@@ -1,8 +1,9 @@
 // lib/services/food_storage_service.dart
-//
-// Handles all food-related SharedPreferences reads/writes.
-// Key prefix: "food_"  — zero conflict with existing LocalStorage keys
-// (which use: userData, avatarId, meditation_*, seenOnboarding, etc.)
+// Key prefix: "food_"  — zero conflict with existing keys.
+// v2 additions:
+//   food_calorie_goal  (int)       — user's daily calorie goal
+//   food_favs          (StringList) — "categoryId::itemName"
+//   food_water_ml      (int)       — water drunk today in ml
 
 import 'dart:convert';
 import 'dart:developer' as developer;
@@ -10,119 +11,145 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitmetrics/models/food_item.dart';
 
 class FoodStorageService {
-  // ── Key helpers ─────────────────────────────────────────────────────────────
+  // ── Key helpers ──────────────────────────────────────────────────────────────
+  static String _calorieKey(String id) => 'food_calories_$id';
+  static String _logKey(String id)     => 'food_log_$id';
+  static const _goalKey  = 'food_calorie_goal';
+  static const _favsKey  = 'food_favs';
+  static const _waterKey = 'food_water_ml';
 
-  static String _calorieKey(String mealId) => 'food_calories_$mealId';
-  static String _logKey(String mealId)     => 'food_log_$mealId';
+  // ── Calorie goal ─────────────────────────────────────────────────────────────
+
+  static Future<int> getCalorieGoal() async {
+    final p = await SharedPreferences.getInstance();
+    return p.getInt(_goalKey) ?? 2000;
+  }
+
+  static Future<void> setCalorieGoal(int kcal) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setInt(_goalKey, kcal.clamp(500, 9999));
+  }
 
   // ── Calories ─────────────────────────────────────────────────────────────────
 
-  /// Get saved calories for one meal category today.
   static Future<int> getCalories(String mealId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getInt(_calorieKey(mealId)) ?? 0;
-    } catch (e) {
-      developer.log('[FoodStorage] getCalories error: $e');
-      return 0;
-    }
+      final p = await SharedPreferences.getInstance();
+      return p.getInt(_calorieKey(mealId)) ?? 0;
+    } catch (e) { developer.log('[FoodStorage] getCalories: $e'); return 0; }
   }
 
-  /// Add calories to a meal category (accumulates).
   static Future<void> addCalories(String mealId, int amount) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final current = prefs.getInt(_calorieKey(mealId)) ?? 0;
-      await prefs.setInt(_calorieKey(mealId), current + amount);
-    } catch (e) {
-      developer.log('[FoodStorage] addCalories error: $e');
-    }
+      final p = await SharedPreferences.getInstance();
+      final cur = p.getInt(_calorieKey(mealId)) ?? 0;
+      await p.setInt(_calorieKey(mealId), cur + amount);
+    } catch (e) { developer.log('[FoodStorage] addCalories: $e'); }
   }
 
-  /// Get calories for ALL meal categories at once (used by FoodScreen dashboard).
   static Future<Map<String, int>> getAllCalories() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      return {
-        for (final cat in allMealCategories)
-          cat.id: prefs.getInt(_calorieKey(cat.id)) ?? 0,
-      };
+      final p = await SharedPreferences.getInstance();
+      return { for (final c in allMealCategories) c.id: p.getInt(_calorieKey(c.id)) ?? 0 };
     } catch (e) {
-      developer.log('[FoodStorage] getAllCalories error: $e');
-      return {for (final cat in allMealCategories) cat.id: 0};
+      developer.log('[FoodStorage] getAllCalories: $e');
+      return { for (final c in allMealCategories) c.id: 0 };
     }
   }
 
-  /// Reset all food calories (called by "Reset Day" button).
   static Future<void> resetAllCalories() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      for (final cat in allMealCategories) {
-        await prefs.remove(_calorieKey(cat.id));
-      }
-    } catch (e) {
-      developer.log('[FoodStorage] resetAllCalories error: $e');
-    }
+      final p = await SharedPreferences.getInstance();
+      for (final c in allMealCategories) await p.remove(_calorieKey(c.id));
+    } catch (e) { developer.log('[FoodStorage] resetAllCalories: $e'); }
   }
 
-  // ── Log entries ───────────────────────────────────────────────────────────────
+  // ── Log ───────────────────────────────────────────────────────────────────────
 
-  /// Get the log (list of {name, qty, cal, time}) for one meal category.
   static Future<List<Map<String, dynamic>>> getLog(String mealId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_logKey(mealId));
+      final p = await SharedPreferences.getInstance();
+      final raw = p.getString(_logKey(mealId));
       if (raw == null) return [];
       return List<Map<String, dynamic>>.from(jsonDecode(raw));
-    } catch (e) {
-      developer.log('[FoodStorage] getLog error: $e');
-      return [];
-    }
+    } catch (e) { developer.log('[FoodStorage] getLog: $e'); return []; }
   }
 
-  /// Append a new log entry for a meal item.
-  static Future<void> appendLog(
-      String mealId,
-      String itemName,
-      int qty,
-      int totalCal,
-      ) async {
+  static Future<void> appendLog(String mealId, String name, int qty, int cal) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final p = await SharedPreferences.getInstance();
       final log = await getLog(mealId);
-      log.add({
-        'name': itemName,
-        'qty': qty,
-        'cal': totalCal,
-        'time': DateTime.now().toIso8601String(),
-      });
-      await prefs.setString(_logKey(mealId), jsonEncode(log));
-    } catch (e) {
-      developer.log('[FoodStorage] appendLog error: $e');
-    }
+      log.add({ 'name': name, 'qty': qty, 'cal': cal, 'time': DateTime.now().toIso8601String() });
+      await p.setString(_logKey(mealId), jsonEncode(log));
+    } catch (e) { developer.log('[FoodStorage] appendLog: $e'); }
   }
 
-  /// Clear the log for one meal category (and its calorie total).
   static Future<void> clearMealLog(String mealId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_logKey(mealId));
-      await prefs.remove(_calorieKey(mealId));
-    } catch (e) {
-      developer.log('[FoodStorage] clearMealLog error: $e');
-    }
+      final p = await SharedPreferences.getInstance();
+      await p.remove(_logKey(mealId));
+      await p.remove(_calorieKey(mealId));
+    } catch (e) { developer.log('[FoodStorage] clearMealLog: $e'); }
   }
 
-  /// Clear ALL food logs and calories (full reset).
   static Future<void> resetAll() async {
     try {
       await resetAllCalories();
-      final prefs = await SharedPreferences.getInstance();
-      for (final cat in allMealCategories) {
-        await prefs.remove(_logKey(cat.id));
-      }
-    } catch (e) {
-      developer.log('[FoodStorage] resetAll error: $e');
-    }
+      final p = await SharedPreferences.getInstance();
+      for (final c in allMealCategories) await p.remove(_logKey(c.id));
+      await p.remove(_waterKey);
+      // Note: we keep _goalKey and _favsKey across resets — they are preferences, not daily data
+    } catch (e) { developer.log('[FoodStorage] resetAll: $e'); }
+  }
+
+  // ── Favourites ────────────────────────────────────────────────────────────────
+  // Stored as List<String> where each element = "categoryId::itemName"
+
+  static Future<Set<String>> getFavourites() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      return (p.getStringList(_favsKey) ?? []).toSet();
+    } catch (e) { developer.log('[FoodStorage] getFavourites: $e'); return {}; }
+  }
+
+  static String _favKey(String catId, String name) => '$catId::$name';
+
+  static Future<bool> isFavourite(String catId, String name) async {
+    final favs = await getFavourites();
+    return favs.contains(_favKey(catId, name));
+  }
+
+  static Future<void> toggleFavourite(String catId, String name) async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final favs = (p.getStringList(_favsKey) ?? []).toSet();
+      final key  = _favKey(catId, name);
+      if (favs.contains(key)) { favs.remove(key); } else { favs.add(key); }
+      await p.setStringList(_favsKey, favs.toList());
+    } catch (e) { developer.log('[FoodStorage] toggleFavourite: $e'); }
+  }
+
+  // ── Water ─────────────────────────────────────────────────────────────────────
+
+  static Future<int> getWaterMl() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      return p.getInt(_waterKey) ?? 0;
+    } catch (e) { return 0; }
+  }
+
+  static Future<void> addWaterMl(int ml) async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final cur = p.getInt(_waterKey) ?? 0;
+      await p.setInt(_waterKey, cur + ml);
+    } catch (e) { developer.log('[FoodStorage] addWaterMl: $e'); }
+  }
+
+  static Future<void> resetWater() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.remove(_waterKey);
+    } catch (e) { developer.log('[FoodStorage] resetWater: $e'); }
   }
 }

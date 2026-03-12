@@ -1,7 +1,5 @@
 // lib/screens/food/meal_detail_screen.dart
-//
-// Pushed from FoodScreen when user taps a category card.
-// Lets user select items, set quantity, and save to SharedPreferences.
+// v2: favourites loaded from storage, pinned to top; heart toggle per item.
 
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/food_item.dart';
@@ -18,28 +16,47 @@ class MealDetailScreen extends StatefulWidget {
 }
 
 class _MealDetailScreenState extends State<MealDetailScreen> {
-  final Map<int, int> _quantities = {};   // item index → qty
-  final Set<int> _selected = {};           // selected item indices
+  final Map<int, int> _quantities = {};
+  final Set<int> _selected = {};
+  Set<String> _favourites = {};
   int _selectedTotal = 0;
-  int _savedTotal = 0;
+  int _savedTotal    = 0;
   List<Map<String, dynamic>> _log = [];
   bool _justSaved = false;
+
+  // Items sorted: favourites first, then rest
+  late List<_IndexedItem> _sortedItems;
 
   @override
   void initState() {
     super.initState();
-    _loadSaved();
+    _load();
   }
 
-  Future<void> _loadSaved() async {
-    final saved = await FoodStorageService.getCalories(widget.category.id);
-    final log = await FoodStorageService.getLog(widget.category.id);
-    if (mounted) {
-      setState(() {
-        _savedTotal = saved;
-        _log = log;
-      });
+  Future<void> _load() async {
+    final saved  = await FoodStorageService.getCalories(widget.category.id);
+    final log    = await FoodStorageService.getLog(widget.category.id);
+    final favs   = await FoodStorageService.getFavourites();
+    if (!mounted) return;
+    setState(() {
+      _savedTotal  = saved;
+      _log         = log;
+      _favourites  = favs;
+      _rebuildSorted();
+    });
+  }
+
+  void _rebuildSorted() {
+    final items = widget.category.items;
+    final catId = widget.category.id;
+
+    final favItems  = <_IndexedItem>[];
+    final restItems = <_IndexedItem>[];
+    for (int i = 0; i < items.length; i++) {
+      final isFav = _favourites.contains('$catId::${items[i].name}');
+      (isFav ? favItems : restItems).add(_IndexedItem(index: i, item: items[i]));
     }
+    _sortedItems = [...favItems, ...restItems];
   }
 
   void _recalculate() {
@@ -52,36 +69,43 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
 
   Future<void> _saveSelected() async {
     if (_selected.isEmpty) return;
-
     for (final idx in _selected) {
       final item = widget.category.items[idx];
-      final qty = _quantities[idx] ?? 1;
-      final cal = item.calories * qty;
+      final qty  = _quantities[idx] ?? 1;
+      final cal  = item.calories * qty;
       await FoodStorageService.addCalories(widget.category.id, cal);
       await FoodStorageService.appendLog(widget.category.id, item.name, qty, cal);
     }
-
-    await _loadSaved();
-
+    await _load();
     setState(() {
       _selected.clear();
       _quantities.clear();
       _selectedTotal = 0;
-      _justSaved = true;
+      _justSaved     = true;
     });
-
-    Future.delayed(
-        const Duration(seconds: 2), () => setState(() => _justSaved = false));
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _justSaved = false);
+    });
   }
 
   Future<void> _clearLog() async {
     await FoodStorageService.clearMealLog(widget.category.id);
-    _loadSaved();
+    _load();
+  }
+
+  Future<void> _toggleFav(String name) async {
+    await FoodStorageService.toggleFavourite(widget.category.id, name);
+    final favs = await FoodStorageService.getFavourites();
+    if (!mounted) return;
+    setState(() {
+      _favourites = favs;
+      _rebuildSorted();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final cat = widget.category;
+    final cat   = widget.category;
     final color = Color(cat.colorValue);
 
     return Scaffold(
@@ -89,7 +113,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Top bar ────────────────────────────────────────────────
+            // ── Top bar ────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
               child: Row(
@@ -100,44 +124,48 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.arrow_back,
-                          color: Colors.white, size: 20),
+                          color: Colors.white.withAlpha(15), shape: BoxShape.circle),
+                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    '${cat.emoji}  ${cat.label}',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800),
-                  ),
+                  Text('${cat.emoji}  ${cat.label}',
+                      style: const TextStyle(
+                          color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                   const Spacer(),
                   if (_savedTotal > 0)
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: color.withAlpha(30),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: color.withAlpha(60)),
                       ),
-                      child: Text(
-                        '$_savedTotal kcal today',
-                        style: TextStyle(
-                            color: color,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700),
-                      ),
+                      child: Text('$_savedTotal kcal today',
+                          style: TextStyle(
+                              color: color, fontSize: 12, fontWeight: FontWeight.w700)),
                     ),
                 ],
               ),
             ),
 
-            // ── Saved confirmation banner ──────────────────────────────
+            // Favourite hint
+            if (_sortedItems.any(
+                    (e) => _favourites.contains('${cat.id}::${e.item.name}')))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                child: Row(
+                  children: [
+                    const Icon(Icons.favorite, color: Color(0xFFEF4444), size: 13),
+                    const SizedBox(width: 5),
+                    Text('Favourites pinned to top',
+                        style: TextStyle(
+                            color: Colors.white.withAlpha(80), fontSize: 11)),
+                  ],
+                ),
+              ),
+
+            // ── Saved banner ───────────────────────────────────────────────
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               child: _justSaved
@@ -149,47 +177,44 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF22C55E).withAlpha(30),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: const Color(0xFF22C55E).withAlpha(80)),
+                  border: Border.all(color: const Color(0xFF22C55E).withAlpha(80)),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_circle,
-                        color: Color(0xFF22C55E), size: 18),
+                    Icon(Icons.check_circle, color: Color(0xFF22C55E), size: 18),
                     SizedBox(width: 8),
-                    Text(
-                      'Calories saved ✅',
-                      style: TextStyle(
-                          color: Color(0xFF22C55E),
-                          fontWeight: FontWeight.w700),
-                    ),
+                    Text('Calories saved ✅',
+                        style: TextStyle(
+                            color: Color(0xFF22C55E), fontWeight: FontWeight.w700)),
                   ],
                 ),
               )
                   : const SizedBox.shrink(key: ValueKey('empty')),
             ),
 
-            // ── Food item list ─────────────────────────────────────────
+            // ── Item list ──────────────────────────────────────────────────
             Expanded(
               child: ListView.builder(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                itemCount: cat.items.length,
-                itemBuilder: (context, i) {
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                itemCount: _sortedItems.length,
+                itemBuilder: (context, si) {
+                  final entry = _sortedItems[si];
+                  final i     = entry.index;
+                  final isFav = _favourites.contains('${cat.id}::${entry.item.name}');
                   return FoodItemTile(
-                    item: cat.items[i],
+                    item: entry.item,
                     isSelected: _selected.contains(i),
                     quantity: _quantities[i] ?? 1,
                     accentColor: color,
+                    isFavourite: isFav,
+                    onFavouriteToggle: () => _toggleFav(entry.item.name),
                     onToggle: (val) {
-                      setState(() {
-                        val ? _selected.add(i) : _selected.remove(i);
-                      });
+                      setState(() { val ? _selected.add(i) : _selected.remove(i); });
                       _recalculate();
                     },
-                    onQtyChanged: (newQty) {
-                      setState(() => _quantities[i] = newQty);
+                    onQtyChanged: (q) {
+                      setState(() => _quantities[i] = q);
                       _recalculate();
                     },
                   );
@@ -197,57 +222,44 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
               ),
             ),
 
-            // ── Today's log strip ──────────────────────────────────────
+            // ── Log strip ─────────────────────────────────────────────────
             if (_log.isNotEmpty) ...[
               Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "Today's log",
-                      style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13),
-                    ),
+                    Text("Today's log",
+                        style: TextStyle(
+                            color: color, fontWeight: FontWeight.w700, fontSize: 13)),
                     GestureDetector(
                       onTap: _clearLog,
-                      child: const Text(
-                        'Clear',
-                        style: TextStyle(
-                            color: Color(0xFFEF4444), fontSize: 12),
-                      ),
+                      child: const Text('Clear',
+                          style: TextStyle(color: Color(0xFFEF4444), fontSize: 12)),
                     ),
                   ],
                 ),
               ),
               SizedBox(
-                height: 48,
+                height: 44,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _log.length,
                   itemBuilder: (_, i) {
-                    final entry = _log[i];
+                    final e = _log[i];
                     return Container(
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: color.withAlpha(25),
                         borderRadius: BorderRadius.circular(10),
-                        border:
-                        Border.all(color: color.withAlpha(60)),
+                        border: Border.all(color: color.withAlpha(60)),
                       ),
                       child: Text(
-                        '${entry['name']} ×${entry['qty']} = ${entry['cal']} kcal',
+                        '${e['name']} ×${e['qty']} = ${e['cal']} kcal',
                         style: TextStyle(
-                            color: color,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600),
+                            color: color, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                     );
                   },
@@ -256,13 +268,12 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
               const SizedBox(height: 6),
             ],
 
-            // ── Bottom action bar ──────────────────────────────────────
+            // ── Bottom bar ─────────────────────────────────────────────────
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                border:
-                Border(top: BorderSide(color: AppColors.divider)),
+                border: Border(top: BorderSide(color: AppColors.divider)),
               ),
               child: Row(
                 children: [
@@ -270,21 +281,14 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Selected: $_selectedTotal kcal',
-                          style: TextStyle(
-                              color: _selected.isEmpty
-                                  ? Colors.white38
-                                  : color,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700),
-                        ),
+                        Text('Selected: $_selectedTotal kcal',
+                            style: TextStyle(
+                                color: _selected.isEmpty ? Colors.white38 : color,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700)),
                         if (_savedTotal > 0)
-                          Text(
-                            'Total today: $_savedTotal kcal',
-                            style: const TextStyle(
-                                color: Colors.white54, fontSize: 11),
-                          ),
+                          Text('Total today: $_savedTotal kcal',
+                              style: const TextStyle(color: Colors.white54, fontSize: 11)),
                       ],
                     ),
                   ),
@@ -292,16 +296,12 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                   ElevatedButton.icon(
                     onPressed: _selected.isEmpty ? null : _saveSelected,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _selected.isEmpty
-                          ? Colors.white.withAlpha(20)
-                          : color,
+                      backgroundColor: _selected.isEmpty ? Colors.white.withAlpha(20) : color,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                      Colors.white.withAlpha(20),
+                      disabledBackgroundColor: Colors.white.withAlpha(20),
                       disabledForegroundColor: Colors.white38,
                       minimumSize: const Size(140, 48),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
                     icon: const Icon(Icons.add, size: 18),
@@ -316,4 +316,10 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
       ),
     );
   }
+}
+
+class _IndexedItem {
+  final int index;
+  final FoodItem item;
+  _IndexedItem({required this.index, required this.item});
 }

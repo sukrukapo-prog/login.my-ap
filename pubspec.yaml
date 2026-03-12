@@ -117,6 +117,7 @@ flutter:
     - assets/images/meditation/movement_meditation/videos/walking_turtle_loop.mp4
 
     # ── Food section ──────────────────────────────────────────────────────────
+    - assets/images/food/food_icon.png
     - assets/images/food/breakfast_banner.jpg
     - assets/images/food/lunch_banner.jpg
     - assets/images/food/dinner_banner.jpg

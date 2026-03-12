@@ -1,3 +1,8 @@
+// lib/screens/meditation/widgets/meditation_card.dart
+// FIXED: pixel overflow on small screens.
+// Root cause: fixed height (190) + all(22) padding + two-line title + button
+// Fix: use IntrinsicHeight / let content drive height, add minHeight constraint.
+
 import 'package:flutter/material.dart';
 
 class MeditationCard extends StatefulWidget {
@@ -35,17 +40,23 @@ class _MeditationCardState extends State<MeditationCard> {
 
   @override
   Widget build(BuildContext context) {
+    // Screen-adaptive padding: tighter on small screens
+    final screenH = MediaQuery.of(context).size.height;
+    final cardPad = screenH < 700 ? 16.0 : 20.0;
+    final titleFs = screenH < 700 ? 19.0 : 22.0;
+
     return GestureDetector(
-      onTapDown: (_) => setState(() => _scale = 0.97),
-      onTapUp: (_) => setState(() => _scale = 1.0),
-      onTapCancel: () => setState(() => _scale = 1.0),
+      onTapDown:  (_) => setState(() => _scale = 0.97),
+      onTapUp:    (_) => setState(() => _scale = 1.0),
+      onTapCancel:()  => setState(() => _scale = 1.0),
       onTap: widget.onStartPressed,
       child: AnimatedScale(
         scale: _scale,
         duration: const Duration(milliseconds: 140),
         curve: Curves.easeOut,
         child: Container(
-          height: 190,
+          // ── KEY FIX: remove fixed height, use constraints instead ──────
+          constraints: const BoxConstraints(minHeight: 160),
           margin: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
@@ -66,90 +77,101 @@ class _MeditationCardState extends State<MeditationCard> {
               ),
             ),
           ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(22),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.instructor,
-                          style: TextStyle(
-                            color: widget.usernameColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            height: 1.15,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          widget.subtitle,
-                          style: TextStyle(
-                            color: Colors.white.withAlpha(180),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Align(
-                      alignment: Alignment.bottomRight,
-                      child: ElevatedButton(
-                        onPressed: widget.onStartPressed,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: widget.buttonColor,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(100, 38),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 22, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30)),
-                          elevation: 0,
-                          textStyle: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        child: Text(widget.buttonText),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (widget.isFeatured)
-                Positioned(
-                  top: 16, right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withAlpha(230),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text('Featured',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              children: [
+                // Content — drives the card's height
+                Padding(
+                  padding: EdgeInsets.all(cardPad),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min, // ← shrink-wrap
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Instructor name
+                      Text(
+                        widget.instructor,
                         style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: 11,
+                          color: widget.usernameColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Title — ellipsis after 2 lines
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: titleFs,
                           fontWeight: FontWeight.w800,
-                        )),
+                          height: 1.15,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      // Subtitle
+                      Text(
+                        widget.subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withAlpha(180),
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      // ── Spacing before button ────────────────────────────
+                      SizedBox(height: screenH < 700 ? 12 : 18),
+                      // Start button — right-aligned
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          onPressed: widget.onStartPressed,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: widget.buttonColor,
+                            foregroundColor: Colors.white,
+                            // ── KEY FIX: use fixed size not minimumSize ──
+                            fixedSize: const Size(110, 40),
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30)),
+                            elevation: 0,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            textStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          child: Text(widget.buttonText),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-            ],
+
+                // Featured badge
+                if (widget.isFeatured)
+                  Positioned(
+                    top: 14,
+                    right: 14,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withAlpha(230),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text('Featured',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          )),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
