@@ -37,6 +37,9 @@ class FirestoreService {
         'totalMinutes': FieldValue.increment(minutes),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      // Update leaderboard score
+      await updateLeaderboardScore();
     } catch (e) {
       developer.log('[Firestore] addMeditationMinutes: $e');
     }
@@ -398,6 +401,9 @@ class FirestoreService {
           'totalWorkouts': FieldValue.increment(1),
           'updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
+
+        // Update leaderboard score
+        await updateLeaderboardScore();
       }
     } catch (e) {
       developer.log('[Firestore] logWorkout: $e');
@@ -428,6 +434,145 @@ class FirestoreService {
         };
       }).toList();
     } catch (_) { return []; }
+  }
+
+  // ── Leaderboard ───────────────────────────────────────────────────────────
+  //   leaderboard/{uid}  ← public score doc for every user
+
+  static Future<void> updateLeaderboardScore() async {
+    if (!_isLoggedIn) return;
+    try {
+      // Pull summary stats
+      final summary = await _db.collection('users').doc(_uid)
+          .collection('stats').doc('summary').get();
+      final data = summary.data() ?? {};
+      final totalMins     = (data['totalMinutes']      as int?) ?? 0;
+      final totalWorkouts = (data['totalWorkouts']      as int?) ?? 0;
+      final totalCal      = (data['totalCaloriesBurned'] as int?) ?? 0;
+
+      // Pull streak
+      final streak = await _calculateStreak();
+      final streakDays = streak['current'] ?? 0;
+
+      // Score formula: meditation × 2 + calories ÷ 10 + streak × 50
+      final score = (totalMins * 2) + (totalCal ~/ 10) + (streakDays * 50);
+
+      // Pull profile for display
+      final profile = await _db.collection('users').doc(_uid).get();
+      final pData = profile.data() ?? {};
+      final name    = (pData['name'] as String?)?.trim() ?? 'User';
+      final avatarId = pData['avatarId'] as String?;
+
+      await _db.collection('leaderboard').doc(_uid).set({
+        'uid':           _uid,
+        'name':          name,
+        'avatarId':      avatarId,
+        'score':         score,
+        'totalMinutes':  totalMins,
+        'totalWorkouts': totalWorkouts,
+        'totalCaloriesBurned': totalCal,
+        'streakDays':    streakDays,
+        'updatedAt':     FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      developer.log('[Firestore] updateLeaderboardScore: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getLeaderboard() async {
+    if (!_isLoggedIn) return [];
+    try {
+      final snap = await _db.collection('leaderboard')
+          .orderBy('score', descending: true)
+          .limit(50)
+          .get();
+      return snap.docs.map((d) => {...d.data(), 'uid': d.id}).toList();
+    } catch (_) { return []; }
+  }
+
+  // ── Full progress data ────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getFullProgressData() async {
+    if (!_isLoggedIn) return {};
+    try {
+      final today = DateTime.now();
+      final todayKey = _dateKey(today);
+
+      // Summary stats
+      final summary = await _db.collection('users').doc(_uid)
+          .collection('stats').doc('summary').get();
+      final s = summary.data() ?? {};
+
+      // Today's meditation
+      final medToday = await getMeditationMinutes(today);
+
+      // This week meditation
+      int medWeek = 0;
+      final List<int> weeklyMed = [];
+      for (int i = 6; i >= 0; i--) {
+        final m = await getMeditationMinutes(today.subtract(Duration(days: i)));
+        weeklyMed.add(m);
+        medWeek += m;
+      }
+
+      // Streak
+      final streak = await _calculateStreak();
+
+      // Today's workouts
+      final workoutsSnap = await _db.collection('users').doc(_uid)
+          .collection('workouts')
+          .where('date', isEqualTo: todayKey)
+          .get();
+      final workoutsToday = workoutsSnap.docs.length;
+      final calToday = workoutsSnap.docs.fold<int>(
+          0, (s, d) => s + ((d.data()['caloriesBurned'] as int?) ?? 0));
+
+      // This week workouts
+      final weekStart = today.subtract(Duration(days: today.weekday - 1));
+      final workoutsWeekSnap = await _db.collection('users').doc(_uid)
+          .collection('workouts')
+          .orderBy('loggedAt', descending: false)
+          .get();
+      int workoutsWeek = 0;
+      int calWeek = 0;
+      final List<int> weeklyWorkoutCal = List.filled(7, 0);
+      for (final doc in workoutsWeekSnap.docs) {
+        final dateStr = doc.data()['date'] as String? ?? '';
+        final docDate = DateTime.tryParse(dateStr);
+        if (docDate != null) {
+          final diff = today.difference(docDate).inDays;
+          if (diff < 7) {
+            workoutsWeek++;
+            final cal = (doc.data()['caloriesBurned'] as int?) ?? 0;
+            calWeek += cal;
+            final dayIndex = 6 - diff;
+            if (dayIndex >= 0 && dayIndex < 7) weeklyWorkoutCal[dayIndex] += cal;
+          }
+        }
+      }
+
+      return {
+        // Meditation
+        'medToday':        medToday,
+        'medWeek':         medWeek,
+        'medTotal':        (s['totalMinutes'] as int?) ?? 0,
+        'medSessions':     (s['totalSessions'] as int?) ?? 0,
+        'streakCurrent':   streak['current'] ?? 0,
+        'streakLongest':   streak['longest'] ?? 0,
+        'weeklyMed':       weeklyMed,
+        // Workout
+        'workoutsToday':   workoutsToday,
+        'calToday':        calToday,
+        'workoutsWeek':    workoutsWeek,
+        'calWeek':         calWeek,
+        'workoutsTotal':   (s['totalWorkouts'] as int?) ?? 0,
+        'calTotal':        (s['totalCaloriesBurned'] as int?) ?? 0,
+        'weeklyWorkoutCal': weeklyWorkoutCal,
+      };
+    } catch (e) {
+      developer.log('[Firestore] getFullProgressData: $e');
+      return {};
+    }
   }
 
   // ── Workout Plans ─────────────────────────────────────────────────────────

@@ -142,6 +142,11 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     Navigator.pushNamed(context, AppRoutes.workoutPlans);
   }
 
+  void _openBmi() {
+    HapticService.light();
+    Navigator.pushNamed(context, AppRoutes.bmi);
+  }
+
   void _openFeedback() {
     HapticService.light();
     showModalBottomSheet(
@@ -405,6 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   _MenuItem(icon: Icons.people_alt_outlined, label: 'Community', onTap: _openCommunity),
                   _MenuItem(icon: Icons.fitness_center_outlined, label: 'Workout History', onTap: _openWorkoutHistory),
                   _MenuItem(icon: Icons.list_alt_outlined, label: 'My Workout Plans', onTap: _openWorkoutPlans),
+                  _MenuItem(icon: Icons.monitor_weight_outlined, label: 'BMI Calculator', onTap: _openBmi),
                   _MenuItem(icon: Icons.settings_outlined, label: 'Settings', onTap: _openSettings),
                 ]),
                 const SizedBox(height: 12),

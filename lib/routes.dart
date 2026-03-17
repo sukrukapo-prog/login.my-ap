@@ -6,6 +6,7 @@ import 'package:fitmetrics/screens/notifications/meditation_history_screen.dart'
 import 'package:fitmetrics/screens/community/community_screen.dart';
 import 'package:fitmetrics/screens/workout/workout_history_screen.dart';
 import 'package:fitmetrics/screens/workout/workout_plans_screen.dart';
+import 'package:fitmetrics/screens/profile/bmi_screen.dart';
 import 'package:fitmetrics/screens/auth/welcome_screen.dart';
 import 'package:fitmetrics/screens/auth/name_screen.dart';
 import 'package:fitmetrics/screens/auth/personal_info_screen.dart';
@@ -44,6 +45,7 @@ class AppRoutes {
   static const String community            = '/community';
   static const String workoutHistory       = '/workout-history';
   static const String workoutPlans         = '/workout-plans';
+  static const String bmi                  = '/bmi';
 
   static Route<dynamic> generateRoute(RouteSettings routeSettings) {
     final args = routeSettings.arguments;
@@ -130,6 +132,9 @@ class AppRoutes {
 
       case workoutPlans:
         return SlidePageRoute(page: const WorkoutPlansScreen());
+
+      case bmi:
+        return SlidePageRoute(page: const BmiScreen());
 
       default:
         return MaterialPageRoute(
