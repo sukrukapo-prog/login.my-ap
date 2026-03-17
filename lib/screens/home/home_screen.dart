@@ -123,15 +123,17 @@ class _HomeScreenState extends State<HomeScreen>
     AudioService().playClickSound();
     HapticService.medium();
     if (dest == 'meditation') {
-      final mainTabState = context.findAncestorStateOfType<MainTabScreenState>();
-      mainTabState?.setTab(2);
+      context.findAncestorStateOfType<MainTabScreenState>()?.setTab(2);
+    } else if (dest == 'workout') {
+      context.findAncestorStateOfType<MainTabScreenState>()?.setTab(1);
     } else if (dest == 'community') {
-      final mainTabState = context.findAncestorStateOfType<MainTabScreenState>();
-      mainTabState?.setTab(1);
+      Navigator.pushNamed(context, AppRoutes.community);
     } else if (dest == 'progress') {
       Navigator.pushNamed(context, AppRoutes.progress);
     } else if (dest == 'leaderboard') {
       Navigator.pushNamed(context, AppRoutes.leaderboard);
+    } else if (dest == 'diet') {
+      context.findAncestorStateOfType<MainTabScreenState>()?.setTab(3);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

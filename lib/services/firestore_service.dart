@@ -358,6 +358,78 @@ class FirestoreService {
     }
   }
 
+  // ── Workout logging ───────────────────────────────────────────────────────
+  //   users/{uid}/workouts/{auto-id}  ← per workout session log
+
+  static Future<void> logWorkout({
+    required String exerciseId,
+    required String exerciseName,
+    required String category,
+    required int setsCompleted,
+    required int repsCompleted,
+    required int caloriesBurned,
+  }) async {
+    try {
+      final payload = {
+        'exerciseId':    exerciseId,
+        'exerciseName':  exerciseName,
+        'category':      category,
+        'setsCompleted': setsCompleted,
+        'repsCompleted': repsCompleted,
+        'caloriesBurned': caloriesBurned,
+        'date': _dateKey(DateTime.now()),
+        'loggedAt': FieldValue.serverTimestamp(),
+        'uid': _uid,
+      };
+
+      // Save under user's workouts subcollection
+      if (_isLoggedIn) {
+        await _db
+            .collection('users')
+            .doc(_uid)
+            .collection('workouts')
+            .add(payload);
+
+        // Also update total calories burned in stats
+        await _db.collection('users').doc(_uid)
+            .collection('stats').doc('summary')
+            .set({
+          'totalCaloriesBurned': FieldValue.increment(caloriesBurned),
+          'totalWorkouts': FieldValue.increment(1),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      developer.log('[Firestore] logWorkout: $e');
+      rethrow;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getWorkoutHistory() async {
+    if (!_isLoggedIn) return [];
+    try {
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('workouts')
+          .orderBy('loggedAt', descending: true)
+          .limit(50)
+          .get();
+      return snap.docs.map((d) {
+        final data = d.data();
+        return {
+          'exerciseId':    data['exerciseId'] ?? '',
+          'exerciseName':  data['exerciseName'] ?? '',
+          'category':      data['category'] ?? '',
+          'setsCompleted': data['setsCompleted'] ?? 0,
+          'repsCompleted': data['repsCompleted'] ?? 0,
+          'caloriesBurned': data['caloriesBurned'] ?? 0,
+          'date':          data['date'] ?? '',
+          'loggedAt':      (data['loggedAt'] as Timestamp?)
+              ?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
+        };
+      }).toList();
+    } catch (_) { return []; }
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   static String _dateKey(DateTime date) =>

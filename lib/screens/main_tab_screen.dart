@@ -1,17 +1,13 @@
-// lib/screens/main_tab_screen.dart
-// Food tab uses assets/images/food/food_icon.png in the bottom nav bar.
-
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/screens/home/home_screen.dart';
 import 'package:fitmetrics/screens/profile/profile_screen.dart';
 import 'package:fitmetrics/screens/meditation/meditation_screen.dart';
-import 'package:fitmetrics/screens/community/community_screen.dart';
 import 'package:fitmetrics/screens/food/food_screen.dart';
+import 'package:fitmetrics/screens/workout/workout_screen.dart';
 import 'package:fitmetrics/screens/walkthrough/walkthrough_overlay.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
-import 'package:fitmetrics/core/smart_notification_service.dart';
 
 class MainTabScreen extends StatefulWidget {
   final OnboardingData userData;
@@ -50,7 +46,7 @@ class MainTabScreenState extends State<MainTabScreen> {
   Widget build(BuildContext context) {
     final screens = [
       const HomeScreen(),
-      const CommunityScreen(),
+      const WorkoutScreen(),                          // ← Workout where Community was
       MeditationScreen(userData: widget.userData),
       const FoodScreen(),
       ProfileScreen(userData: widget.userData),
@@ -105,9 +101,9 @@ class MainTabScreenState extends State<MainTabScreen> {
                 label: 'Home',
               ),
               const BottomNavigationBarItem(
-                icon: Icon(Icons.people_alt_outlined),
-                activeIcon: Icon(Icons.people_alt),
-                label: 'Community',
+                icon: Icon(Icons.fitness_center_outlined),
+                activeIcon: Icon(Icons.fitness_center),
+                label: 'Workout',
               ),
               BottomNavigationBarItem(
                 icon: Image.asset(
@@ -119,13 +115,10 @@ class MainTabScreenState extends State<MainTabScreen> {
                     color: const Color(0xFF3B82F6)),
                 label: 'Meditation',
               ),
-
-              // ── Food tab — your food_icon.png ─────────────────────────
               BottomNavigationBarItem(
                 icon: Image.asset(
                   'assets/images/food/food_icon.png',
-                  width: 24,
-                  height: 24,
+                  width: 24, height: 24,
                   color: Colors.white38,
                   colorBlendMode: BlendMode.srcIn,
                   errorBuilder: (_, __, ___) => const Icon(
@@ -134,8 +127,7 @@ class MainTabScreenState extends State<MainTabScreen> {
                 ),
                 activeIcon: Image.asset(
                   'assets/images/food/food_icon.png',
-                  width: 24,
-                  height: 24,
+                  width: 24, height: 24,
                   color: const Color(0xFF3B82F6),
                   colorBlendMode: BlendMode.srcIn,
                   errorBuilder: (_, __, ___) => const Icon(
@@ -144,7 +136,6 @@ class MainTabScreenState extends State<MainTabScreen> {
                 ),
                 label: 'Food',
               ),
-
               const BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),
                 activeIcon: Icon(Icons.person),
@@ -152,42 +143,6 @@ class MainTabScreenState extends State<MainTabScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── ComingSoonScreen (kept for Workout tab) ───────────────────────────────────
-class ComingSoonScreen extends StatelessWidget {
-  final String label;
-  const ComingSoonScreen({super.key, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F1624),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              label == 'Workout'
-                  ? Icons.fitness_center_outlined
-                  : Icons.restaurant_outlined,
-              color: Colors.white24,
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(label,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
-            const Text('Coming soon',
-                style: TextStyle(color: Colors.white38, fontSize: 15)),
-          ],
         ),
       ),
     );

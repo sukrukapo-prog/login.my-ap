@@ -127,6 +127,16 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     Navigator.pushNamed(context, AppRoutes.meditationHistory);
   }
 
+  void _openCommunity() {
+    HapticService.light();
+    Navigator.pushNamed(context, AppRoutes.community);
+  }
+
+  void _openWorkoutHistory() {
+    HapticService.light();
+    Navigator.pushNamed(context, AppRoutes.workoutHistory);
+  }
+
   void _openFeedback() {
     HapticService.light();
     showModalBottomSheet(
@@ -387,6 +397,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   _MenuItem(icon: Icons.feedback_outlined, label: 'Send Feedback', onTap: _openFeedback),
                   _MenuItem(icon: Icons.emoji_events_outlined, label: 'Achievements', onTap: _openAchievements),
                   _MenuItem(icon: Icons.history, label: 'Meditation History', onTap: _openMeditationHistory),
+                  _MenuItem(icon: Icons.people_alt_outlined, label: 'Community', onTap: _openCommunity),
+                  _MenuItem(icon: Icons.fitness_center_outlined, label: 'Workout History', onTap: _openWorkoutHistory),
                   _MenuItem(icon: Icons.settings_outlined, label: 'Settings', onTap: _openSettings),
                 ]),
                 const SizedBox(height: 12),
