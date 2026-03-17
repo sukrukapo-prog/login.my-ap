@@ -430,6 +430,43 @@ class FirestoreService {
     } catch (_) { return []; }
   }
 
+  // ── Workout Plans ─────────────────────────────────────────────────────────
+  //   users/{uid}/plans/{planId}
+
+  static Future<void> savePlan(Map<String, dynamic> planJson) async {
+    if (!_isLoggedIn) return;
+    try {
+      await _db.collection('users').doc(_uid)
+          .collection('plans').doc(planJson['id'] as String)
+          .set(planJson);
+    } catch (e) {
+      developer.log('[Firestore] savePlan: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> deletePlan(String planId) async {
+    if (!_isLoggedIn) return;
+    try {
+      await _db.collection('users').doc(_uid)
+          .collection('plans').doc(planId).delete();
+    } catch (e) {
+      developer.log('[Firestore] deletePlan: $e');
+      rethrow;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getPlans() async {
+    if (!_isLoggedIn) return [];
+    try {
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('plans')
+          .orderBy('createdAt', descending: true)
+          .get();
+      return snap.docs.map((d) => d.data()).toList();
+    } catch (_) { return []; }
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   static String _dateKey(DateTime date) =>

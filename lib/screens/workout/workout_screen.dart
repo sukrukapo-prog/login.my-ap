@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/exercise_model.dart';
 import 'package:fitmetrics/screens/workout/exercise_detail_screen.dart';
+import 'package:fitmetrics/routes.dart';
 
 class _Category {
   final String key;
@@ -74,13 +75,36 @@ class _WorkoutScreenState extends State<WorkoutScreen> with SingleTickerProvider
 
   Widget _buildHeader(int count) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
+      child: Row(
         children: [
-          const Text('Workout', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 2),
-          Text('$count exercises available', style: const TextStyle(color: Colors.white38, fontSize: 13)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Workout', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Text('$count exercises available', style: const TextStyle(color: Colors.white38, fontSize: 13)),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, AppRoutes.workoutPlans),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)]),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.list_alt, color: Colors.white, size: 15),
+                  SizedBox(width: 5),
+                  Text('My Plans', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
