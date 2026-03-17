@@ -71,7 +71,7 @@ class FoodCategoryCard extends StatelessWidget {
               // Content
               Padding(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14 ),
                 child: Row(
                   children: [
                     // Emoji circle

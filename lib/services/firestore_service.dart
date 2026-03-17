@@ -318,6 +318,46 @@ class FirestoreService {
     }
   }
 
+  // ── Feedback ───────────────────────────────────────────────────────────────
+  //   feedback/{auto-id}  ← top-level collection (not per-user)
+  //   Also mirrors under users/{uid}/feedback/{auto-id} when logged in.
+
+  static Future<void> submitFeedback({
+    required String name,
+    required String email,
+    required String type,
+    required int rating,
+    required String message,
+  }) async {
+    try {
+      final payload = {
+        'name': name.trim(),
+        'email': email.trim(),
+        'type': type,
+        'rating': rating,
+        'message': message.trim(),
+        'uid': _uid,            // null when not logged in — that's fine
+        'submittedAt': FieldValue.serverTimestamp(),
+      };
+
+      // Always write to the top-level feedback collection so you can view
+      // all feedback in one place in the Firebase console.
+      await _db.collection('feedback').add(payload);
+
+      // Also mirror under the user doc when logged in.
+      if (_isLoggedIn) {
+        await _db
+            .collection('users')
+            .doc(_uid)
+            .collection('feedback')
+            .add(payload);
+      }
+    } catch (e) {
+      developer.log('[Firestore] submitFeedback: $e');
+      rethrow; // let the UI show an error instead of silently swallowing it
+    }
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   static String _dateKey(DateTime date) =>

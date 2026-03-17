@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -14,6 +15,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   String _type     = 'General';
   int    _rating   = 0;
   bool   _submitted = false;
+  bool   _isLoading = false;
 
   final List<Map<String, dynamic>> _types = [
     {'label': 'General',         'icon': Icons.chat_bubble_outline},
@@ -31,7 +33,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_nameCtrl.text.trim().isEmpty || _msgCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -44,10 +46,36 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       );
       return;
     }
-    setState(() => _submitted = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) Navigator.pop(context);
-    });
+
+    setState(() => _isLoading = true);
+
+    try {
+      await FirestoreService.submitFeedback(
+        name:    _nameCtrl.text,
+        email:   _emailCtrl.text,
+        type:    _type,
+        rating:  _rating,
+        message: _msgCtrl.text,
+      );
+      if (mounted) setState(() { _submitted = true; _isLoading = false; });
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) Navigator.pop(context);
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.redAccent.withOpacity(0.9),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      }
+    }
   }
 
   // ── Static launcher ────────────────────────────────────────────────────────
@@ -79,26 +107,38 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   // ── Success state ──────────────────────────────────────────────────────────
   Widget _buildSuccess() {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 80, height: 80,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80, height: 80,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                ),
               ),
+              child: const Icon(Icons.check_rounded, color: Colors.white, size: 44),
             ),
-            child: const Icon(Icons.check_rounded, color: Colors.white, size: 44),
-          ),
-          const SizedBox(height: 20),
-          const Text('Thank you!',
-              style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          const Text('Your feedback has been received.',
-              style: TextStyle(color: Colors.white54, fontSize: 15)),
-        ],
+            const SizedBox(height: 20),
+            const Text('Thank You! 🙏',
+                style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            const Text(
+              'Your valuable feedback has been sent successfully!',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'We truly respect your feedback and will use it to make FitMetrics even better for you.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.5),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -273,7 +313,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
         // Submit button
         GestureDetector(
-          onTap: _submit,
+          onTap: _isLoading ? null : _submit,
           child: Container(
             height: 54,
             decoration: BoxDecoration(
@@ -289,8 +329,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 ),
               ],
             ),
-            child: const Center(
-              child: Text('Submit Feedback',
+            child: Center(
+              child: _isLoading
+                  ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              )
+                  : const Text('Submit Feedback',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
