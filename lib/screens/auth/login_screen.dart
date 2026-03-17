@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/services/auth_service.dart';
+import 'package:fitmetrics/services/food_storage_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,6 +41,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = false);
+
+    // Fix 12 — silently reset food/water if it's a new day
+    await FoodStorageService.checkAndResetIfNewDay();
+
     Navigator.pushReplacementNamed(
       context,
       AppRoutes.main,

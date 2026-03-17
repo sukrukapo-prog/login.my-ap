@@ -5,6 +5,7 @@ import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
 import 'package:fitmetrics/services/auth_service.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 import 'package:fitmetrics/core/haptic_service.dart';
 import 'package:fitmetrics/screens/profile/feedback/feedback_sheet.dart' show FeedbackScreen;
 
@@ -84,6 +85,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     if (height != null) _data.heightCm = height;
     if (weight != null) _data.currentWeightKg = weight;
     await LocalStorage.updateStats(age: age, heightCm: height, weightKg: weight);
+    // Fix 13 — update leaderboard score when profile stats change
+    FirestoreService.updateLeaderboardScore();
     setState(() => _isEditing = false);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

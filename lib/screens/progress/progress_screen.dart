@@ -279,6 +279,30 @@ class _ProgressScreenState extends State<ProgressScreen>
   }
 
   Widget _buildFoodSection() {
+    // Food is daily local data — only show for Today tab
+    if (_tabIndex != 0) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _sectionHeader('Food & Nutrition', Icons.restaurant, const Color(0xFFEC4899)),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF151F30),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFEC4899).withOpacity(0.15)),
+          ),
+          child: Column(children: [
+            const Text('🍽️', style: TextStyle(fontSize: 32)),
+            const SizedBox(height: 10),
+            const Text('Food data is tracked daily', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            const Text('Switch to Today tab to see your calorie intake', style: TextStyle(color: Colors.white38, fontSize: 12), textAlign: TextAlign.center),
+          ]),
+        ),
+      ]);
+    }
+
     final progress = (_foodTotal / _foodGoal).clamp(0.0, 1.0);
     final over = _foodTotal > _foodGoal;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -340,6 +364,28 @@ class _ProgressScreenState extends State<ProgressScreen>
   ]);
 
   Widget _buildWaterSection() {
+    if (_tabIndex != 0) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _sectionHeader('Water Intake', Icons.water_drop, const Color(0xFF3B82F6)),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF151F30),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.15)),
+          ),
+          child: Column(children: [
+            const Text('💧', style: TextStyle(fontSize: 32)),
+            const SizedBox(height: 10),
+            const Text('Water is tracked daily', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            const Text('Switch to Today tab to see your water intake', style: TextStyle(color: Colors.white38, fontSize: 12), textAlign: TextAlign.center),
+          ]),
+        ),
+      ]);
+    }
     final progress = (_waterMl / 2500).clamp(0.0, 1.0);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       _sectionHeader('Water Intake', Icons.water_drop, const Color(0xFF3B82F6)),

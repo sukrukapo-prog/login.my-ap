@@ -5,6 +5,7 @@ import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/screens/main_tab_screen.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 import 'package:fitmetrics/core/haptic_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,7 +25,8 @@ class _HomeScreenState extends State<HomeScreen>
   int _streakDays = 0;
   bool _isRestDay = false;
   bool _isLoading = true;
-  int _unreadNotifications = 3;
+  int _unreadNotifications = 0;
+  int _unreadCommunity = 0;
 
   late AnimationController _progressCtrl;
   late Animation<double> _progressAnim;
@@ -64,7 +66,13 @@ class _HomeScreenState extends State<HomeScreen>
     await LocalStorage.getMeditationMinutes(DateTime.now().subtract(const Duration(days: 1)));
     _isRestDay = _meditationMinutesToday == 0 && yesterday == 0 && _streakDays == 0;
 
-    setState(() => _isLoading = false);
+    // Community unread count
+    final communityCount = await FirestoreService.getUnreadCommunityCount();
+
+    setState(() {
+      _unreadCommunity = communityCount;
+      _isLoading = false;
+    });
     _progressCtrl.forward(from: 0);
   }
 
@@ -127,6 +135,8 @@ class _HomeScreenState extends State<HomeScreen>
     } else if (dest == 'workout') {
       context.findAncestorStateOfType<MainTabScreenState>()?.setTab(1);
     } else if (dest == 'community') {
+      FirestoreService.markCommunityNotificationsRead();
+      setState(() => _unreadCommunity = 0);
       Navigator.pushNamed(context, AppRoutes.community);
     } else if (dest == 'progress') {
       Navigator.pushNamed(context, AppRoutes.progress);
@@ -287,7 +297,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ],
                 ),
 
-                const SizedBox(height: 18),
+                const SizedBox(height: 10),
 
                 // ── Community Chat banner ───────────────────────────────────
                 GestureDetector(
@@ -327,11 +337,34 @@ class _HomeScreenState extends State<HomeScreen>
                             color: const Color(0xFF8B5CF6),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Text('Open',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700)),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('Open',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700)),
+                              if (_unreadCommunity > 0) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  width: 18, height: 18,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFEF4444),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text('$_unreadCommunity',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w800,
+                                        )),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ],
                     ),

@@ -3,6 +3,7 @@ import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 import 'package:fitmetrics/services/auth_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -68,6 +69,8 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (isLoggedIn) {
+      // Push latest score to leaderboard so user appears even without new activity
+      FirestoreService.updateLeaderboardScore();
       Navigator.pushReplacementNamed(context, AppRoutes.main);
     } else if (!hasSeenOnboarding) {
       Navigator.pushReplacementNamed(context, AppRoutes.onboarding);

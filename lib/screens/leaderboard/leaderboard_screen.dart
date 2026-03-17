@@ -16,6 +16,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   final _myUid = FirebaseAuth.instance.currentUser?.uid;
   List<Map<String, dynamic>> _entries = [];
   bool _isLoading = true;
+  bool _isRefreshing = false;
   String? _error;
 
   late AnimationController _listCtrl;
@@ -33,18 +34,29 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() { _isLoading = true; _error = null; });
+  Future<void> _load({bool refresh = false}) async {
+    if (refresh) {
+      setState(() => _isRefreshing = true);
+    } else {
+      setState(() { _isLoading = true; _error = null; });
+    }
     try {
-      // Also push current user's latest score before loading
       await FirestoreService.updateLeaderboardScore();
       final data = await FirestoreService.getLeaderboard();
       if (mounted) {
-        setState(() { _entries = data; _isLoading = false; });
+        setState(() {
+          _entries = data;
+          _isLoading = false;
+          _isRefreshing = false;
+        });
         _listCtrl.forward(from: 0);
       }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+      if (mounted) setState(() {
+        _error = e.toString();
+        _isLoading = false;
+        _isRefreshing = false;
+      });
     }
   }
 
@@ -66,7 +78,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             if (!_isLoading && _entries.isNotEmpty) _buildMyRankBanner(),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6)))
+                  ? _buildShimmer()
                   : _error != null
                   ? _buildError()
                   : _entries.isEmpty
@@ -145,37 +157,72 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     );
   }
 
+  Widget _buildShimmer() {
+    return _ShimmerLoader(
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+        itemCount: 6,
+        itemBuilder: (_, __) => Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          height: 80,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E2A3A),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(children: [
+              Container(width: 36, height: 36, decoration: BoxDecoration(color: const Color(0xFF2A3A4A), borderRadius: BorderRadius.circular(8))),
+              const SizedBox(width: 10),
+              Container(width: 44, height: 44, decoration: const BoxDecoration(color: Color(0xFF2A3A4A), shape: BoxShape.circle)),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                Container(height: 12, width: 120, decoration: BoxDecoration(color: const Color(0xFF2A3A4A), borderRadius: BorderRadius.circular(6))),
+                const SizedBox(height: 8),
+                Container(height: 10, width: 180, decoration: BoxDecoration(color: const Color(0xFF2A3A4A), borderRadius: BorderRadius.circular(6))),
+              ])),
+              Container(height: 24, width: 50, decoration: BoxDecoration(color: const Color(0xFF2A3A4A), borderRadius: BorderRadius.circular(8))),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildList() {
     return RefreshIndicator(
       color: const Color(0xFF3B82F6),
       backgroundColor: const Color(0xFF1A2540),
-      onRefresh: _load,
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        itemCount: _entries.length,
-        itemBuilder: (ctx, i) {
-          final delay = i * 0.06;
-          final entry = _entries[i];
-          final isMe = entry['uid'] == _myUid;
-          return AnimatedBuilder(
-            animation: _listCtrl,
-            builder: (_, child) {
-              final t = ((_listCtrl.value - delay) / (1.0 - delay)).clamp(0.0, 1.0);
-              final anim = CurvedAnimation(
-                parent: AlwaysStoppedAnimation(t),
-                curve: Curves.easeOut,
-              );
-              return FadeTransition(
-                opacity: anim,
-                child: SlideTransition(
-                  position: Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(anim),
-                  child: child,
-                ),
+      onRefresh: () => _load(refresh: true),
+      child: Stack(
+        children: [
+          ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+            itemCount: _entries.length,
+            itemBuilder: (ctx, i) {
+              final delay = i * 0.06;
+              final entry = _entries[i];
+              final isMe = entry['uid'] == _myUid;
+              return AnimatedBuilder(
+                animation: _listCtrl,
+                builder: (_, child) {
+                  final t = ((_listCtrl.value - delay) / (1.0 - delay)).clamp(0.0, 1.0);
+                  final anim = CurvedAnimation(parent: AlwaysStoppedAnimation(t), curve: Curves.easeOut);
+                  return FadeTransition(
+                    opacity: anim,
+                    child: SlideTransition(
+                      position: Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(anim),
+                      child: child,
+                    ),
+                  );
+                },
+                child: _buildCard(entry, i + 1, isMe),
               );
             },
-            child: _buildCard(entry, i + 1, isMe),
-          );
-        },
+          ),
+          if (_isRefreshing)
+            Positioned.fill(child: _buildShimmer()),
+        ],
       ),
     );
   }
@@ -260,8 +307,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             ]),
           ),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('$score', style: TextStyle(color: rankColor, fontSize: 18, fontWeight: FontWeight.w900)),
-            const Text('pts', style: TextStyle(color: Colors.white38, fontSize: 10)),
+            score == 0
+                ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: const Color(0xFF1E2A3A), borderRadius: BorderRadius.circular(8)),
+              child: const Text('Just joined! 👋', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w600)),
+            )
+                : Text('$score', style: TextStyle(color: rankColor, fontSize: 18, fontWeight: FontWeight.w900)),
+            if (score > 0) const Text('pts', style: TextStyle(color: Colors.white38, fontSize: 10)),
           ]),
         ]),
       ),
@@ -302,7 +355,35 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   );
 }
 
-// ── Pulse animation for current user banner ────────────────────────────────────
+// ── Shimmer loader ─────────────────────────────────────────────────────────────
+class _ShimmerLoader extends StatefulWidget {
+  final Widget child;
+  const _ShimmerLoader({required this.child});
+  @override
+  State<_ShimmerLoader> createState() => _ShimmerLoaderState();
+}
+
+class _ShimmerLoaderState extends State<_ShimmerLoader> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.3, end: 0.8).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _anim,
+    builder: (_, child) => Opacity(opacity: _anim.value, child: child),
+    child: widget.child,
+  );
+}
 class _PulseWidget extends StatefulWidget {
   final Widget child;
   const _PulseWidget({required this.child});

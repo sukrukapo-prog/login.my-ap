@@ -30,6 +30,7 @@ class _FoodScreenState extends State<FoodScreen> {
   }
 
   Future<void> _load() async {
+    await FoodStorageService.checkAndResetIfNewDay();
     final data  = await FoodStorageService.getAllCalories();
     final goal  = await FoodStorageService.getCalorieGoal();
     final water = await FoodStorageService.getWaterMl();

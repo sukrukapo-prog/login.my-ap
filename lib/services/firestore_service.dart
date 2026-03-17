@@ -207,18 +207,41 @@ class FirestoreService {
 
   static Future<Map<String, int>> _calculateStreak() async {
     try {
-      final snap = await _db.collection('users').doc(_uid)
+      // Get meditation dates
+      final medSnap = await _db.collection('users').doc(_uid)
           .collection('meditation')
           .orderBy('date', descending: true)
           .limit(365)
           .get();
-
-      final datesWithMins = <String>{};
-      for (final doc in snap.docs) {
-        if (((doc.data()['minutes'] as int?) ?? 0) > 0) {
-          datesWithMins.add(doc.id);
-        }
+      final medDates = <String>{};
+      for (final doc in medSnap.docs) {
+        if (((doc.data()['minutes'] as int?) ?? 0) > 0) medDates.add(doc.id);
       }
+
+      // Get workout dates
+      final workoutSnap = await _db.collection('users').doc(_uid)
+          .collection('workouts')
+          .orderBy('loggedAt', descending: false)
+          .get();
+      final workoutDates = <String>{};
+      for (final doc in workoutSnap.docs) {
+        final date = doc.data()['date'] as String?;
+        if (date != null) workoutDates.add(date);
+      }
+
+      // Get food activity dates
+      final foodSnap = await _db.collection('users').doc(_uid)
+          .collection('food_daily')
+          .orderBy('date', descending: true)
+          .limit(365)
+          .get();
+      final foodDates = <String>{};
+      for (final doc in foodSnap.docs) {
+        if (((doc.data()['totalCalories'] as int?) ?? 0) > 0) foodDates.add(doc.id);
+      }
+
+      // Union of all active dates
+      final activeDates = {...medDates, ...workoutDates, ...foodDates};
 
       final today = DateTime.now();
       int current = 0;
@@ -228,9 +251,9 @@ class FirestoreService {
 
       for (int i = 0; i < 365; i++) {
         final key = _dateKey(today.subtract(Duration(days: i)));
-        if (datesWithMins.contains(key)) {
+        if (activeDates.contains(key)) {
           running++;
-          if (!currentCounted) { current = running; }
+          if (!currentCounted) current = running;
           if (running > longest) longest = running;
         } else {
           if (i > 0) { currentCounted = true; running = 0; }
@@ -446,16 +469,16 @@ class FirestoreService {
       final summary = await _db.collection('users').doc(_uid)
           .collection('stats').doc('summary').get();
       final data = summary.data() ?? {};
-      final totalMins     = (data['totalMinutes']      as int?) ?? 0;
-      final totalWorkouts = (data['totalWorkouts']      as int?) ?? 0;
-      final totalCal      = (data['totalCaloriesBurned'] as int?) ?? 0;
+      final totalMins     = (data['totalMinutes']        as int?) ?? 0;
+      final totalWorkouts = (data['totalWorkouts']        as int?) ?? 0;
+      final totalCal      = (data['totalCaloriesBurned']  as int?) ?? 0;
+      final totalFoodPts  = (data['totalFoodPoints']      as int?) ?? 0;
 
-      // Pull streak
       final streak = await _calculateStreak();
       final streakDays = streak['current'] ?? 0;
 
-      // Score formula: meditation × 2 + calories ÷ 10 + streak × 50
-      final score = (totalMins * 2) + (totalCal ~/ 10) + (streakDays * 50);
+      // Score: meditation×2 + calories÷10 + streak×50 + foodPoints
+      final score = (totalMins * 2) + (totalCal ~/ 10) + (streakDays * 50) + totalFoodPts;
 
       // Pull profile for display
       final profile = await _db.collection('users').doc(_uid).get();
@@ -572,6 +595,131 @@ class FirestoreService {
     } catch (e) {
       developer.log('[Firestore] getFullProgressData: $e');
       return {};
+    }
+  }
+
+  // ── Food daily save ───────────────────────────────────────────────────────
+  //   users/{uid}/food_daily/{YYYY-MM-DD}
+
+  static Future<void> saveDailyFood({
+    required int totalCalories,
+    required int goal,
+  }) async {
+    if (!_isLoggedIn) return;
+    try {
+      final today = _dateKey(DateTime.now());
+      String status;
+      int foodPoints;
+      if (totalCalories == 0) {
+        status = 'no_log';
+        foodPoints = 0;
+      } else if ((totalCalories - goal).abs() <= 100) {
+        status = 'goal_met';
+        foodPoints = 30;
+      } else if (totalCalories < goal) {
+        status = 'under_goal';
+        foodPoints = 5;
+      } else {
+        status = 'over_goal';
+        foodPoints = 10;
+      }
+
+      await _db.collection('users').doc(_uid)
+          .collection('food_daily').doc(today)
+          .set({
+        'date': today,
+        'totalCalories': totalCalories,
+        'goal': goal,
+        'status': status,
+        'foodPoints': foodPoints,
+        'savedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // Update cumulative food points in stats
+      await _db.collection('users').doc(_uid)
+          .collection('stats').doc('summary')
+          .set({
+        'totalFoodPoints': FieldValue.increment(foodPoints),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // Refresh leaderboard
+      await updateLeaderboardScore();
+    } catch (e) {
+      developer.log('[Firestore] saveDailyFood: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getFoodHistory() async {
+    if (!_isLoggedIn) return [];
+    try {
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('food_daily')
+          .orderBy('date', descending: true)
+          .limit(30)
+          .get();
+      return snap.docs.map((d) => d.data()).toList();
+    } catch (_) { return []; }
+  }
+
+  // ── Community notifications ───────────────────────────────────────────────
+  //   users/{uid}/community_notifications/{auto-id}
+
+  static Future<void> sendCommunityNotification({
+    required String senderName,
+    required String senderUid,
+    required String messageText,
+  }) async {
+    if (!_isLoggedIn) return;
+    try {
+      // Get all users except sender
+      final usersSnap = await _db.collection('users').get();
+      final batch = _db.batch();
+      for (final doc in usersSnap.docs) {
+        if (doc.id == senderUid) continue;
+        final notifRef = _db.collection('users').doc(doc.id)
+            .collection('community_notifications').doc();
+        batch.set(notifRef, {
+          'senderName': senderName,
+          'senderUid': senderUid,
+          'message': messageText.length > 50
+              ? '${messageText.substring(0, 50)}...'
+              : messageText,
+          'read': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+    } catch (e) {
+      developer.log('[Firestore] sendCommunityNotification: $e');
+    }
+  }
+
+  static Future<int> getUnreadCommunityCount() async {
+    if (!_isLoggedIn) return 0;
+    try {
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('community_notifications')
+          .where('read', isEqualTo: false)
+          .get();
+      return snap.docs.length;
+    } catch (_) { return 0; }
+  }
+
+  static Future<void> markCommunityNotificationsRead() async {
+    if (!_isLoggedIn) return;
+    try {
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('community_notifications')
+          .where('read', isEqualTo: false)
+          .get();
+      final batch = _db.batch();
+      for (final doc in snap.docs) {
+        batch.update(doc.reference, {'read': true});
+      }
+      await batch.commit();
+    } catch (e) {
+      developer.log('[Firestore] markCommunityNotificationsRead: $e');
     }
   }
 

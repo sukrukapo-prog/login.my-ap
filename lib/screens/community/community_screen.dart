@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fitmetrics/services/auth_service.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 import 'package:fitmetrics/services/notification_service.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
 import 'package:fitmetrics/core/haptic_service.dart';
@@ -310,6 +311,13 @@ class _CommunityScreenState extends State<CommunityScreen>
           );
         }
       }
+
+      // Send community notifications to all other users
+      FirestoreService.sendCommunityNotification(
+        senderName: _myName,
+        senderUid: _myUid!,
+        messageText: text,
+      );
 
       // Scroll to bottom after send
       await Future.delayed(const Duration(milliseconds: 200));

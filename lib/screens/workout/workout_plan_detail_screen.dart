@@ -38,7 +38,9 @@ class _WorkoutPlanDetailScreenState extends State<WorkoutPlanDetailScreen> {
         await FirestoreService.logWorkout(
           exerciseId: ex.exerciseId,
           exerciseName: ex.exerciseName,
-          category: 'bodyweight',
+          category: ex.exerciseId.startsWith('s') ? 'stretching'
+              : ex.exerciseId.startsWith('d') ? 'dumbbell'
+              : 'bodyweight',
           setsCompleted: ex.sets,
           repsCompleted: 12,
           caloriesBurned: ex.caloriesPerSession,

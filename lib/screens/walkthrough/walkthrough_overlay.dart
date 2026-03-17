@@ -27,17 +27,17 @@ const _steps = [
     tapHint: 'Tap anywhere to continue',
   ),
   _WalkthroughStep(
+    tabIndex: 1,
+    emoji: '💪',
+    title: 'Workout',
+    description: 'Log your exercises, track reps and sets. See calories burned, build custom plans and track your fitness routine.',
+    tapHint: 'Tap anywhere to continue',
+  ),
+  _WalkthroughStep(
     tabIndex: 2,
     emoji: '🧘',
     title: 'Meditation',
     description: 'Choose from 7 movement sessions and 6 music meditations. Build your daily streak and earn points.',
-    tapHint: 'Tap anywhere to continue',
-  ),
-  _WalkthroughStep(
-    tabIndex: 1,
-    emoji: '💪',
-    title: 'Workout',
-    description: 'Log your exercises, track reps and sets. See calories burned and build your fitness routine.',
     tapHint: 'Tap anywhere to continue',
   ),
   _WalkthroughStep(

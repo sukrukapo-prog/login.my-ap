@@ -48,6 +48,8 @@ class AuthService {
       });
 
       await LocalStorage.saveUserData(data);
+      // Create initial leaderboard entry for new user
+      FirestoreService.updateLeaderboardScore();
 
       developer.log('[AuthService] Registered user: $uid');
       return AuthResult.success(userData: data);
@@ -91,6 +93,8 @@ class AuthService {
       }
       // Pull all Firestore data (meditation, favorites, settings) into local cache
       await FirestoreService.syncToLocal();
+      // Push latest score to leaderboard
+      FirestoreService.updateLeaderboardScore();
 
       developer.log('[AuthService] Logged in: $uid');
       return AuthResult.success(userData: userData);

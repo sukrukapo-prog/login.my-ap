@@ -1,9 +1,10 @@
 // lib/services/food_storage_service.dart
 // Key prefix: "food_"  — zero conflict with existing keys.
-// v2 additions:
-//   food_calorie_goal  (int)       — user's daily calorie goal
+// v3 additions:
+//   food_last_date     (String)     — last date food was active (auto-reset)
+//   food_calorie_goal  (int)        — user's daily calorie goal
 //   food_favs          (StringList) — "categoryId::itemName"
-//   food_water_ml      (int)       — water drunk today in ml
+//   food_water_ml      (int)        — water drunk today in ml
 
 import 'dart:convert';
 import 'dart:developer' as developer;
@@ -11,12 +12,35 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitmetrics/models/food_item.dart';
 
 class FoodStorageService {
-  // ── Key helpers ──────────────────────────────────────────────────────────────
   static String _calorieKey(String id) => 'food_calories_$id';
   static String _logKey(String id)     => 'food_log_$id';
-  static const _goalKey  = 'food_calorie_goal';
-  static const _favsKey  = 'food_favs';
-  static const _waterKey = 'food_water_ml';
+  static const _goalKey     = 'food_calorie_goal';
+  static const _favsKey     = 'food_favs';
+  static const _waterKey    = 'food_water_ml';
+  static const _lastDateKey = 'food_last_date';
+
+  static String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}';
+  }
+
+  // ── Auto midnight reset ──────────────────────────────────────────────────────
+  // Call this on every food screen load. If stored date != today → silent reset.
+
+  static Future<void> checkAndResetIfNewDay() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final stored = p.getString(_lastDateKey);
+      final today  = _todayKey();
+      if (stored != null && stored != today) {
+        developer.log('[FoodStorage] New day detected — resetting food data silently.');
+        await resetAll();
+      }
+      await p.setString(_lastDateKey, today);
+    } catch (e) {
+      developer.log('[FoodStorage] checkAndResetIfNewDay: $e');
+    }
+  }
 
   // ── Calorie goal ─────────────────────────────────────────────────────────────
 
@@ -100,6 +124,24 @@ class FoodStorageService {
       await p.remove(_waterKey);
       // Note: we keep _goalKey and _favsKey across resets — they are preferences, not daily data
     } catch (e) { developer.log('[FoodStorage] resetAll: $e'); }
+  }
+
+  // ── Daily activity marker (for streak) ────────────────────────────────────────
+  static Future<bool> hasLoggedFoodToday() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      for (final c in allMealCategories) {
+        if ((p.getInt(_calorieKey(c.id)) ?? 0) > 0) return true;
+      }
+      if ((p.getInt(_waterKey) ?? 0) > 0) return true;
+      return false;
+    } catch (_) { return false; }
+  }
+
+  // ── Get today's total calories ────────────────────────────────────────────────
+  static Future<int> getTotalCaloriesToday() async {
+    final all = await getAllCalories();
+    return all.values.fold<int>(0, (a, b) => a + b);
   }
 
   // ── Favourites ────────────────────────────────────────────────────────────────
