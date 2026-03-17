@@ -26,7 +26,7 @@ class FoodCategoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 100,
+        constraints: const BoxConstraints(minHeight: 100),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
@@ -34,110 +34,111 @@ class FoodCategoryCard extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              // Right-side banner image
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: 130,
-                child: Image.asset(
-                  category.bannerImage,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: color.withAlpha(40),
-                    child: Icon(Icons.restaurant,
-                        color: color.withAlpha(120), size: 40),
-                  ),
-                ),
-              ),
-              // Left-to-right gradient overlay (hides image edge)
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: 130,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [AppColors.surface, AppColors.surface.withAlpha(0)],
+          child: IntrinsicHeight(
+            child: Stack(
+              children: [
+                // Right-side banner image
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 130,
+                  child: Image.asset(
+                    category.bannerImage,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: color.withAlpha(40),
+                      child: Icon(Icons.restaurant,
+                          color: color.withAlpha(120), size: 40),
                     ),
                   ),
                 ),
-              ),
-              // Content
-              Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14 ),
-                child: Row(
-                  children: [
-                    // Emoji circle
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: color.withAlpha(30),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: color.withAlpha(80)),
+                // Left-to-right gradient overlay (hides image edge)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 130,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [AppColors.surface, AppColors.surface.withAlpha(0)],
                       ),
-                      child: Center(
-                          child: Text(category.emoji,
-                              style: const TextStyle(fontSize: 22))),
                     ),
-                    const SizedBox(width: 14),
-                    // Text block
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            category.label,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            '${category.items.length} items',
-                            style: const TextStyle(
-                                color: Colors.white54, fontSize: 12),
-                          ),
-                          const SizedBox(height: 6),
-                          loggedCalories > 0
-                              ? Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: color.withAlpha(30),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '$loggedCalories kcal logged',
-                              style: TextStyle(
-                                  color: color,
-                                  fontSize: 11,
+                  ),
+                ),
+                // Content
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      // Emoji circle
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: color.withAlpha(30),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: color.withAlpha(80)),
+                        ),
+                        child: Center(
+                            child: Text(category.emoji,
+                                style: const TextStyle(fontSize: 22))),
+                      ),
+                      const SizedBox(width: 14),
+                      // Text block
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              category.label,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w700),
                             ),
-                          )
-                              : const Text(
-                            'Tap to log',
-                            style: TextStyle(
-                                color: Colors.white38, fontSize: 11),
-                          ),
-                        ],
+                            const SizedBox(height: 3),
+                            Text(
+                              '${category.items.length} items',
+                              style: const TextStyle(
+                                  color: Colors.white54, fontSize: 12),
+                            ),
+                            const SizedBox(height: 6),
+                            loggedCalories > 0
+                                ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: color.withAlpha(30),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '$loggedCalories kcal logged',
+                                style: TextStyle(
+                                    color: color,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700),
+                              ),
+                            )
+                                : const Text(
+                              'Tap to log',
+                              style: TextStyle(
+                                  color: Colors.white38, fontSize: 11),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Icon(Icons.chevron_right,
-                        color: color.withAlpha(180), size: 24),
-                  ],
+                      Icon(Icons.chevron_right,
+                          color: color.withAlpha(180), size: 24),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
