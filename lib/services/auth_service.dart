@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/services/local_storage.dart';
 import 'package:fitmetrics/services/firestore_service.dart';
@@ -102,6 +103,88 @@ class AuthService {
       return AuthResult.failure(_friendlyAuthError(e.code));
     } catch (e) {
       return AuthResult.failure('Login failed: $e');
+    }
+  }
+
+  // ── Google Sign In ─────────────────────────────────────────────────────────
+
+  static Future<AuthResult> googleSignIn() async {
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return AuthResult.failure('Sign in cancelled.');
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user!;
+      final uid = user.uid;
+      final isNewUser = userCredential.additionalUserInfo?.isNewUser ?? false;
+
+      OnboardingData userData;
+
+      if (isNewUser) {
+        // New Google user — create their Firestore profile
+        userData = OnboardingData()
+          ..email = user.email
+          ..name = user.displayName?.split(' ').first ?? ''
+          ..fullName = user.displayName ?? '';
+
+        await _db.collection('users').doc(uid).set({
+          'uid': uid,
+          'email': user.email ?? '',
+          'name': userData.name ?? '',
+          'fullName': userData.fullName ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastLogin': FieldValue.serverTimestamp(),
+          'signInMethod': 'google',
+        });
+
+        await LocalStorage.saveUserData(userData);
+        FirestoreService.updateLeaderboardScore();
+        developer.log('[AuthService] New Google user registered: $uid');
+      } else {
+        // Existing user — load their profile
+        final doc = await _db.collection('users').doc(uid).get();
+        if (doc.exists) {
+          userData = _onboardingDataFromDoc(doc.data()!);
+          await _db.collection('users').doc(uid).update({
+            'lastLogin': FieldValue.serverTimestamp(),
+          });
+        } else {
+          userData = OnboardingData()
+            ..email = user.email
+            ..name = user.displayName?.split(' ').first ?? ''
+            ..fullName = user.displayName ?? '';
+          await _db.collection('users').doc(uid).set({
+            'uid': uid,
+            'email': user.email ?? '',
+            'name': userData.name ?? '',
+            'fullName': userData.fullName ?? '',
+            'createdAt': FieldValue.serverTimestamp(),
+            'lastLogin': FieldValue.serverTimestamp(),
+            'signInMethod': 'google',
+          });
+        }
+
+        await LocalStorage.saveUserData(userData);
+        if (userData.avatarId != null) {
+          await LocalStorage.saveAvatarId(userData.avatarId!);
+        }
+        await FirestoreService.syncToLocal();
+        FirestoreService.updateLeaderboardScore();
+        developer.log('[AuthService] Existing Google user signed in: $uid');
+      }
+
+      return AuthResult.success(userData: userData, isNewGoogleUser: isNewUser);
+    } on FirebaseAuthException catch (e) {
+      return AuthResult.failure(_friendlyAuthError(e.code));
+    } catch (e) {
+      developer.log('[AuthService] googleSignIn error: $e');
+      return AuthResult.failure('Google Sign In failed. Please try again.');
     }
   }
 
@@ -219,11 +302,17 @@ class AuthResult {
   final bool success;
   final String? error;
   final OnboardingData? userData;
+  final bool isNewGoogleUser;
 
-  const AuthResult._({required this.success, this.error, this.userData});
+  const AuthResult._({
+    required this.success,
+    this.error,
+    this.userData,
+    this.isNewGoogleUser = false,
+  });
 
-  factory AuthResult.success({OnboardingData? userData}) =>
-      AuthResult._(success: true, userData: userData);
+  factory AuthResult.success({OnboardingData? userData, bool isNewGoogleUser = false}) =>
+      AuthResult._(success: true, userData: userData, isNewGoogleUser: isNewGoogleUser);
 
   factory AuthResult.failure(String error) =>
       AuthResult._(success: false, error: error);

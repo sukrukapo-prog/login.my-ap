@@ -12,7 +12,20 @@
           "package_name": "com.example.fitmatrics_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "934781705613-qbdbeaakq23oq2ivvpi60japugkbfqb8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.fitmatrics_app",
+            "certificate_hash": "ae98037da1c043e904ce8b7df49181d1f48beecd"
+          }
+        },
+        {
+          "client_id": "934781705613-6kn981ulivloqgghdrg3e886st1dr3km.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDR5NAy3xE4Nnk4_Juh9eVvNqv52piiS9g"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "934781705613-6kn981ulivloqgghdrg3e886st1dr3km.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "934781705613-sr08rs888h11ilvaeneen53tat65fcit.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.fitmatricsApp"
+              }
+            }
+          ]
         }
       }
     }

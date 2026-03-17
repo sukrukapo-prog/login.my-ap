@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   String? _errorMessage;
 
   @override
@@ -50,6 +51,40 @@ class _LoginScreenState extends State<LoginScreen> {
       AppRoutes.main,
       arguments: result.userData ?? OnboardingData(),
     );
+  }
+
+  void _googleSignIn() async {
+    setState(() { _errorMessage = null; _isGoogleLoading = true; });
+
+    final result = await AuthService.googleSignIn();
+
+    if (!mounted) return;
+
+    if (!result.success) {
+      setState(() { _errorMessage = result.error; _isGoogleLoading = false; });
+      return;
+    }
+
+    setState(() => _isGoogleLoading = false);
+    await FoodStorageService.checkAndResetIfNewDay();
+
+    if (!mounted) return;
+
+    // New Google user — send them through onboarding to fill in details
+    if (result.isNewGoogleUser) {
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.personalInfo,
+        arguments: result.userData ?? OnboardingData(),
+      );
+    } else {
+      // Existing user — go straight to main
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.main,
+        arguments: result.userData ?? OnboardingData(),
+      );
+    }
   }
 
   void _forgotPassword() async {
@@ -208,7 +243,7 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(
                 width: double.infinity, height: 56,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _login,
+                  onPressed: _isLoading || _isGoogleLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -219,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       : const Text('Log In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Divider
               Row(
@@ -234,20 +269,47 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Google button (coming soon)
+              // Google Sign In button
               SizedBox(
                 width: double.infinity, height: 54,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Google Sign In — coming soon!')),
-                    );
-                  },
-                  icon: const Icon(Icons.g_mobiledata_rounded, size: 28, color: Color(0xFF4285F4)),
-                  label: const Text('Continue with Google', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                child: OutlinedButton(
+                  onPressed: _isLoading || _isGoogleLoading ? null : _googleSignIn,
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.white.withOpacity(0.15)),
+                    side: BorderSide(color: Colors.white.withOpacity(0.2)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    backgroundColor: Colors.white.withOpacity(0.05),
+                  ),
+                  child: _isGoogleLoading
+                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Google G logo built from colored shapes
+                      Container(
+                        width: 24, height: 24,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Text('G',
+                              style: TextStyle(
+                                color: Color(0xFF4285F4),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              )),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Continue with Google',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
