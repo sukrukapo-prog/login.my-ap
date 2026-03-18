@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 import 'package:fitmetrics/core/haptic_service.dart';
 
 class MeditationHistoryScreen extends StatefulWidget {
@@ -20,7 +21,7 @@ class _MeditationHistoryScreenState extends State<MeditationHistoryScreen> {
   }
 
   Future<void> _loadHistory() async {
-    final history = await LocalStorage.getMeditationHistory();
+    final history = await FirestoreService  .getMeditationHistory();
     setState(() {
       _history = history;
       _isLoading = false;

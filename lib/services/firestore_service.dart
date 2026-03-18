@@ -662,6 +662,73 @@ class FirestoreService {
     } catch (_) { return []; }
   }
 
+  static Future<int> getUnreadNotificationCount() async {
+    if (!_isLoggedIn) return 0;
+    try {
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('notifications')
+          .where('read', isEqualTo: false)
+          .get();
+      return snap.docs.length;
+    } catch (_) { return 0; }
+  }
+
+  static Future<List<Map<String, dynamic>>> getNotificationHistory() async {
+    if (!_isLoggedIn) return [];
+    try {
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('notifications')
+          .orderBy('createdAt', descending: true)
+          .limit(50)
+          .get();
+      return snap.docs.map((d) => {
+        ...d.data(),
+        'id': d.id,
+        'createdAt': (d.data()['createdAt'] as Timestamp?)
+            ?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
+      }).toList();
+    } catch (_) { return []; }
+  }
+
+  static Future<void> markSingleNotificationRead(String notifId) async {
+    if (!_isLoggedIn) return;
+    try {
+      await _db.collection('users').doc(_uid)
+          .collection('notifications').doc(notifId)
+          .update({'read': true});
+    } catch (e) {
+      developer.log('[Firestore] markSingleNotificationRead: $e');
+    }
+  }
+
+  static Future<void> deleteNotification(String notifId) async {
+    if (!_isLoggedIn) return;
+    try {
+      await _db.collection('users').doc(_uid)
+          .collection('notifications').doc(notifId)
+          .delete();
+    } catch (e) {
+      developer.log('[Firestore] deleteNotification: $e');
+    }
+  }
+
+  static Future<void> markNotificationsRead() async {
+    if (!_isLoggedIn) return;
+    try {
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('notifications')
+          .where('read', isEqualTo: false)
+          .get();
+      final batch = _db.batch();
+      for (final doc in snap.docs) {
+        batch.update(doc.reference, {'read': true});
+      }
+      await batch.commit();
+    } catch (e) {
+      developer.log('[Firestore] markNotificationsRead: $e');
+    }
+  }
+
   // ── Community notifications ───────────────────────────────────────────────
   //   users/{uid}/community_notifications/{auto-id}
 

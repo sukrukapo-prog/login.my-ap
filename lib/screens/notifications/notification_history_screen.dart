@@ -1,39 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 
-// ── Model ──────────────────────────────────────────────────────────────────────
-enum NotifType { rankBeaten, streak, sessionComplete, dailyReminder, streakBreak }
-
-class AppNotification {
-  final String id;
-  final NotifType type;
-  final String title;
-  final String body;
-  final DateTime time;
-  bool isRead;
-
-  AppNotification({
-    required this.id,
-    required this.type,
-    required this.title,
-    required this.body,
-    required this.time,
-    this.isRead = false,
-  });
-}
-
-// ── Dummy notifications ────────────────────────────────────────────────────────
-final List<AppNotification> dummyNotifications = [
-  AppNotification(id: '1', type: NotifType.rankBeaten, title: 'You\'ve been overtaken!', body: 'ZenMaster just passed you. You\'re now #5 on the leaderboard.', time: DateTime.now().subtract(const Duration(minutes: 5))),
-  AppNotification(id: '2', type: NotifType.sessionComplete, title: 'Session Complete! 🎉', body: 'Great job! 15 mins of meditation added to your score.', time: DateTime.now().subtract(const Duration(hours: 1)), isRead: true),
-  AppNotification(id: '3', type: NotifType.streak, title: '5 Day Streak! 🔥', body: 'You\'re on fire! Keep going to maintain your streak.', time: DateTime.now().subtract(const Duration(hours: 3)), isRead: true),
-  AppNotification(id: '4', type: NotifType.dailyReminder, title: 'Time to meditate! 🧘', body: 'You haven\'t meditated today. Start a quick 5-min session.', time: DateTime.now().subtract(const Duration(days: 1, hours: 2))),
-  AppNotification(id: '5', type: NotifType.sessionComplete, title: 'Session Complete! 🎉', body: 'Amazing! 20 mins of movement meditation logged.', time: DateTime.now().subtract(const Duration(days: 1, hours: 5)), isRead: true),
-  AppNotification(id: '6', type: NotifType.streakBreak, title: 'Don\'t break your streak!', body: 'You\'re about to lose your 4-day streak. Meditate now!', time: DateTime.now().subtract(const Duration(days: 2, hours: 1))),
-  AppNotification(id: '7', type: NotifType.rankBeaten, title: 'New personal best! 🏆', body: 'You moved up to #3 on this week\'s leaderboard!', time: DateTime.now().subtract(const Duration(days: 3)), isRead: true),
-  AppNotification(id: '8', type: NotifType.dailyReminder, title: 'Good morning! 🌅', body: 'Start your day with a 10-min meditation session.', time: DateTime.now().subtract(const Duration(days: 4)), isRead: true),
-];
-
-// ── Screen ─────────────────────────────────────────────────────────────────────
 class NotificationHistoryScreen extends StatefulWidget {
   const NotificationHistoryScreen({super.key});
 
@@ -42,85 +9,102 @@ class NotificationHistoryScreen extends StatefulWidget {
 }
 
 class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
-  final List<AppNotification> _notifications = List.from(dummyNotifications);
+  List<Map<String, dynamic>> _notifications = [];
+  bool _isLoading = true;
 
-  int get _unreadCount => _notifications.where((n) => !n.isRead).length;
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
 
-  void _markAllRead() {
+  Future<void> _load() async {
+    setState(() => _isLoading = true);
+    final data = await FirestoreService.getNotificationHistory();
+    if (mounted) setState(() { _notifications = data; _isLoading = false; });
+  }
+
+  Future<void> _markAllRead() async {
+    await FirestoreService.markNotificationsRead();
     setState(() {
-      for (final n in _notifications) n.isRead = true;
+      for (final n in _notifications) n['read'] = true;
     });
   }
 
-  void _markRead(String id) {
+  Future<void> _markRead(String id) async {
+    await FirestoreService.markSingleNotificationRead(id);
     setState(() {
-      final n = _notifications.firstWhere((n) => n.id == id);
-      n.isRead = true;
+      final idx = _notifications.indexWhere((n) => n['id'] == id);
+      if (idx != -1) _notifications[idx]['read'] = true;
     });
   }
 
-  void _deleteNotification(String id) {
-    setState(() => _notifications.removeWhere((n) => n.id == id));
+  void _delete(String id) {
+    setState(() => _notifications.removeWhere((n) => n['id'] == id));
+    FirestoreService.deleteNotification(id);
   }
 
-  Map<String, List<AppNotification>> get _grouped {
+  int get _unreadCount => _notifications.where((n) => n['read'] != true).length;
+
+  Map<String, List<Map<String, dynamic>>> get _grouped {
     final now = DateTime.now();
-    final today = <AppNotification>[];
-    final yesterday = <AppNotification>[];
-    final earlier = <AppNotification>[];
-
+    final today = <Map<String, dynamic>>[];
+    final yesterday = <Map<String, dynamic>>[];
+    final earlier = <Map<String, dynamic>>[];
     for (final n in _notifications) {
-      final diff = now.difference(n.time).inDays;
+      final createdAt = DateTime.tryParse(n['createdAt'] ?? '') ?? now;
+      final diff = now.difference(createdAt).inDays;
       if (diff == 0) today.add(n);
       else if (diff == 1) yesterday.add(n);
       else earlier.add(n);
     }
-
     return {
-      if (today.isNotEmpty) 'Today': today,
+      if (today.isNotEmpty)     'Today': today,
       if (yesterday.isNotEmpty) 'Yesterday': yesterday,
-      if (earlier.isNotEmpty) 'Earlier': earlier,
+      if (earlier.isNotEmpty)   'Earlier': earlier,
     };
   }
 
-  IconData _iconFor(NotifType type) {
-    switch (type) {
-      case NotifType.rankBeaten: return Icons.emoji_events;
-      case NotifType.streak: return Icons.local_fire_department;
-      case NotifType.sessionComplete: return Icons.check_circle_outline;
-      case NotifType.dailyReminder: return Icons.alarm;
-      case NotifType.streakBreak: return Icons.warning_amber_outlined;
-    }
-  }
-
-  Color _colorFor(NotifType type) {
-    switch (type) {
-      case NotifType.rankBeaten: return const Color(0xFFFFD700);
-      case NotifType.streak: return const Color(0xFFF59E0B);
-      case NotifType.sessionComplete: return const Color(0xFF10B981);
-      case NotifType.dailyReminder: return const Color(0xFF3B82F6);
-      case NotifType.streakBreak: return const Color(0xFFEF4444);
-    }
-  }
-
-  String _timeLabel(DateTime time) {
-    final diff = DateTime.now().difference(time);
+  String _timeLabel(String? iso) {
+    if (iso == null) return '';
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return '';
+    final diff = DateTime.now().difference(dt);
     if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
     if (diff.inHours < 24)   return '${diff.inHours}h ago';
-    if (diff.inDays == 1)    return 'Yesterday ${time.hour.toString().padLeft(2,'0')}:${time.minute.toString().padLeft(2,'0')}';
+    if (diff.inDays == 1)    return 'Yesterday ${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
     return '${diff.inDays} days ago';
+  }
+
+  IconData _iconFor(String? type) {
+    switch (type) {
+      case 'community': return Icons.people_alt_outlined;
+      case 'streak':    return Icons.local_fire_department;
+      case 'session':   return Icons.check_circle_outline;
+      case 'reminder':  return Icons.alarm;
+      case 'rank':      return Icons.emoji_events;
+      default:          return Icons.notifications_outlined;
+    }
+  }
+
+  Color _colorFor(String? type) {
+    switch (type) {
+      case 'community': return const Color(0xFF8B5CF6);
+      case 'streak':    return const Color(0xFFF59E0B);
+      case 'session':   return const Color(0xFF10B981);
+      case 'reminder':  return const Color(0xFF3B82F6);
+      case 'rank':      return const Color(0xFFFFD700);
+      default:          return const Color(0xFF3B82F6);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final grouped = _grouped;
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F1624),
       body: SafeArea(
         child: Column(
           children: [
-
             // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -168,12 +152,12 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
 
-            // List
             Expanded(
-              child: _notifications.isEmpty
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6)))
+                  : _notifications.isEmpty
                   ? Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -182,131 +166,99 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
                     const SizedBox(height: 12),
                     const Text('No notifications yet',
                         style: TextStyle(color: Colors.white38, fontSize: 16)),
+                    const SizedBox(height: 6),
+                    const Text('Activity notifications will appear here',
+                        style: TextStyle(color: Colors.white24, fontSize: 13)),
                   ],
                 ),
               )
-                  : ListView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                children: grouped.entries.expand((group) {
-                  return [
+                  : RefreshIndicator(
+                color: const Color(0xFF3B82F6),
+                backgroundColor: const Color(0xFF1A2540),
+                onRefresh: _load,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  children: _grouped.entries.expand((group) => [
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Text(group.key,
-                          style: const TextStyle(
-                              color: Colors.white54, fontSize: 12,
+                          style: const TextStyle(color: Colors.white54, fontSize: 12,
                               fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                     ),
-                    ...group.value.map((n) => _NotifTile(
-                      notification: n,
-                      icon: _iconFor(n.type),
-                      color: _colorFor(n.type),
-                      timeLabel: _timeLabel(n.time),
-                      onTap: () => _markRead(n.id),
-                      onDelete: () => _deleteNotification(n.id),
-                    )),
-                  ];
-                }).toList(),
+                    ...group.value.map((n) {
+                      final isRead = n['read'] == true;
+                      final type = n['type'] as String?;
+                      final color = _colorFor(type);
+                      final id = n['id'] as String? ?? '';
+                      return Dismissible(
+                        key: Key(id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withAlpha(30),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
+                        ),
+                        onDismissed: (_) => _delete(id),
+                        child: GestureDetector(
+                          onTap: () => _markRead(id),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: isRead ? Colors.white.withAlpha(8) : color.withAlpha(15),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isRead ? Colors.white.withAlpha(15) : color.withAlpha(50),
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 40, height: 40,
+                                  decoration: BoxDecoration(color: color.withAlpha(25), shape: BoxShape.circle),
+                                  child: Icon(_iconFor(type), color: color, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(children: [
+                                        Expanded(
+                                          child: Text(n['title'] ?? '',
+                                              style: TextStyle(color: Colors.white, fontSize: 14,
+                                                  fontWeight: isRead ? FontWeight.w500 : FontWeight.w700)),
+                                        ),
+                                        if (!isRead)
+                                          Container(width: 8, height: 8,
+                                              decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                                      ]),
+                                      const SizedBox(height: 4),
+                                      Text(n['body'] ?? '',
+                                          style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.4)),
+                                      const SizedBox(height: 6),
+                                      Text(_timeLabel(n['createdAt']),
+                                          style: TextStyle(color: color.withAlpha(180), fontSize: 11, fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ]).toList(),
+                ),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Notification tile ──────────────────────────────────────────────────────────
-class _NotifTile extends StatelessWidget {
-  final AppNotification notification;
-  final IconData icon;
-  final Color color;
-  final String timeLabel;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
-
-  const _NotifTile({
-    required this.notification,
-    required this.icon,
-    required this.color,
-    required this.timeLabel,
-    required this.onTap,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isRead = notification.isRead;
-
-    return Dismissible(
-      key: Key(notification.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: Colors.redAccent.withAlpha(30),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
-      ),
-      onDismissed: (_) => onDelete(),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isRead ? Colors.white.withAlpha(8) : color.withAlpha(15),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isRead ? Colors.white.withAlpha(15) : color.withAlpha(50),
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: color.withAlpha(25),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(notification.title,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
-                              )),
-                        ),
-                        if (!isRead)
-                          Container(
-                            width: 8, height: 8,
-                            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(notification.body,
-                        style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.4)),
-                    const SizedBox(height: 6),
-                    Text(timeLabel,
-                        style: TextStyle(color: color.withAlpha(180), fontSize: 11, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

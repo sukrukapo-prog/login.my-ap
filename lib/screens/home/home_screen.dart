@@ -69,8 +69,12 @@ class _HomeScreenState extends State<HomeScreen>
     // Community unread count
     final communityCount = await FirestoreService.getUnreadCommunityCount();
 
+    // Real notification count from Firebase
+    final notifCount = await FirestoreService.getUnreadNotificationCount();
+
     setState(() {
       _unreadCommunity = communityCount;
+      _unreadNotifications = notifCount;
       _isLoading = false;
     });
     _progressCtrl.forward(from: 0);
@@ -157,6 +161,7 @@ class _HomeScreenState extends State<HomeScreen>
     AudioService().playClickSound();
     HapticService.light();
     Navigator.pushNamed(context, AppRoutes.notificationHistory);
+    FirestoreService.markNotificationsRead();
     setState(() => _unreadNotifications = 0);
   }
 

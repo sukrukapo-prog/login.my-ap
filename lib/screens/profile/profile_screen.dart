@@ -130,6 +130,11 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     Navigator.pushNamed(context, AppRoutes.meditationHistory);
   }
 
+  void _openNotificationHistory() {
+    HapticService.light();
+    Navigator.pushNamed(context, AppRoutes.notificationHistory);
+  }
+
   void _openCommunity() {
     HapticService.light();
     Navigator.pushNamed(context, AppRoutes.community);
@@ -409,6 +414,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   _MenuItem(icon: Icons.color_lens_outlined, label: 'Change Avatar', onTap: _changeAvatar),
                   _MenuItem(icon: Icons.feedback_outlined, label: 'Send Feedback', onTap: _openFeedback),
                   _MenuItem(icon: Icons.emoji_events_outlined, label: 'Achievements', onTap: _openAchievements),
+                  _MenuItem(icon: Icons.notifications_outlined, label: 'Notification History', onTap: _openNotificationHistory),
                   _MenuItem(icon: Icons.history, label: 'Meditation History', onTap: _openMeditationHistory),
                   _MenuItem(icon: Icons.people_alt_outlined, label: 'Community', onTap: _openCommunity),
                   _MenuItem(icon: Icons.fitness_center_outlined, label: 'Workout History', onTap: _openWorkoutHistory),
