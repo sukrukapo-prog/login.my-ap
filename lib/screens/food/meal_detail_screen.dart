@@ -1,7 +1,8 @@
 // lib/screens/food/meal_detail_screen.dart
-// v2: favourites loaded from storage, pinned to top; heart toggle per item.
+// v4: Search bar + Manual Add Item button. No Goan badges.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fitmetrics/models/food_item.dart';
 import 'package:fitmetrics/services/food_storage_service.dart';
 import 'package:fitmetrics/screens/food/widgets/food_item_tile.dart';
@@ -16,32 +17,51 @@ class MealDetailScreen extends StatefulWidget {
 }
 
 class _MealDetailScreenState extends State<MealDetailScreen> {
-  final Map<int, int> _quantities = {};
-  final Set<int> _selected = {};
-  Set<String> _favourites = {};
-  int _selectedTotal = 0;
-  int _savedTotal    = 0;
-  List<Map<String, dynamic>> _log = [];
-  bool _justSaved = false;
+  final Map<int, int>   _quantities    = {};
+  final Set<int>        _selected      = {};
+  Set<String>           _favourites    = {};
+  int                   _selectedTotal = 0;
+  int                   _savedTotal    = 0;
+  List<Map<String, dynamic>> _log      = [];
+  bool                  _justSaved     = false;
 
-  // Items sorted: favourites first, then rest
+  // Search
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
+  // Custom items added manually this session
+  final List<_CustomItem> _customItems = [];
+
   late List<_IndexedItem> _sortedItems;
+  List<_IndexedItem>      _filteredItems = [];
 
   @override
   void initState() {
     super.initState();
+    _searchCtrl.addListener(() {
+      setState(() {
+        _searchQuery = _searchCtrl.text.toLowerCase().trim();
+        _applyFilter();
+      });
+    });
     _load();
   }
 
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
-    final saved  = await FoodStorageService.getCalories(widget.category.id);
-    final log    = await FoodStorageService.getLog(widget.category.id);
-    final favs   = await FoodStorageService.getFavourites();
+    final saved = await FoodStorageService.getCalories(widget.category.id);
+    final log   = await FoodStorageService.getLog(widget.category.id);
+    final favs  = await FoodStorageService.getFavourites();
     if (!mounted) return;
     setState(() {
-      _savedTotal  = saved;
-      _log         = log;
-      _favourites  = favs;
+      _savedTotal = saved;
+      _log        = log;
+      _favourites = favs;
       _rebuildSorted();
     });
   }
@@ -49,14 +69,24 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   void _rebuildSorted() {
     final items = widget.category.items;
     final catId = widget.category.id;
-
     final favItems  = <_IndexedItem>[];
     final restItems = <_IndexedItem>[];
     for (int i = 0; i < items.length; i++) {
       final isFav = _favourites.contains('$catId::${items[i].name}');
-      (isFav ? favItems : restItems).add(_IndexedItem(index: i, item: items[i]));
+      (isFav ? favItems : restItems).add(_IndexedItem(index: i, item: items[i], isCustom: false));
     }
     _sortedItems = [...favItems, ...restItems];
+    _applyFilter();
+  }
+
+  void _applyFilter() {
+    if (_searchQuery.isEmpty) {
+      _filteredItems = List.from(_sortedItems);
+    } else {
+      _filteredItems = _sortedItems
+          .where((e) => e.item.name.toLowerCase().contains(_searchQuery))
+          .toList();
+    }
   }
 
   void _recalculate() {
@@ -103,6 +133,229 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     });
   }
 
+  // ── Manual Add Item bottom sheet ──────────────────────────────────────────
+
+  Future<void> _showManualAddSheet() async {
+    final color = Color(widget.category.colorValue);
+    final nameCtrl    = TextEditingController();
+    final calCtrl     = TextEditingController();
+    final proteinCtrl = TextEditingController();
+    final carbsCtrl   = TextEditingController();
+    final fatCtrl     = TextEditingController();
+    final unitCtrl    = TextEditingController();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setModalState) {
+          bool nameEmpty = false;
+          bool calEmpty  = false;
+
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+                20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                            color: color.withAlpha(30),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: Icon(Icons.add_circle_outline, color: color, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Add Custom Item',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800)),
+                          Text('to ${widget.category.label}',
+                              style: TextStyle(color: color, fontSize: 12)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Food name
+                  _SheetField(
+                    label: 'Food Name *',
+                    hint: 'e.g. Goan Xacuti',
+                    controller: nameCtrl,
+                    accentColor: color,
+                    keyboardType: TextInputType.text,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Calories (required) + Unit (optional) side by side
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: _SheetField(
+                          label: 'Calories *',
+                          hint: 'e.g. 250',
+                          controller: calCtrl,
+                          accentColor: color,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          suffix: 'kcal',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 3,
+                        child: _SheetField(
+                          label: 'Unit (optional)',
+                          hint: 'e.g. per bowl',
+                          controller: unitCtrl,
+                          accentColor: color,
+                          keyboardType: TextInputType.text,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Macros label
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10, bottom: 8),
+                    child: Row(
+                      children: [
+                        const Text('Macros',
+                            style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text('optional',
+                              style: TextStyle(color: Colors.white38, fontSize: 10)),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Macros row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _SheetField(
+                          label: 'Protein',
+                          hint: '0',
+                          controller: proteinCtrl,
+                          accentColor: const Color(0xFF3B82F6),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+                          suffix: 'g',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _SheetField(
+                          label: 'Carbs',
+                          hint: '0',
+                          controller: carbsCtrl,
+                          accentColor: const Color(0xFFF59E0B),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+                          suffix: 'g',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _SheetField(
+                          label: 'Fat',
+                          hint: '0',
+                          controller: fatCtrl,
+                          accentColor: const Color(0xFFEF4444),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+                          suffix: 'g',
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  // Save button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: color,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Add to Log',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                      onPressed: () async {
+                        final name = nameCtrl.text.trim();
+                        final cal  = int.tryParse(calCtrl.text.trim()) ?? 0;
+                        if (name.isEmpty || cal <= 0) return;
+
+                        final protein = double.tryParse(proteinCtrl.text.trim()) ?? 0.0;
+                        final carbs   = double.tryParse(carbsCtrl.text.trim()) ?? 0.0;
+                        final fat     = double.tryParse(fatCtrl.text.trim()) ?? 0.0;
+                        final unit    = unitCtrl.text.trim().isEmpty ? null : unitCtrl.text.trim();
+
+                        // Save directly to log (qty = 1)
+                        await FoodStorageService.addCalories(widget.category.id, cal);
+                        await FoodStorageService.appendLog(widget.category.id, name, 1, cal);
+
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _load();
+                        if (mounted) {
+                          setState(() => _justSaved = true);
+                          Future.delayed(const Duration(seconds: 2), () {
+                            if (mounted) setState(() => _justSaved = false);
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+
+    nameCtrl.dispose();
+    calCtrl.dispose();
+    proteinCtrl.dispose();
+    carbsCtrl.dispose();
+    fatCtrl.dispose();
+    unitCtrl.dispose();
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final cat   = widget.category;
@@ -113,7 +366,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Top bar ────────────────────────────────────────────────────
+            // ── Top bar ──────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
               child: Row(
@@ -129,10 +382,11 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text('${cat.emoji}  ${cat.label}',
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
-                  const Spacer(),
+                  Expanded(
+                    child: Text('${cat.emoji}  ${cat.label}',
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                  ),
                   if (_savedTotal > 0)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -149,23 +403,108 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
               ),
             ),
 
-            // Favourite hint
-            if (_sortedItems.any(
-                    (e) => _favourites.contains('${cat.id}::${e.item.name}')))
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-                child: Row(
-                  children: [
-                    const Icon(Icons.favorite, color: Color(0xFFEF4444), size: 13),
-                    const SizedBox(width: 5),
-                    Text('Favourites pinned to top',
-                        style: TextStyle(
-                            color: Colors.white.withAlpha(80), fontSize: 11)),
-                  ],
-                ),
-              ),
+            // ── Search bar + Add button ───────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                children: [
+                  // Search field
+                  Expanded(
+                    child: Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withAlpha(20)),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 12),
+                          const Icon(Icons.search, color: Colors.white38, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchCtrl,
+                              style: const TextStyle(color: Colors.white, fontSize: 14),
+                              decoration: InputDecoration(
+                                hintText: 'Search ${cat.label.toLowerCase()}...',
+                                hintStyle:
+                                const TextStyle(color: Colors.white38, fontSize: 14),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          if (_searchQuery.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                _searchCtrl.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                  _applyFilter();
+                                });
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.all(10),
+                                child: Icon(Icons.close, color: Colors.white38, size: 16),
+                              ),
+                            )
+                          else
+                            const SizedBox(width: 12),
+                        ],
+                      ),
+                    ),
+                  ),
 
-            // ── Saved banner ───────────────────────────────────────────────
+                  const SizedBox(width: 10),
+
+                  // + Add custom button
+                  GestureDetector(
+                    onTap: _showManualAddSheet,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: color.withAlpha(30),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: color.withAlpha(80)),
+                      ),
+                      child: Icon(Icons.add, color: color, size: 22),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Info row ─────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              child: Row(
+                children: [
+                  Text(
+                    _searchQuery.isEmpty
+                        ? '${_filteredItems.length} items'
+                        : '${_filteredItems.length} result${_filteredItems.length == 1 ? '' : 's'}',
+                    style: TextStyle(color: Colors.white.withAlpha(60), fontSize: 11),
+                  ),
+                  const Spacer(),
+                  if (_sortedItems.any(
+                          (e) => _favourites.contains('${cat.id}::${e.item.name}')))
+                    Row(
+                      children: [
+                        const Icon(Icons.favorite, color: Color(0xFFEF4444), size: 12),
+                        const SizedBox(width: 4),
+                        Text('Favourites pinned',
+                            style: TextStyle(
+                                color: Colors.white.withAlpha(60), fontSize: 11)),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+
+            // ── Saved banner ─────────────────────────────────────────────
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               child: _justSaved
@@ -177,52 +516,77 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF22C55E).withAlpha(30),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF22C55E).withAlpha(80)),
+                  border:
+                  Border.all(color: const Color(0xFF22C55E).withAlpha(80)),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_circle, color: Color(0xFF22C55E), size: 18),
+                    Icon(Icons.check_circle,
+                        color: Color(0xFF22C55E), size: 18),
                     SizedBox(width: 8),
                     Text('Calories saved ✅',
                         style: TextStyle(
-                            color: Color(0xFF22C55E), fontWeight: FontWeight.w700)),
+                            color: Color(0xFF22C55E),
+                            fontWeight: FontWeight.w700)),
                   ],
                 ),
               )
                   : const SizedBox.shrink(key: ValueKey('empty')),
             ),
 
-            // ── Item list ──────────────────────────────────────────────────
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                itemCount: _sortedItems.length,
-                itemBuilder: (context, si) {
-                  final entry = _sortedItems[si];
-                  final i     = entry.index;
-                  final isFav = _favourites.contains('${cat.id}::${entry.item.name}');
-                  return FoodItemTile(
-                    item: entry.item,
-                    isSelected: _selected.contains(i),
-                    quantity: _quantities[i] ?? 1,
-                    accentColor: color,
-                    isFavourite: isFav,
-                    onFavouriteToggle: () => _toggleFav(entry.item.name),
-                    onToggle: (val) {
-                      setState(() { val ? _selected.add(i) : _selected.remove(i); });
-                      _recalculate();
-                    },
-                    onQtyChanged: (q) {
-                      setState(() => _quantities[i] = q);
-                      _recalculate();
-                    },
-                  );
-                },
+            // ── Empty search state ────────────────────────────────────────
+            if (_filteredItems.isEmpty && _searchQuery.isNotEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.search_off, color: Colors.white24, size: 48),
+                      const SizedBox(height: 12),
+                      Text('No items found for "$_searchQuery"',
+                          style: const TextStyle(
+                              color: Colors.white38, fontSize: 14)),
+                      const SizedBox(height: 6),
+                      Text('Tap  +  to add it manually',
+                          style: TextStyle(
+                              color: Colors.white.withAlpha(40), fontSize: 12)),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  itemCount: _filteredItems.length,
+                  itemBuilder: (context, si) {
+                    final entry = _filteredItems[si];
+                    final i     = entry.index;
+                    final isFav =
+                    _favourites.contains('${cat.id}::${entry.item.name}');
+                    return FoodItemTile(
+                      item: entry.item,
+                      isSelected: _selected.contains(i),
+                      quantity: _quantities[i] ?? 1,
+                      accentColor: color,
+                      isFavourite: isFav,
+                      onFavouriteToggle: () => _toggleFav(entry.item.name),
+                      onToggle: (val) {
+                        setState(
+                                () => val ? _selected.add(i) : _selected.remove(i));
+                        _recalculate();
+                      },
+                      onQtyChanged: (q) {
+                        setState(() => _quantities[i] = q);
+                        _recalculate();
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
 
-            // ── Log strip ─────────────────────────────────────────────────
+            // ── Log strip ────────────────────────────────────────────────
             if (_log.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -231,11 +595,14 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                   children: [
                     Text("Today's log",
                         style: TextStyle(
-                            color: color, fontWeight: FontWeight.w700, fontSize: 13)),
+                            color: color,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
                     GestureDetector(
                       onTap: _clearLog,
                       child: const Text('Clear',
-                          style: TextStyle(color: Color(0xFFEF4444), fontSize: 12)),
+                          style: TextStyle(
+                              color: Color(0xFFEF4444), fontSize: 12)),
                     ),
                   ],
                 ),
@@ -250,7 +617,8 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                     final e = _log[i];
                     return Container(
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: color.withAlpha(25),
                         borderRadius: BorderRadius.circular(10),
@@ -259,7 +627,9 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                       child: Text(
                         '${e['name']} ×${e['qty']} = ${e['cal']} kcal',
                         style: TextStyle(
-                            color: color, fontSize: 11, fontWeight: FontWeight.w600),
+                            color: color,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600),
                       ),
                     );
                   },
@@ -268,7 +638,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
               const SizedBox(height: 6),
             ],
 
-            // ── Bottom bar ─────────────────────────────────────────────────
+            // ── Bottom bar ───────────────────────────────────────────────
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: BoxDecoration(
@@ -283,12 +653,15 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                       children: [
                         Text('Selected: $_selectedTotal kcal',
                             style: TextStyle(
-                                color: _selected.isEmpty ? Colors.white38 : color,
+                                color: _selected.isEmpty
+                                    ? Colors.white38
+                                    : color,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700)),
                         if (_savedTotal > 0)
                           Text('Total today: $_savedTotal kcal',
-                              style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                              style: const TextStyle(
+                                  color: Colors.white54, fontSize: 11)),
                       ],
                     ),
                   ),
@@ -296,12 +669,15 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                   ElevatedButton.icon(
                     onPressed: _selected.isEmpty ? null : _saveSelected,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _selected.isEmpty ? Colors.white.withAlpha(20) : color,
+                      backgroundColor: _selected.isEmpty
+                          ? Colors.white.withAlpha(20)
+                          : color,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: Colors.white.withAlpha(20),
                       disabledForegroundColor: Colors.white38,
                       minimumSize: const Size(140, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
                     icon: const Icon(Icons.add, size: 18),
@@ -318,8 +694,83 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 }
 
+// ── Sheet input field widget ──────────────────────────────────────────────────
+
+class _SheetField extends StatelessWidget {
+  final String label;
+  final String hint;
+  final TextEditingController controller;
+  final Color accentColor;
+  final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final String? suffix;
+
+  const _SheetField({
+    required this.label,
+    required this.hint,
+    required this.controller,
+    required this.accentColor,
+    required this.keyboardType,
+    this.inputFormatters,
+    this.suffix,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: TextStyle(
+                color: accentColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w700)),
+        const SizedBox(height: 5),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          style: const TextStyle(
+              color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
+            suffixText: suffix,
+            suffixStyle: TextStyle(color: accentColor.withAlpha(180), fontSize: 12),
+            filled: true,
+            fillColor: Colors.white.withAlpha(8),
+            contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withAlpha(20)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withAlpha(20)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: accentColor, width: 1.5),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Internal types ────────────────────────────────────────────────────────────
+
 class _IndexedItem {
-  final int index;
+  final int      index;
   final FoodItem item;
-  _IndexedItem({required this.index, required this.item});
+  final bool     isCustom;
+  _IndexedItem({required this.index, required this.item, required this.isCustom});
+}
+
+class _CustomItem {
+  final String name;
+  final int    calories;
+  _CustomItem({required this.name, required this.calories});
 }

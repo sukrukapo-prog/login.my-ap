@@ -1,5 +1,5 @@
 // lib/screens/food/widgets/food_item_tile.dart
-// v2: macros (P / C / F) row + favourite ❤️ heart toggle
+// v4: Goan badges fully removed. Clean tile with macros + favourite heart.
 
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/food_item.dart';
@@ -48,7 +48,6 @@ class FoodItemTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Main row ──────────────────────────────────────────────────
             Row(
               children: [
                 // Food image
@@ -90,7 +89,7 @@ class FoodItemTile extends StatelessWidget {
                   ),
                 ),
 
-                // ❤️ Favourite button
+                // ❤️ Favourite
                 GestureDetector(
                   onTap: onFavouriteToggle,
                   behavior: HitTestBehavior.opaque,
@@ -121,7 +120,7 @@ class FoodItemTile extends StatelessWidget {
                   const SizedBox(width: 8),
                 ],
 
-                // Checkbox circle
+                // Checkbox
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   width: 24,
@@ -139,7 +138,7 @@ class FoodItemTile extends StatelessWidget {
               ],
             ),
 
-            // ── Macros row ────────────────────────────────────────────────
+            // Macros row
             const SizedBox(height: 8),
             Row(
               children: [
@@ -150,13 +149,11 @@ class FoodItemTile extends StatelessWidget {
                 _MacroPill(label: 'F', value: m.fat,     color: const Color(0xFFEF4444)),
                 const Spacer(),
                 if (quantity > 1)
-                  Text(
-                    '× $quantity',
-                    style: TextStyle(
-                        color: accentColor.withAlpha(180),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600),
-                  ),
+                  Text('× $quantity',
+                      style: TextStyle(
+                          color: accentColor.withAlpha(180),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600)),
               ],
             ),
           ],
@@ -165,8 +162,6 @@ class FoodItemTile extends StatelessWidget {
     );
   }
 }
-
-// ── Macro pill ─────────────────────────────────────────────────────────────────
 
 class _MacroPill extends StatelessWidget {
   final String label;
@@ -182,14 +177,10 @@ class _MacroPill extends StatelessWidget {
       borderRadius: BorderRadius.circular(6),
       border: Border.all(color: color.withAlpha(60)),
     ),
-    child: Text(
-      '$label ${value.toStringAsFixed(1)}g',
-      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700),
-    ),
+    child: Text('$label ${value.toStringAsFixed(1)}g',
+        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
   );
 }
-
-// ── Qty stepper ────────────────────────────────────────────────────────────────
 
 class _QtyStepper extends StatelessWidget {
   final int qty;

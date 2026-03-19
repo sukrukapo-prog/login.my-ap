@@ -1,11 +1,11 @@
 // lib/models/food_item.dart
+// v3: Goan food items added across all 5 categories (~50 each). No snacks.
 // Pure Dart — no Flutter imports.
-// v2: added FoodMacros (protein / carbs / fat per base serving)
 
 class FoodMacros {
-  final double protein; // grams
-  final double carbs;   // grams
-  final double fat;     // grams
+  final double protein;
+  final double carbs;
+  final double fat;
 
   const FoodMacros({
     required this.protein,
@@ -13,7 +13,6 @@ class FoodMacros {
     required this.fat,
   });
 
-  /// Scale macros by quantity
   FoodMacros operator *(int qty) => FoodMacros(
     protein: protein * qty,
     carbs: carbs * qty,
@@ -27,6 +26,7 @@ class FoodItem {
   final String imagePath;
   final String? unit;
   final FoodMacros macros;
+  final bool isGoan;
 
   const FoodItem({
     required this.name,
@@ -34,6 +34,7 @@ class FoodItem {
     required this.imagePath,
     required this.macros,
     this.unit,
+    this.isGoan = false,
   });
 }
 
@@ -55,7 +56,7 @@ class MealCategory {
   });
 }
 
-// ── Meal data ─────────────────────────────────────────────────────────────────
+// ── BREAKFAST ─────────────────────────────────────────────────────────────────
 
 const MealCategory breakfastCategory = MealCategory(
   id: 'breakfast',
@@ -64,6 +65,58 @@ const MealCategory breakfastCategory = MealCategory(
   colorValue: 0xFFF59E0B,
   bannerImage: 'assets/images/food/breakfast_banner.jpg',
   items: [
+    // Goan Breakfast
+    FoodItem(name: 'Goan Pao',            calories: 140, isGoan: true, imagePath: 'assets/images/food/breakfast/goan_pao.jpg',          unit: 'per 2 pao',   macros: FoodMacros(protein: 5.0, carbs: 28.0, fat: 2.0)),
+    FoodItem(name: 'Pao with Butter',     calories: 210, isGoan: true, imagePath: 'assets/images/food/breakfast/pao_butter.jpg',        unit: 'per 2 pao',   macros: FoodMacros(protein: 5.5, carbs: 28.0, fat: 8.0)),
+    FoodItem(name: 'Sanna',               calories: 90,  isGoan: true, imagePath: 'assets/images/food/breakfast/sanna.jpg',             unit: 'per piece',   macros: FoodMacros(protein: 2.5, carbs: 18.0, fat: 1.5)),
+    FoodItem(name: 'Ros Omelette',        calories: 280, isGoan: true, imagePath: 'assets/images/food/breakfast/ros_omelette.jpg',      unit: 'per plate',   macros: FoodMacros(protein: 14.0, carbs: 12.0, fat: 18.0)),
+    FoodItem(name: 'Choris Pao',          calories: 320, isGoan: true, imagePath: 'assets/images/food/breakfast/choris_pao.jpg',        unit: 'per serving', macros: FoodMacros(protein: 15.0, carbs: 28.0, fat: 16.0)),
+    FoodItem(name: 'Poi Bread',           calories: 150, isGoan: true, imagePath: 'assets/images/food/breakfast/poi_bread.jpg',         unit: 'per piece',   macros: FoodMacros(protein: 4.5, carbs: 28.0, fat: 1.5)),
+    FoodItem(name: 'Undi (Pundi)',        calories: 85,  isGoan: true, imagePath: 'assets/images/food/breakfast/undi.jpg',              unit: 'per piece',   macros: FoodMacros(protein: 2.0, carbs: 16.0, fat: 1.8)),
+    FoodItem(name: 'Alle Belle',          calories: 140, isGoan: true, imagePath: 'assets/images/food/breakfast/alle_belle.jpg',        unit: 'per piece',   macros: FoodMacros(protein: 2.5, carbs: 22.0, fat: 5.0)),
+    FoodItem(name: 'Coconut Chutney',     calories: 55,  isGoan: true, imagePath: 'assets/images/food/breakfast/coconut_chutney.jpg',   unit: 'per tbsp',    macros: FoodMacros(protein: 0.6, carbs: 3.0, fat: 4.5)),
+    FoodItem(name: 'Goan Omelette',       calories: 210, isGoan: true, imagePath: 'assets/images/food/breakfast/goan_omelette.jpg',     unit: 'per plate',   macros: FoodMacros(protein: 13.0, carbs: 3.0, fat: 16.0)),
+    FoodItem(name: 'Dodol',               calories: 180, isGoan: true, imagePath: 'assets/images/food/breakfast/dodol.jpg',             unit: 'per 50 g',    macros: FoodMacros(protein: 1.5, carbs: 35.0, fat: 4.0)),
+    FoodItem(name: 'Sannas with Curry',   calories: 310, isGoan: true, imagePath: 'assets/images/food/breakfast/sanna_curry.jpg',       unit: 'per plate',   macros: FoodMacros(protein: 10.0, carbs: 42.0, fat: 11.0)),
+    FoodItem(name: 'Patoleo',             calories: 160, isGoan: true, imagePath: 'assets/images/food/breakfast/patoleo.jpg',           unit: 'per piece',   macros: FoodMacros(protein: 2.5, carbs: 30.0, fat: 3.5)),
+    FoodItem(name: 'Sheevyo (Rice Noodles)', calories: 180, isGoan: true, imagePath: 'assets/images/food/breakfast/sheevyo.jpg',        unit: 'per bowl',    macros: FoodMacros(protein: 3.5, carbs: 38.0, fat: 2.0)),
+    FoodItem(name: 'Goan Upma',           calories: 200, isGoan: true, imagePath: 'assets/images/food/breakfast/goan_upma.jpg',         unit: 'per bowl',    macros: FoodMacros(protein: 4.0, carbs: 36.0, fat: 5.0)),
+    FoodItem(name: 'Kulkuls',             calories: 130, isGoan: true, imagePath: 'assets/images/food/breakfast/kulkuls.jpg',           unit: 'per 30 g',    macros: FoodMacros(protein: 2.0, carbs: 18.0, fat: 6.0)),
+    FoodItem(name: 'Bebinca (Slice)',      calories: 210, isGoan: true, imagePath: 'assets/images/food/breakfast/bebinca.jpg',           unit: 'per slice',   macros: FoodMacros(protein: 3.5, carbs: 30.0, fat: 9.0)),
+    FoodItem(name: 'Coconut Milk Porridge', calories: 230, isGoan: true, imagePath: 'assets/images/food/breakfast/coconut_porridge.jpg', unit: 'per bowl',   macros: FoodMacros(protein: 4.0, carbs: 34.0, fat: 9.0)),
+    FoodItem(name: 'Prawn Rechad Toast',  calories: 290, isGoan: true, imagePath: 'assets/images/food/breakfast/prawn_toast.jpg',       unit: 'per serving', macros: FoodMacros(protein: 18.0, carbs: 22.0, fat: 13.0)),
+    FoodItem(name: 'Goan Sarapatel Pao',  calories: 360, isGoan: true, imagePath: 'assets/images/food/breakfast/sarapatel_pao.jpg',    unit: 'per serving', macros: FoodMacros(protein: 20.0, carbs: 30.0, fat: 18.0)),
+    FoodItem(name: 'Kokum Juice',         calories: 60,  isGoan: true, imagePath: 'assets/images/food/breakfast/kokum_juice.jpg',       unit: 'per glass',   macros: FoodMacros(protein: 0.2, carbs: 14.0, fat: 0.1)),
+    FoodItem(name: 'Jackfruit Idli',      calories: 110, isGoan: true, imagePath: 'assets/images/food/breakfast/jackfruit_idli.jpg',    unit: 'per piece',   macros: FoodMacros(protein: 2.5, carbs: 22.0, fat: 1.5)),
+    FoodItem(name: 'Goan Bread Toast',    calories: 175, isGoan: true, imagePath: 'assets/images/food/breakfast/goan_toast.jpg',        unit: 'per serving', macros: FoodMacros(protein: 5.0, carbs: 26.0, fat: 6.5)),
+    FoodItem(name: 'Tondak (Cowpea Curry)', calories: 145, isGoan: true, imagePath: 'assets/images/food/breakfast/tondak.jpg',          unit: 'per bowl',    macros: FoodMacros(protein: 8.0, carbs: 22.0, fat: 3.0)),
+    FoodItem(name: 'Goan Vermicelli Upma', calories: 195, isGoan: true, imagePath: 'assets/images/food/breakfast/vermicelli_upma.jpg',  unit: 'per bowl',    macros: FoodMacros(protein: 4.5, carbs: 36.0, fat: 4.5)),
+    FoodItem(name: 'Bolinhas',            calories: 95,  isGoan: true, imagePath: 'assets/images/food/breakfast/bolinhas.jpg',          unit: 'per piece',   macros: FoodMacros(protein: 1.5, carbs: 14.0, fat: 4.0)),
+    FoodItem(name: 'Neureos',             calories: 120, isGoan: true, imagePath: 'assets/images/food/breakfast/neureos.jpg',           unit: 'per piece',   macros: FoodMacros(protein: 2.0, carbs: 16.0, fat: 5.5)),
+    FoodItem(name: 'Rice Pap',            calories: 130, isGoan: true, imagePath: 'assets/images/food/breakfast/rice_pap.jpg',          unit: 'per bowl',    macros: FoodMacros(protein: 2.5, carbs: 28.0, fat: 1.0)),
+    FoodItem(name: 'Goan Fish Fry Pao',   calories: 330, isGoan: true, imagePath: 'assets/images/food/breakfast/fish_fry_pao.jpg',      unit: 'per serving', macros: FoodMacros(protein: 22.0, carbs: 26.0, fat: 14.0)),
+    FoodItem(name: 'Sol Kadi (Morning)',  calories: 45,  isGoan: true, imagePath: 'assets/images/food/breakfast/sol_kadi.jpg',          unit: 'per glass',   macros: FoodMacros(protein: 1.2, carbs: 6.0, fat: 2.0)),
+    FoodItem(name: 'Goan Masala Chai',    calories: 80,  isGoan: true, imagePath: 'assets/images/food/breakfast/goan_chai.jpg',         unit: 'per cup',     macros: FoodMacros(protein: 2.0, carbs: 12.0, fat: 2.5)),
+    FoodItem(name: 'Coconut Dosa',        calories: 165, isGoan: true, imagePath: 'assets/images/food/breakfast/coconut_dosa.jpg',      unit: 'per piece',   macros: FoodMacros(protein: 3.5, carbs: 28.0, fat: 5.0)),
+    FoodItem(name: 'Goan Poha with Coconut', calories: 210, isGoan: true, imagePath: 'assets/images/food/breakfast/goan_poha.jpg',      unit: 'per bowl',    macros: FoodMacros(protein: 4.0, carbs: 38.0, fat: 5.5)),
+    FoodItem(name: 'Kadgi Chakko',        calories: 115, isGoan: true, imagePath: 'assets/images/food/breakfast/kadgi_chakko.jpg',      unit: 'per bowl',    macros: FoodMacros(protein: 2.0, carbs: 22.0, fat: 3.0)),
+    FoodItem(name: 'Prawn Pao',           calories: 280, isGoan: true, imagePath: 'assets/images/food/breakfast/prawn_pao.jpg',         unit: 'per serving', macros: FoodMacros(protein: 16.0, carbs: 26.0, fat: 12.0)),
+    FoodItem(name: 'Goan Egg Curry Pao',  calories: 310, isGoan: true, imagePath: 'assets/images/food/breakfast/egg_curry_pao.jpg',    unit: 'per plate',   macros: FoodMacros(protein: 16.0, carbs: 30.0, fat: 14.0)),
+    FoodItem(name: 'Taro Leaves Bhaji',   calories: 75,  isGoan: true, imagePath: 'assets/images/food/breakfast/taro_bhaji.jpg',       unit: 'per bowl',    macros: FoodMacros(protein: 3.0, carbs: 10.0, fat: 2.5)),
+    FoodItem(name: 'Goan Rice Congee',    calories: 140, isGoan: true, imagePath: 'assets/images/food/breakfast/rice_congee.jpg',      unit: 'per bowl',    macros: FoodMacros(protein: 3.0, carbs: 30.0, fat: 1.0)),
+    FoodItem(name: 'Fov (Beaten Rice)',   calories: 175, isGoan: true, imagePath: 'assets/images/food/breakfast/fov.jpg',              unit: 'per bowl',    macros: FoodMacros(protein: 3.0, carbs: 36.0, fat: 3.0)),
+    FoodItem(name: 'Mushroom Xacuti Pao', calories: 255, isGoan: true, imagePath: 'assets/images/food/breakfast/mushroom_xacuti_pao.jpg', unit: 'per serving', macros: FoodMacros(protein: 8.0, carbs: 30.0, fat: 12.0)),
+    FoodItem(name: 'Goan Bread Omelette', calories: 260, isGoan: true, imagePath: 'assets/images/food/breakfast/bread_omelette.jpg',   unit: 'per serving', macros: FoodMacros(protein: 14.0, carbs: 20.0, fat: 14.0)),
+    FoodItem(name: 'Tonak (Jackfruit Curry)', calories: 155, isGoan: true, imagePath: 'assets/images/food/breakfast/tonak.jpg',        unit: 'per bowl',    macros: FoodMacros(protein: 3.5, carbs: 26.0, fat: 5.0)),
+    FoodItem(name: 'Goan Black Eyed Peas', calories: 130, isGoan: true, imagePath: 'assets/images/food/breakfast/black_eyed_peas.jpg', unit: 'per bowl',    macros: FoodMacros(protein: 9.0, carbs: 22.0, fat: 0.8)),
+    FoodItem(name: 'Chourico Sandwich',   calories: 345, isGoan: true, imagePath: 'assets/images/food/breakfast/chourico_sandwich.jpg', unit: 'per serving', macros: FoodMacros(protein: 16.0, carbs: 30.0, fat: 17.0)),
+    FoodItem(name: 'Banana Flower Bhaji', calories: 90,  isGoan: true, imagePath: 'assets/images/food/breakfast/banana_flower.jpg',    unit: 'per bowl',    macros: FoodMacros(protein: 4.0, carbs: 14.0, fat: 2.5)),
+    FoodItem(name: 'Goan Moong Khichdi',  calories: 195, isGoan: true, imagePath: 'assets/images/food/breakfast/moong_khichdi.jpg',   unit: 'per bowl',    macros: FoodMacros(protein: 8.5, carbs: 34.0, fat: 3.5)),
+    FoodItem(name: 'Cashew Feni Cake',    calories: 230, isGoan: true, imagePath: 'assets/images/food/breakfast/feni_cake.jpg',        unit: 'per slice',   macros: FoodMacros(protein: 3.5, carbs: 32.0, fat: 10.0)),
+    FoodItem(name: 'Goan Ambade (Hog Plum Curry)', calories: 85, isGoan: true, imagePath: 'assets/images/food/breakfast/ambade.jpg',   unit: 'per bowl',    macros: FoodMacros(protein: 2.0, carbs: 14.0, fat: 3.0)),
+    FoodItem(name: 'Stuffed Poi',         calories: 195, isGoan: true, imagePath: 'assets/images/food/breakfast/stuffed_poi.jpg',      unit: 'per piece',   macros: FoodMacros(protein: 8.0, carbs: 24.0, fat: 8.0)),
+    FoodItem(name: 'Goan Sooji Halwa',    calories: 240, isGoan: true, imagePath: 'assets/images/food/breakfast/sooji_halwa.jpg',      unit: 'per bowl',    macros: FoodMacros(protein: 4.0, carbs: 38.0, fat: 8.5)),
+    // Existing Items
     FoodItem(name: 'Idli',         calories: 60,  imagePath: 'assets/images/food/breakfast/idli.webp',        unit: 'per piece', macros: FoodMacros(protein: 2.0, carbs: 12.0, fat: 0.4)),
     FoodItem(name: 'Chapati',      calories: 104, imagePath: 'assets/images/food/breakfast/chapati.jpg',      unit: 'per piece', macros: FoodMacros(protein: 3.1, carbs: 18.0, fat: 2.5)),
     FoodItem(name: 'Poha',         calories: 192, imagePath: 'assets/images/food/breakfast/poha.jpg',         unit: 'per bowl',  macros: FoodMacros(protein: 3.5, carbs: 38.0, fat: 3.8)),
@@ -74,6 +127,8 @@ const MealCategory breakfastCategory = MealCategory(
   ],
 );
 
+// ── LUNCH ─────────────────────────────────────────────────────────────────────
+
 const MealCategory lunchCategory = MealCategory(
   id: 'lunch',
   label: 'Lunch',
@@ -81,6 +136,58 @@ const MealCategory lunchCategory = MealCategory(
   colorValue: 0xFF10B981,
   bannerImage: 'assets/images/food/lunch_banner.jpg',
   items: [
+    // Goan Lunch
+    FoodItem(name: 'Goan Fish Curry Rice',      calories: 420, isGoan: true, imagePath: 'assets/images/food/lunch/goan_fish_curry_rice.jpg',   unit: 'per plate',   macros: FoodMacros(protein: 28.0, carbs: 55.0, fat: 10.0)),
+    FoodItem(name: 'Xacuti Chicken',            calories: 280, isGoan: true, imagePath: 'assets/images/food/lunch/xacuti_chicken.jpg',          unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 8.0, fat: 16.0)),
+    FoodItem(name: 'Prawn Balchão',             calories: 190, isGoan: true, imagePath: 'assets/images/food/lunch/prawn_balchao.jpg',           unit: 'per 100 g',   macros: FoodMacros(protein: 18.0, carbs: 6.0, fat: 10.0)),
+    FoodItem(name: 'Prawn Curry Rice',          calories: 380, isGoan: true, imagePath: 'assets/images/food/lunch/prawn_curry_rice.jpg',        unit: 'per plate',   macros: FoodMacros(protein: 22.0, carbs: 48.0, fat: 9.0)),
+    FoodItem(name: 'Pork Vindaloo',             calories: 310, isGoan: true, imagePath: 'assets/images/food/lunch/pork_vindaloo.jpg',           unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 5.0, fat: 22.0)),
+    FoodItem(name: 'Caldin (Veg Curry)',        calories: 130, isGoan: true, imagePath: 'assets/images/food/lunch/caldin.jpg',                  unit: 'per bowl',    macros: FoodMacros(protein: 4.0, carbs: 14.0, fat: 7.0)),
+    FoodItem(name: 'Solachi Kadi',              calories: 60,  isGoan: true, imagePath: 'assets/images/food/lunch/solachi_kadi.jpg',            unit: 'per bowl',    macros: FoodMacros(protein: 1.5, carbs: 8.0, fat: 3.0)),
+    FoodItem(name: 'Goan Red Rice',             calories: 150, isGoan: true, imagePath: 'assets/images/food/lunch/goan_red_rice.jpg',           unit: 'per bowl',    macros: FoodMacros(protein: 3.0, carbs: 33.0, fat: 0.5)),
+    FoodItem(name: 'Sorpotel',                  calories: 340, isGoan: true, imagePath: 'assets/images/food/lunch/sorpotel.jpg',                unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 6.0, fat: 24.0)),
+    FoodItem(name: 'Khatkhate',                 calories: 110, isGoan: true, imagePath: 'assets/images/food/lunch/khatkhate.jpg',              unit: 'per bowl',    macros: FoodMacros(protein: 4.5, carbs: 18.0, fat: 3.0)),
+    FoodItem(name: 'Crab Xec Xec',             calories: 220, isGoan: true, imagePath: 'assets/images/food/lunch/crab_xec_xec.jpg',            unit: 'per 100 g',   macros: FoodMacros(protein: 18.0, carbs: 6.0, fat: 13.0)),
+    FoodItem(name: 'Tambdi Bhaji',              calories: 80,  isGoan: true, imagePath: 'assets/images/food/lunch/tambdi_bhaji.jpg',            unit: 'per bowl',    macros: FoodMacros(protein: 3.5, carbs: 10.0, fat: 3.5)),
+    FoodItem(name: 'Goan Tisreo (Clams)',       calories: 170, isGoan: true, imagePath: 'assets/images/food/lunch/tisreo.jpg',                  unit: 'per 100 g',   macros: FoodMacros(protein: 14.0, carbs: 6.0, fat: 9.0)),
+    FoodItem(name: 'Mussel Curry',              calories: 180, isGoan: true, imagePath: 'assets/images/food/lunch/mussel_curry.jpg',            unit: 'per bowl',    macros: FoodMacros(protein: 16.0, carbs: 8.0, fat: 9.0)),
+    FoodItem(name: 'Kingfish Curry',            calories: 200, isGoan: true, imagePath: 'assets/images/food/lunch/kingfish_curry.jpg',          unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 5.0, fat: 10.0)),
+    FoodItem(name: 'Bangda (Mackerel) Curry',   calories: 175, isGoan: true, imagePath: 'assets/images/food/lunch/bangda_curry.jpg',            unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 4.0, fat: 9.0)),
+    FoodItem(name: 'Recheado Fried Fish',       calories: 215, isGoan: true, imagePath: 'assets/images/food/lunch/recheado_fish.jpg',           unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 5.0, fat: 11.0)),
+    FoodItem(name: 'Squid Xacuti',             calories: 195, isGoan: true, imagePath: 'assets/images/food/lunch/squid_xacuti.jpg',            unit: 'per 100 g',   macros: FoodMacros(protein: 16.0, carbs: 7.0, fat: 12.0)),
+    FoodItem(name: 'Goan Dal with Rice',        calories: 280, isGoan: true, imagePath: 'assets/images/food/lunch/goan_dal_rice.jpg',           unit: 'per plate',   macros: FoodMacros(protein: 10.0, carbs: 50.0, fat: 5.0)),
+    FoodItem(name: 'Chicken Cafreal',           calories: 235, isGoan: true, imagePath: 'assets/images/food/lunch/cafreal_chicken.jpg',         unit: 'per 100 g',   macros: FoodMacros(protein: 26.0, carbs: 4.0, fat: 13.0)),
+    FoodItem(name: 'Pork Bafad',               calories: 295, isGoan: true, imagePath: 'assets/images/food/lunch/pork_bafad.jpg',              unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 4.0, fat: 21.0)),
+    FoodItem(name: 'Goan Sausage Pulao',        calories: 390, isGoan: true, imagePath: 'assets/images/food/lunch/sausage_pulao.jpg',           unit: 'per plate',   macros: FoodMacros(protein: 18.0, carbs: 48.0, fat: 14.0)),
+    FoodItem(name: 'Prawn Rechad',              calories: 195, isGoan: true, imagePath: 'assets/images/food/lunch/prawn_rechad.jpg',            unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 4.0, fat: 10.0)),
+    FoodItem(name: 'Ambot Tik (Shark Curry)',   calories: 225, isGoan: true, imagePath: 'assets/images/food/lunch/ambot_tik.jpg',               unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 5.0, fat: 13.0)),
+    FoodItem(name: 'Goan Biryani',              calories: 450, isGoan: true, imagePath: 'assets/images/food/lunch/goan_biryani.jpg',            unit: 'per plate',   macros: FoodMacros(protein: 22.0, carbs: 62.0, fat: 14.0)),
+    FoodItem(name: 'Caldo Verde (Goan Style)',  calories: 155, isGoan: true, imagePath: 'assets/images/food/lunch/caldo_verde.jpg',             unit: 'per bowl',    macros: FoodMacros(protein: 7.0, carbs: 18.0, fat: 6.0)),
+    FoodItem(name: 'Bangda Recheado',           calories: 210, isGoan: true, imagePath: 'assets/images/food/lunch/bangda_recheado.jpg',         unit: 'per piece',   macros: FoodMacros(protein: 20.0, carbs: 5.0, fat: 12.0)),
+    FoodItem(name: 'Goan Veg Xacuti',           calories: 145, isGoan: true, imagePath: 'assets/images/food/lunch/veg_xacuti.jpg',              unit: 'per bowl',    macros: FoodMacros(protein: 5.0, carbs: 18.0, fat: 7.0)),
+    FoodItem(name: 'Oyster Curry',              calories: 160, isGoan: true, imagePath: 'assets/images/food/lunch/oyster_curry.jpg',            unit: 'per bowl',    macros: FoodMacros(protein: 12.0, carbs: 8.0, fat: 9.0)),
+    FoodItem(name: 'Goan Stuffed Brinjal',      calories: 120, isGoan: true, imagePath: 'assets/images/food/lunch/stuffed_brinjal.jpg',         unit: 'per 100 g',   macros: FoodMacros(protein: 3.5, carbs: 14.0, fat: 6.0)),
+    FoodItem(name: 'Tondak with Rice',          calories: 250, isGoan: true, imagePath: 'assets/images/food/lunch/tondak_rice.jpg',             unit: 'per plate',   macros: FoodMacros(protein: 10.0, carbs: 42.0, fat: 5.0)),
+    FoodItem(name: 'Goan Pork Ribs',            calories: 380, isGoan: true, imagePath: 'assets/images/food/lunch/pork_ribs.jpg',               unit: 'per 100 g',   macros: FoodMacros(protein: 24.0, carbs: 3.0, fat: 28.0)),
+    FoodItem(name: 'Lobster Xec Xec',           calories: 240, isGoan: true, imagePath: 'assets/images/food/lunch/lobster_xec_xec.jpg',         unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 6.0, fat: 14.0)),
+    FoodItem(name: 'Tendli Bhaji',              calories: 85,  isGoan: true, imagePath: 'assets/images/food/lunch/tendli_bhaji.jpg',            unit: 'per bowl',    macros: FoodMacros(protein: 2.5, carbs: 12.0, fat: 3.5)),
+    FoodItem(name: 'Goan Egg Bhurji',           calories: 165, isGoan: true, imagePath: 'assets/images/food/lunch/egg_bhurji.jpg',              unit: 'per bowl',    macros: FoodMacros(protein: 12.0, carbs: 4.0, fat: 11.0)),
+    FoodItem(name: 'Fish Caldine',              calories: 170, isGoan: true, imagePath: 'assets/images/food/lunch/fish_caldine.jpg',            unit: 'per 100 g',   macros: FoodMacros(protein: 18.0, carbs: 5.0, fat: 9.0)),
+    FoodItem(name: 'Goan Pomfret Fry',          calories: 195, isGoan: true, imagePath: 'assets/images/food/lunch/pomfret_fry.jpg',             unit: 'per piece',   macros: FoodMacros(protein: 22.0, carbs: 6.0, fat: 9.0)),
+    FoodItem(name: 'Goan Mushroom Xacuti',      calories: 150, isGoan: true, imagePath: 'assets/images/food/lunch/mushroom_xacuti.jpg',         unit: 'per bowl',    macros: FoodMacros(protein: 5.0, carbs: 12.0, fat: 10.0)),
+    FoodItem(name: 'Prawn Koliwada',            calories: 210, isGoan: true, imagePath: 'assets/images/food/lunch/prawn_koliwada.jpg',          unit: 'per 100 g',   macros: FoodMacros(protein: 16.0, carbs: 10.0, fat: 12.0)),
+    FoodItem(name: 'Goan Drumstick Curry',      calories: 95,  isGoan: true, imagePath: 'assets/images/food/lunch/drumstick_curry.jpg',         unit: 'per bowl',    macros: FoodMacros(protein: 3.0, carbs: 12.0, fat: 4.5)),
+    FoodItem(name: 'Shark Ambotik',             calories: 220, isGoan: true, imagePath: 'assets/images/food/lunch/shark_ambotik.jpg',           unit: 'per 100 g',   macros: FoodMacros(protein: 19.0, carbs: 6.0, fat: 13.0)),
+    FoodItem(name: 'Goan Vegetable Pulao',      calories: 290, isGoan: true, imagePath: 'assets/images/food/lunch/veg_pulao.jpg',               unit: 'per plate',   macros: FoodMacros(protein: 6.0, carbs: 52.0, fat: 7.0)),
+    FoodItem(name: 'Chicken Shakuti',           calories: 270, isGoan: true, imagePath: 'assets/images/food/lunch/chicken_shakuti.jpg',         unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 8.0, fat: 16.0)),
+    FoodItem(name: 'Goan Fish Rechad',          calories: 210, isGoan: true, imagePath: 'assets/images/food/lunch/fish_rechad.jpg',             unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 5.0, fat: 11.0)),
+    FoodItem(name: 'Dudhi Bhaji',               calories: 70,  isGoan: true, imagePath: 'assets/images/food/lunch/dudhi_bhaji.jpg',             unit: 'per bowl',    macros: FoodMacros(protein: 2.0, carbs: 10.0, fat: 2.5)),
+    FoodItem(name: 'Goan Prawn Biryani',        calories: 480, isGoan: true, imagePath: 'assets/images/food/lunch/prawn_biryani.jpg',           unit: 'per plate',   macros: FoodMacros(protein: 24.0, carbs: 64.0, fat: 14.0)),
+    FoodItem(name: 'Clam Fry',                  calories: 185, isGoan: true, imagePath: 'assets/images/food/lunch/clam_fry.jpg',                unit: 'per 100 g',   macros: FoodMacros(protein: 15.0, carbs: 8.0, fat: 10.0)),
+    FoodItem(name: 'Goan Beef Curry',           calories: 260, isGoan: true, imagePath: 'assets/images/food/lunch/beef_curry.jpg',              unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 5.0, fat: 16.0)),
+    FoodItem(name: 'Jackfruit Seed Curry',      calories: 140, isGoan: true, imagePath: 'assets/images/food/lunch/jackfruit_seed.jpg',          unit: 'per bowl',    macros: FoodMacros(protein: 4.0, carbs: 24.0, fat: 3.5)),
+    FoodItem(name: 'Goan Kokum Curry (Sola)',   calories: 55,  isGoan: true, imagePath: 'assets/images/food/lunch/sola_curry.jpg',              unit: 'per bowl',    macros: FoodMacros(protein: 1.0, carbs: 9.0, fat: 2.0)),
+    // Existing Items
     FoodItem(name: 'Rajma',         calories: 130, imagePath: 'assets/images/food/lunch/rajma.jpg',         unit: 'per 100 g', macros: FoodMacros(protein: 8.7, carbs: 22.0, fat: 0.5)),
     FoodItem(name: 'Toor Dal',      calories: 115, imagePath: 'assets/images/food/lunch/toor_dal.jpg',      unit: 'per bowl',  macros: FoodMacros(protein: 7.2, carbs: 20.0, fat: 0.4)),
     FoodItem(name: 'Basmati Rice',  calories: 160, imagePath: 'assets/images/food/lunch/basmati_rice.webp', unit: 'per bowl',  macros: FoodMacros(protein: 3.0, carbs: 35.0, fat: 0.4)),
@@ -91,6 +198,8 @@ const MealCategory lunchCategory = MealCategory(
   ],
 );
 
+// ── DINNER ────────────────────────────────────────────────────────────────────
+
 const MealCategory dinnerCategory = MealCategory(
   id: 'dinner',
   label: 'Dinner',
@@ -98,6 +207,58 @@ const MealCategory dinnerCategory = MealCategory(
   colorValue: 0xFF8B5CF6,
   bannerImage: 'assets/images/food/dinner_banner.jpg',
   items: [
+    // Goan Dinner
+    FoodItem(name: 'Sorpotel with Sanna',       calories: 420, isGoan: true, imagePath: 'assets/images/food/dinner/sorpotel_sanna.jpg',        unit: 'per plate',   macros: FoodMacros(protein: 24.0, carbs: 28.0, fat: 26.0)),
+    FoodItem(name: 'Chicken Cafreal',           calories: 240, isGoan: true, imagePath: 'assets/images/food/dinner/cafreal_chicken.jpg',       unit: 'per 100 g',   macros: FoodMacros(protein: 26.0, carbs: 4.0, fat: 13.0)),
+    FoodItem(name: 'Recheado Bangda',           calories: 210, isGoan: true, imagePath: 'assets/images/food/dinner/recheado_bangda.jpg',       unit: 'per piece',   macros: FoodMacros(protein: 22.0, carbs: 5.0, fat: 11.0)),
+    FoodItem(name: 'Goan Sausage Pulao',        calories: 390, isGoan: true, imagePath: 'assets/images/food/dinner/sausage_pulao.jpg',         unit: 'per plate',   macros: FoodMacros(protein: 18.0, carbs: 48.0, fat: 14.0)),
+    FoodItem(name: 'Mussel Curry with Rice',    calories: 310, isGoan: true, imagePath: 'assets/images/food/dinner/mussel_curry_rice.jpg',     unit: 'per plate',   macros: FoodMacros(protein: 18.0, carbs: 42.0, fat: 10.0)),
+    FoodItem(name: 'Crab Xec Xec',             calories: 220, isGoan: true, imagePath: 'assets/images/food/dinner/crab_xec_xec.jpg',          unit: 'per 100 g',   macros: FoodMacros(protein: 18.0, carbs: 6.0, fat: 13.0)),
+    FoodItem(name: 'Tambdi Bhaji with Rice',    calories: 230, isGoan: true, imagePath: 'assets/images/food/dinner/tambdi_bhaji_rice.jpg',     unit: 'per plate',   macros: FoodMacros(protein: 5.0, carbs: 42.0, fat: 4.5)),
+    FoodItem(name: 'Goan Prawn Rechad',         calories: 195, isGoan: true, imagePath: 'assets/images/food/dinner/prawn_rechad.jpg',          unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 4.0, fat: 10.0)),
+    FoodItem(name: 'Pork Vindaloo with Rice',   calories: 470, isGoan: true, imagePath: 'assets/images/food/dinner/pork_vindaloo_rice.jpg',    unit: 'per plate',   macros: FoodMacros(protein: 22.0, carbs: 52.0, fat: 18.0)),
+    FoodItem(name: 'Goan Fish Caldine',         calories: 170, isGoan: true, imagePath: 'assets/images/food/dinner/fish_caldine.jpg',          unit: 'per 100 g',   macros: FoodMacros(protein: 18.0, carbs: 5.0, fat: 9.0)),
+    FoodItem(name: 'Prawn Balchão Rice',        calories: 360, isGoan: true, imagePath: 'assets/images/food/dinner/prawn_balchao_rice.jpg',    unit: 'per plate',   macros: FoodMacros(protein: 20.0, carbs: 50.0, fat: 9.0)),
+    FoodItem(name: 'Goan Stuffed Pomfret',      calories: 240, isGoan: true, imagePath: 'assets/images/food/dinner/stuffed_pomfret.jpg',       unit: 'per piece',   macros: FoodMacros(protein: 26.0, carbs: 5.0, fat: 13.0)),
+    FoodItem(name: 'Xacuti Chicken with Rice',  calories: 440, isGoan: true, imagePath: 'assets/images/food/dinner/xacuti_rice.jpg',           unit: 'per plate',   macros: FoodMacros(protein: 26.0, carbs: 50.0, fat: 14.0)),
+    FoodItem(name: 'Ambot Tik',                 calories: 225, isGoan: true, imagePath: 'assets/images/food/dinner/ambot_tik.jpg',             unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 5.0, fat: 13.0)),
+    FoodItem(name: 'Goan Beef Roast',           calories: 290, isGoan: true, imagePath: 'assets/images/food/dinner/beef_roast.jpg',            unit: 'per 100 g',   macros: FoodMacros(protein: 24.0, carbs: 4.0, fat: 19.0)),
+    FoodItem(name: 'Kingfish Recheado',         calories: 220, isGoan: true, imagePath: 'assets/images/food/dinner/kingfish_recheado.jpg',     unit: 'per 100 g',   macros: FoodMacros(protein: 24.0, carbs: 5.0, fat: 11.0)),
+    FoodItem(name: 'Clam Caldine',              calories: 160, isGoan: true, imagePath: 'assets/images/food/dinner/clam_caldine.jpg',          unit: 'per bowl',    macros: FoodMacros(protein: 14.0, carbs: 7.0, fat: 8.0)),
+    FoodItem(name: 'Goan Lobster Curry',        calories: 260, isGoan: true, imagePath: 'assets/images/food/dinner/lobster_curry.jpg',         unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 6.0, fat: 16.0)),
+    FoodItem(name: 'Tondak with Sanna',         calories: 280, isGoan: true, imagePath: 'assets/images/food/dinner/tondak_sanna.jpg',          unit: 'per plate',   macros: FoodMacros(protein: 10.0, carbs: 42.0, fat: 8.0)),
+    FoodItem(name: 'Goan Squid Masala',         calories: 190, isGoan: true, imagePath: 'assets/images/food/dinner/squid_masala.jpg',          unit: 'per 100 g',   macros: FoodMacros(protein: 17.0, carbs: 6.0, fat: 11.0)),
+    FoodItem(name: 'Chicken Xacuti',            calories: 270, isGoan: true, imagePath: 'assets/images/food/dinner/chicken_xacuti.jpg',        unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 8.0, fat: 16.0)),
+    FoodItem(name: 'Prawn Curry Rice (Night)',  calories: 400, isGoan: true, imagePath: 'assets/images/food/dinner/prawn_curry_rice_n.jpg',    unit: 'per plate',   macros: FoodMacros(protein: 22.0, carbs: 52.0, fat: 10.0)),
+    FoodItem(name: 'Goan Shark Curry',          calories: 215, isGoan: true, imagePath: 'assets/images/food/dinner/shark_curry.jpg',           unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 4.0, fat: 12.0)),
+    FoodItem(name: 'Bebinca (Dessert)',          calories: 210, isGoan: true, imagePath: 'assets/images/food/dinner/bebinca.jpg',               unit: 'per slice',   macros: FoodMacros(protein: 3.5, carbs: 30.0, fat: 9.0)),
+    FoodItem(name: 'Dodol (Dessert)',            calories: 180, isGoan: true, imagePath: 'assets/images/food/dinner/dodol.jpg',                 unit: 'per 50 g',    macros: FoodMacros(protein: 1.5, carbs: 35.0, fat: 4.0)),
+    FoodItem(name: 'Pork Bafad',               calories: 295, isGoan: true, imagePath: 'assets/images/food/dinner/pork_bafad.jpg',             unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 4.0, fat: 21.0)),
+    FoodItem(name: 'Goan Lamb Curry',           calories: 275, isGoan: true, imagePath: 'assets/images/food/dinner/lamb_curry.jpg',            unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 5.0, fat: 18.0)),
+    FoodItem(name: 'Arroz Doce (Rice Pudding)', calories: 220, isGoan: true, imagePath: 'assets/images/food/dinner/arroz_doce.jpg',            unit: 'per bowl',    macros: FoodMacros(protein: 4.0, carbs: 40.0, fat: 5.0)),
+    FoodItem(name: 'Goan Masala Fish Curry',    calories: 185, isGoan: true, imagePath: 'assets/images/food/dinner/masala_fish_curry.jpg',     unit: 'per 100 g',   macros: FoodMacros(protein: 20.0, carbs: 5.0, fat: 9.0)),
+    FoodItem(name: 'Tender Coconut Halwa',      calories: 195, isGoan: true, imagePath: 'assets/images/food/dinner/coconut_halwa.jpg',         unit: 'per serving', macros: FoodMacros(protein: 2.0, carbs: 32.0, fat: 8.0)),
+    FoodItem(name: 'Oyster Masala',             calories: 155, isGoan: true, imagePath: 'assets/images/food/dinner/oyster_masala.jpg',         unit: 'per 100 g',   macros: FoodMacros(protein: 12.0, carbs: 7.0, fat: 8.5)),
+    FoodItem(name: 'Goan Egg Curry',            calories: 190, isGoan: true, imagePath: 'assets/images/food/dinner/egg_curry.jpg',             unit: 'per bowl',    macros: FoodMacros(protein: 14.0, carbs: 6.0, fat: 12.0)),
+    FoodItem(name: 'Jackfruit Xacuti',          calories: 165, isGoan: true, imagePath: 'assets/images/food/dinner/jackfruit_xacuti.jpg',      unit: 'per bowl',    macros: FoodMacros(protein: 4.0, carbs: 24.0, fat: 8.0)),
+    FoodItem(name: 'Goan Mackerel Rava Fry',    calories: 235, isGoan: true, imagePath: 'assets/images/food/dinner/mackerel_rava_fry.jpg',     unit: 'per piece',   macros: FoodMacros(protein: 22.0, carbs: 12.0, fat: 11.0)),
+    FoodItem(name: 'Mushroom Caldine',          calories: 130, isGoan: true, imagePath: 'assets/images/food/dinner/mushroom_caldine.jpg',      unit: 'per bowl',    macros: FoodMacros(protein: 4.5, carbs: 12.0, fat: 8.0)),
+    FoodItem(name: 'Goan Prawn Moilee',         calories: 180, isGoan: true, imagePath: 'assets/images/food/dinner/prawn_moilee.jpg',          unit: 'per bowl',    macros: FoodMacros(protein: 17.0, carbs: 6.0, fat: 10.0)),
+    FoodItem(name: 'Stuffed Crab',              calories: 195, isGoan: true, imagePath: 'assets/images/food/dinner/stuffed_crab.jpg',          unit: 'per piece',   macros: FoodMacros(protein: 18.0, carbs: 6.0, fat: 11.0)),
+    FoodItem(name: 'Goan Chicken Sukka',        calories: 255, isGoan: true, imagePath: 'assets/images/food/dinner/chicken_sukka.jpg',         unit: 'per 100 g',   macros: FoodMacros(protein: 24.0, carbs: 5.0, fat: 15.0)),
+    FoodItem(name: 'Banana Blossom Curry',      calories: 95,  isGoan: true, imagePath: 'assets/images/food/dinner/banana_blossom_curry.jpg',  unit: 'per bowl',    macros: FoodMacros(protein: 3.5, carbs: 14.0, fat: 3.5)),
+    FoodItem(name: 'Goan Semolina Pudding',     calories: 260, isGoan: true, imagePath: 'assets/images/food/dinner/semolina_pudding.jpg',      unit: 'per serving', macros: FoodMacros(protein: 5.0, carbs: 40.0, fat: 9.0)),
+    FoodItem(name: 'Caldeirada (Fish Stew)',    calories: 175, isGoan: true, imagePath: 'assets/images/food/dinner/caldeirada.jpg',             unit: 'per bowl',    macros: FoodMacros(protein: 18.0, carbs: 8.0, fat: 7.5)),
+    FoodItem(name: 'Goan Pork Sorpotel',        calories: 350, isGoan: true, imagePath: 'assets/images/food/dinner/pork_sorpotel.jpg',         unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 5.0, fat: 26.0)),
+    FoodItem(name: 'Rava Fried Prawns',         calories: 225, isGoan: true, imagePath: 'assets/images/food/dinner/rava_prawns.jpg',           unit: 'per 100 g',   macros: FoodMacros(protein: 18.0, carbs: 12.0, fat: 11.0)),
+    FoodItem(name: 'Goan Lamb Xacuti',          calories: 285, isGoan: true, imagePath: 'assets/images/food/dinner/lamb_xacuti.jpg',           unit: 'per 100 g',   macros: FoodMacros(protein: 22.0, carbs: 8.0, fat: 18.0)),
+    FoodItem(name: 'Cutlet Pao',                calories: 340, isGoan: true, imagePath: 'assets/images/food/dinner/cutlet_pao.jpg',            unit: 'per serving', macros: FoodMacros(protein: 20.0, carbs: 30.0, fat: 14.0)),
+    FoodItem(name: 'Goan Prawn Pakoda',         calories: 190, isGoan: true, imagePath: 'assets/images/food/dinner/prawn_pakoda.jpg',          unit: 'per 100 g',   macros: FoodMacros(protein: 14.0, carbs: 12.0, fat: 10.0)),
+    FoodItem(name: 'Goan Bread Pudding',        calories: 275, isGoan: true, imagePath: 'assets/images/food/dinner/bread_pudding.jpg',         unit: 'per serving', macros: FoodMacros(protein: 6.0, carbs: 42.0, fat: 10.0)),
+    FoodItem(name: 'Sol Kadi (Post Dinner)',    calories: 45,  isGoan: true, imagePath: 'assets/images/food/dinner/sol_kadi.jpg',              unit: 'per glass',   macros: FoodMacros(protein: 1.2, carbs: 6.0, fat: 2.0)),
+    FoodItem(name: 'Goan Banana Halwa',         calories: 210, isGoan: true, imagePath: 'assets/images/food/dinner/banana_halwa.jpg',          unit: 'per serving', macros: FoodMacros(protein: 2.0, carbs: 40.0, fat: 6.0)),
+    FoodItem(name: 'Goan Kingfish Caldine',     calories: 185, isGoan: true, imagePath: 'assets/images/food/dinner/kingfish_caldine.jpg',        unit: 'per 100 g',   macros: FoodMacros(protein: 21.0, carbs: 4.0, fat: 10.0)),
+    // Existing Items
     FoodItem(name: 'Idli',          calories: 60,  imagePath: 'assets/images/food/breakfast/idli.webp',      unit: 'per piece', macros: FoodMacros(protein: 2.0, carbs: 12.0, fat: 0.4)),
     FoodItem(name: 'Rajma',         calories: 130, imagePath: 'assets/images/food/lunch/rajma.jpg',          unit: 'per 100 g', macros: FoodMacros(protein: 8.7, carbs: 22.0, fat: 0.5)),
     FoodItem(name: 'Fish Curry',    calories: 175, imagePath: 'assets/images/food/dinner/fish_curry.webp',   unit: 'per 100 g', macros: FoodMacros(protein: 20.0, carbs: 4.0, fat: 8.0)),
@@ -107,6 +268,8 @@ const MealCategory dinnerCategory = MealCategory(
   ],
 );
 
+// ── DRINKS ────────────────────────────────────────────────────────────────────
+
 const MealCategory drinksCategory = MealCategory(
   id: 'drinks',
   label: 'Drinks',
@@ -114,6 +277,58 @@ const MealCategory drinksCategory = MealCategory(
   colorValue: 0xFF3B82F6,
   bannerImage: 'assets/images/food/drinks_banner.jpg',
   items: [
+    // Goan Drinks
+    FoodItem(name: 'Cashew Feni',           calories: 65,  isGoan: true, imagePath: 'assets/images/food/drinks/cashew_feni.jpg',       unit: 'per 30 ml',   macros: FoodMacros(protein: 0.0, carbs: 0.0, fat: 0.0)),
+    FoodItem(name: 'Coconut Feni',          calories: 60,  isGoan: true, imagePath: 'assets/images/food/drinks/coconut_feni.jpg',      unit: 'per 30 ml',   macros: FoodMacros(protein: 0.0, carbs: 0.0, fat: 0.0)),
+    FoodItem(name: 'Urak',                  calories: 55,  isGoan: true, imagePath: 'assets/images/food/drinks/urak.jpg',              unit: 'per 30 ml',   macros: FoodMacros(protein: 0.0, carbs: 0.5, fat: 0.0)),
+    FoodItem(name: 'Kokum Sarbat',          calories: 80,  isGoan: true, imagePath: 'assets/images/food/drinks/kokum_sarbat.jpg',      unit: 'per glass',   macros: FoodMacros(protein: 0.3, carbs: 20.0, fat: 0.1)),
+    FoodItem(name: 'Sol Kadi',              calories: 45,  isGoan: true, imagePath: 'assets/images/food/drinks/sol_kadi.jpg',          unit: 'per glass',   macros: FoodMacros(protein: 1.2, carbs: 6.0, fat: 2.0)),
+    FoodItem(name: 'Toddy (Neera)',         calories: 70,  isGoan: true, imagePath: 'assets/images/food/drinks/toddy.jpg',             unit: 'per glass',   macros: FoodMacros(protein: 0.2, carbs: 8.0, fat: 0.0)),
+    FoodItem(name: 'Jackfruit Juice',       calories: 95,  isGoan: true, imagePath: 'assets/images/food/drinks/jackfruit_juice.jpg',   unit: 'per 200 ml',  macros: FoodMacros(protein: 1.0, carbs: 23.0, fat: 0.2)),
+    FoodItem(name: 'Cashew Apple Juice',    calories: 88,  isGoan: true, imagePath: 'assets/images/food/drinks/cashew_apple_juice.jpg',unit: 'per 200 ml',  macros: FoodMacros(protein: 0.5, carbs: 21.0, fat: 0.2)),
+    FoodItem(name: 'Goan Masala Lime Soda', calories: 90,  isGoan: true, imagePath: 'assets/images/food/drinks/masala_lime_soda.jpg',  unit: 'per glass',   macros: FoodMacros(protein: 0.3, carbs: 22.0, fat: 0.0)),
+    FoodItem(name: 'Raw Mango Panha',       calories: 75,  isGoan: true, imagePath: 'assets/images/food/drinks/mango_panha.jpg',       unit: 'per glass',   macros: FoodMacros(protein: 0.3, carbs: 18.0, fat: 0.1)),
+    FoodItem(name: 'Coconut Toddy',         calories: 65,  isGoan: true, imagePath: 'assets/images/food/drinks/coconut_toddy.jpg',     unit: 'per glass',   macros: FoodMacros(protein: 0.3, carbs: 9.0, fat: 0.2)),
+    FoodItem(name: 'Goan Rose Syrup Milk',  calories: 180, isGoan: true, imagePath: 'assets/images/food/drinks/rose_milk.jpg',         unit: 'per glass',   macros: FoodMacros(protein: 5.0, carbs: 32.0, fat: 4.0)),
+    FoodItem(name: 'Feni Cocktail (Limca)', calories: 130, isGoan: true, imagePath: 'assets/images/food/drinks/feni_cocktail.jpg',     unit: 'per glass',   macros: FoodMacros(protein: 0.0, carbs: 28.0, fat: 0.0)),
+    FoodItem(name: 'Tamarind Sherbet',      calories: 70,  isGoan: true, imagePath: 'assets/images/food/drinks/tamarind_sherbet.jpg',  unit: 'per glass',   macros: FoodMacros(protein: 0.4, carbs: 17.0, fat: 0.1)),
+    FoodItem(name: 'Goan Sugarcane Juice',  calories: 115, isGoan: true, imagePath: 'assets/images/food/drinks/sugarcane_juice.jpg',   unit: 'per glass',   macros: FoodMacros(protein: 0.2, carbs: 28.0, fat: 0.1)),
+    FoodItem(name: 'Star Fruit Juice',      calories: 60,  isGoan: true, imagePath: 'assets/images/food/drinks/star_fruit_juice.jpg',  unit: 'per 200 ml',  macros: FoodMacros(protein: 0.5, carbs: 14.0, fat: 0.1)),
+    FoodItem(name: 'Custard Apple Shake',   calories: 220, isGoan: true, imagePath: 'assets/images/food/drinks/custard_apple_shake.jpg', unit: 'per glass', macros: FoodMacros(protein: 5.0, carbs: 40.0, fat: 5.0)),
+    FoodItem(name: 'Coconut Lassi',         calories: 175, isGoan: true, imagePath: 'assets/images/food/drinks/coconut_lassi.jpg',     unit: 'per glass',   macros: FoodMacros(protein: 5.0, carbs: 26.0, fat: 6.5)),
+    FoodItem(name: 'Goan Tender Coconut Drink', calories: 50, isGoan: true, imagePath: 'assets/images/food/drinks/tender_coconut.jpg', unit: 'per 200 ml', macros: FoodMacros(protein: 0.4, carbs: 10.0, fat: 0.2)),
+    FoodItem(name: 'Bebinca Milkshake',     calories: 310, isGoan: true, imagePath: 'assets/images/food/drinks/bebinca_shake.jpg',     unit: 'per glass',   macros: FoodMacros(protein: 6.0, carbs: 48.0, fat: 12.0)),
+    FoodItem(name: 'Kokum Sherbet',         calories: 65,  isGoan: true, imagePath: 'assets/images/food/drinks/kokum_sherbet.jpg',     unit: 'per glass',   macros: FoodMacros(protein: 0.2, carbs: 16.0, fat: 0.1)),
+    FoodItem(name: 'Goan Spiced Buttermilk', calories: 55, isGoan: true, imagePath: 'assets/images/food/drinks/spiced_buttermilk.jpg', unit: 'per glass',  macros: FoodMacros(protein: 2.5, carbs: 6.0, fat: 2.0)),
+    FoodItem(name: 'Toddy Vinegar Drink',   calories: 40,  isGoan: true, imagePath: 'assets/images/food/drinks/toddy_vinegar.jpg',     unit: 'per glass',   macros: FoodMacros(protein: 0.1, carbs: 8.0, fat: 0.0)),
+    FoodItem(name: 'Goan Lime Feni',        calories: 95,  isGoan: true, imagePath: 'assets/images/food/drinks/lime_feni.jpg',         unit: 'per glass',   macros: FoodMacros(protein: 0.1, carbs: 8.0, fat: 0.0)),
+    FoodItem(name: 'Drumstick Leaf Juice',  calories: 30,  isGoan: true, imagePath: 'assets/images/food/drinks/drumstick_juice.jpg',   unit: 'per glass',   macros: FoodMacros(protein: 1.5, carbs: 5.0, fat: 0.2)),
+    FoodItem(name: 'Palm Toddy',            calories: 72,  isGoan: true, imagePath: 'assets/images/food/drinks/palm_toddy.jpg',        unit: 'per glass',   macros: FoodMacros(protein: 0.2, carbs: 9.0, fat: 0.0)),
+    FoodItem(name: 'Ripe Jackfruit Shake',  calories: 185, isGoan: true, imagePath: 'assets/images/food/drinks/jackfruit_shake.jpg',   unit: 'per glass',   macros: FoodMacros(protein: 2.5, carbs: 40.0, fat: 1.5)),
+    FoodItem(name: 'Goan Watermelon Juice', calories: 50,  isGoan: true, imagePath: 'assets/images/food/drinks/watermelon_juice.jpg',  unit: 'per 200 ml',  macros: FoodMacros(protein: 0.5, carbs: 12.0, fat: 0.2)),
+    FoodItem(name: 'Goan Nannari Sherbet',  calories: 85,  isGoan: true, imagePath: 'assets/images/food/drinks/nannari_sherbet.jpg',   unit: 'per glass',   macros: FoodMacros(protein: 0.1, carbs: 21.0, fat: 0.0)),
+    FoodItem(name: 'Goa King Beer (Local)', calories: 150, isGoan: true, imagePath: 'assets/images/food/drinks/goa_beer.jpg',          unit: 'per 330 ml',  macros: FoodMacros(protein: 1.0, carbs: 12.0, fat: 0.0)),
+    FoodItem(name: 'Papaya Lassi',          calories: 165, isGoan: true, imagePath: 'assets/images/food/drinks/papaya_lassi.jpg',      unit: 'per glass',   macros: FoodMacros(protein: 4.5, carbs: 30.0, fat: 4.0)),
+    FoodItem(name: 'Goan Tamarind Water',   calories: 45,  isGoan: true, imagePath: 'assets/images/food/drinks/tamarind_water.jpg',    unit: 'per glass',   macros: FoodMacros(protein: 0.2, carbs: 11.0, fat: 0.0)),
+    FoodItem(name: 'Feni Toddy Mix',        calories: 110, isGoan: true, imagePath: 'assets/images/food/drinks/feni_toddy_mix.jpg',    unit: 'per glass',   macros: FoodMacros(protein: 0.1, carbs: 10.0, fat: 0.0)),
+    FoodItem(name: 'Goan Mango Kokum',      calories: 95,  isGoan: true, imagePath: 'assets/images/food/drinks/mango_kokum.jpg',       unit: 'per glass',   macros: FoodMacros(protein: 0.4, carbs: 23.0, fat: 0.1)),
+    FoodItem(name: 'Sapota Milkshake',      calories: 245, isGoan: true, imagePath: 'assets/images/food/drinks/sapota_shake.jpg',      unit: 'per glass',   macros: FoodMacros(protein: 5.0, carbs: 44.0, fat: 5.5)),
+    FoodItem(name: 'Goan Moringa Tea',      calories: 15,  isGoan: true, imagePath: 'assets/images/food/drinks/moringa_tea.jpg',       unit: 'per cup',     macros: FoodMacros(protein: 0.5, carbs: 2.5, fat: 0.1)),
+    FoodItem(name: 'Coconut Punch',         calories: 120, isGoan: true, imagePath: 'assets/images/food/drinks/coconut_punch.jpg',     unit: 'per glass',   macros: FoodMacros(protein: 0.8, carbs: 20.0, fat: 4.0)),
+    FoodItem(name: 'Goan Guava Juice',      calories: 60,  isGoan: true, imagePath: 'assets/images/food/drinks/guava_juice.jpg',       unit: 'per 200 ml',  macros: FoodMacros(protein: 0.5, carbs: 14.0, fat: 0.2)),
+    FoodItem(name: 'Goan Pineapple Kokum',  calories: 88,  isGoan: true, imagePath: 'assets/images/food/drinks/pineapple_kokum.jpg',   unit: 'per glass',   macros: FoodMacros(protein: 0.4, carbs: 21.0, fat: 0.1)),
+    FoodItem(name: 'Banana Flower Tea',     calories: 12,  isGoan: true, imagePath: 'assets/images/food/drinks/banana_flower_tea.jpg', unit: 'per cup',     macros: FoodMacros(protein: 0.3, carbs: 2.0, fat: 0.1)),
+    FoodItem(name: 'Goan Turmeric Milk',    calories: 140, isGoan: true, imagePath: 'assets/images/food/drinks/turmeric_milk.jpg',     unit: 'per glass',   macros: FoodMacros(protein: 5.0, carbs: 16.0, fat: 5.5)),
+    FoodItem(name: 'Sour Hog Plum Juice',   calories: 35,  isGoan: true, imagePath: 'assets/images/food/drinks/hog_plum_juice.jpg',    unit: 'per glass',   macros: FoodMacros(protein: 0.2, carbs: 8.0, fat: 0.1)),
+    FoodItem(name: 'Goan Lemongrass Tea',   calories: 8,   isGoan: true, imagePath: 'assets/images/food/drinks/lemongrass_tea.jpg',    unit: 'per cup',     macros: FoodMacros(protein: 0.1, carbs: 1.5, fat: 0.0)),
+    FoodItem(name: 'Wood Apple Sherbet',    calories: 120, isGoan: true, imagePath: 'assets/images/food/drinks/wood_apple_sherbet.jpg',unit: 'per glass',   macros: FoodMacros(protein: 1.0, carbs: 28.0, fat: 0.5)),
+    FoodItem(name: 'Goan Ivy Gourd Juice',  calories: 25,  isGoan: true, imagePath: 'assets/images/food/drinks/ivy_gourd_juice.jpg',   unit: 'per glass',   macros: FoodMacros(protein: 0.5, carbs: 5.0, fat: 0.1)),
+    FoodItem(name: 'Goan Bimbo Feni Soda',  calories: 105, isGoan: true, imagePath: 'assets/images/food/drinks/bimbo_feni_soda.jpg',   unit: 'per glass',   macros: FoodMacros(protein: 0.0, carbs: 14.0, fat: 0.0)),
+    FoodItem(name: 'Kokum Buttermilk',      calories: 60,  isGoan: true, imagePath: 'assets/images/food/drinks/kokum_buttermilk.jpg',  unit: 'per glass',   macros: FoodMacros(protein: 2.0, carbs: 8.0, fat: 2.0)),
+    FoodItem(name: 'Goan Mango Thandai',    calories: 190, isGoan: true, imagePath: 'assets/images/food/drinks/mango_thandai.jpg',     unit: 'per glass',   macros: FoodMacros(protein: 5.0, carbs: 34.0, fat: 5.0)),
+    FoodItem(name: 'Haldi Doodh (Goan)',    calories: 135, isGoan: true, imagePath: 'assets/images/food/drinks/haldi_doodh.jpg',       unit: 'per glass',   macros: FoodMacros(protein: 4.5, carbs: 15.0, fat: 5.5)),
+    FoodItem(name: 'Goan Aloe Vera Juice',  calories: 20,  isGoan: true, imagePath: 'assets/images/food/drinks/aloe_vera_juice.jpg',   unit: 'per glass',   macros: FoodMacros(protein: 0.2, carbs: 4.0, fat: 0.0)),
+    // Existing Items
     FoodItem(name: 'Lemon Soda',      calories: 150, imagePath: 'assets/images/food/drinks/lemon_soda.jpeg',     unit: 'per glass',  macros: FoodMacros(protein: 0.2, carbs: 38.0, fat: 0.0)),
     FoodItem(name: 'Apple Juice',     calories: 115, imagePath: 'assets/images/food/drinks/apple_juice.jpg',     unit: 'per 200 ml', macros: FoodMacros(protein: 0.4, carbs: 28.0, fat: 0.2)),
     FoodItem(name: 'Pineapple Juice', calories: 130, imagePath: 'assets/images/food/drinks/pineapple_juice.jpg', unit: 'per 200 ml', macros: FoodMacros(protein: 0.5, carbs: 32.0, fat: 0.1)),
@@ -130,6 +345,8 @@ const MealCategory drinksCategory = MealCategory(
   ],
 );
 
+// ── FRUITS ────────────────────────────────────────────────────────────────────
+
 const MealCategory fruitsCategory = MealCategory(
   id: 'fruits',
   label: 'Fruits',
@@ -137,11 +354,63 @@ const MealCategory fruitsCategory = MealCategory(
   colorValue: 0xFFEC4899,
   bannerImage: 'assets/images/food/fruits_banner.jpg',
   items: [
-    FoodItem(name: 'Apple',        calories: 52, imagePath: 'assets/images/food/fruits/apple.jpg',      unit: 'per 100 g', macros: FoodMacros(protein: 0.3, carbs: 14.0, fat: 0.2)),
-    FoodItem(name: 'Mango',        calories: 60, imagePath: 'assets/images/food/fruits/mango.webp',     unit: 'per 100 g', macros: FoodMacros(protein: 0.8, carbs: 15.0, fat: 0.4)),
-    FoodItem(name: 'Chiku',        calories: 83, imagePath: 'assets/images/food/fruits/chiku.webp',     unit: 'per 100 g', macros: FoodMacros(protein: 0.4, carbs: 20.0, fat: 1.1)),
-    FoodItem(name: 'Pineapple',    calories: 50, imagePath: 'assets/images/food/fruits/pineapple.jpg',  unit: 'per 100 g', macros: FoodMacros(protein: 0.5, carbs: 13.0, fat: 0.1)),
-    FoodItem(name: 'Mixed Fruits', calories: 65, imagePath: 'assets/images/food/fruits/mixed_fruit.jpg',unit: 'per bowl',  macros: FoodMacros(protein: 0.7, carbs: 16.0, fat: 0.3)),
+    // Goan Fruits
+    FoodItem(name: 'Cashew Apple',          calories: 57,  isGoan: true, imagePath: 'assets/images/food/fruits/cashew_apple.jpg',       unit: 'per 100 g', macros: FoodMacros(protein: 0.5, carbs: 13.0, fat: 0.1)),
+    FoodItem(name: 'Jackfruit',             calories: 95,  isGoan: true, imagePath: 'assets/images/food/fruits/jackfruit.jpg',           unit: 'per 100 g', macros: FoodMacros(protein: 1.7, carbs: 23.0, fat: 0.3)),
+    FoodItem(name: 'Kokum',                 calories: 30,  isGoan: true, imagePath: 'assets/images/food/fruits/kokum.jpg',               unit: 'per 100 g', macros: FoodMacros(protein: 0.5, carbs: 7.0, fat: 0.1)),
+    FoodItem(name: 'Star Fruit (Carambola)',calories: 31,  isGoan: true, imagePath: 'assets/images/food/fruits/star_fruit.jpg',          unit: 'per 100 g', macros: FoodMacros(protein: 1.0, carbs: 7.0, fat: 0.3)),
+    FoodItem(name: 'Wood Apple (Kavath)',   calories: 134, isGoan: true, imagePath: 'assets/images/food/fruits/wood_apple.jpg',          unit: 'per 100 g', macros: FoodMacros(protein: 7.1, carbs: 18.0, fat: 3.7)),
+    FoodItem(name: 'Custard Apple (Sitaphal)', calories: 94, isGoan: true, imagePath: 'assets/images/food/fruits/custard_apple.jpg',    unit: 'per 100 g', macros: FoodMacros(protein: 2.1, carbs: 23.0, fat: 0.6)),
+    FoodItem(name: 'Local Banana (Velchi)', calories: 89,  isGoan: true, imagePath: 'assets/images/food/fruits/velchi_banana.jpg',       unit: 'per 100 g', macros: FoodMacros(protein: 1.1, carbs: 23.0, fat: 0.3)),
+    FoodItem(name: 'Papaya',               calories: 43,  isGoan: true, imagePath: 'assets/images/food/fruits/papaya.jpg',              unit: 'per 100 g', macros: FoodMacros(protein: 0.5, carbs: 11.0, fat: 0.3)),
+    FoodItem(name: 'Hog Plum (Ambade)',    calories: 66,  isGoan: true, imagePath: 'assets/images/food/fruits/hog_plum.jpg',            unit: 'per 100 g', macros: FoodMacros(protein: 0.7, carbs: 15.0, fat: 0.3)),
+    FoodItem(name: 'Ripe Jackfruit',       calories: 98,  isGoan: true, imagePath: 'assets/images/food/fruits/ripe_jackfruit.jpg',      unit: 'per 100 g', macros: FoodMacros(protein: 1.7, carbs: 24.0, fat: 0.3)),
+    FoodItem(name: 'Coconut (Fresh)',      calories: 354, isGoan: true, imagePath: 'assets/images/food/fruits/fresh_coconut.jpg',       unit: 'per 100 g', macros: FoodMacros(protein: 3.3, carbs: 15.0, fat: 33.0)),
+    FoodItem(name: 'Drumstick (Moringa Fruit)', calories: 37, isGoan: true, imagePath: 'assets/images/food/fruits/drumstick.jpg',       unit: 'per 100 g', macros: FoodMacros(protein: 2.1, carbs: 8.0, fat: 0.2)),
+    FoodItem(name: 'Ivy Gourd (Tendli)',   calories: 20,  isGoan: true, imagePath: 'assets/images/food/fruits/ivy_gourd.jpg',           unit: 'per 100 g', macros: FoodMacros(protein: 1.2, carbs: 4.0, fat: 0.1)),
+    FoodItem(name: 'Indian Gooseberry (Amla)', calories: 44, isGoan: true, imagePath: 'assets/images/food/fruits/amla.jpg',             unit: 'per 100 g', macros: FoodMacros(protein: 0.9, carbs: 10.0, fat: 0.6)),
+    FoodItem(name: 'Black Plum (Jamun)',   calories: 60,  isGoan: true, imagePath: 'assets/images/food/fruits/jamun.jpg',               unit: 'per 100 g', macros: FoodMacros(protein: 0.7, carbs: 14.0, fat: 0.2)),
+    FoodItem(name: 'Sapota (Chikoo)',      calories: 83,  isGoan: true, imagePath: 'assets/images/food/fruits/sapota.jpg',              unit: 'per 100 g', macros: FoodMacros(protein: 0.4, carbs: 20.0, fat: 1.1)),
+    FoodItem(name: 'Guava (Local)',        calories: 68,  isGoan: true, imagePath: 'assets/images/food/fruits/guava.jpg',               unit: 'per 100 g', macros: FoodMacros(protein: 2.6, carbs: 14.0, fat: 1.0)),
+    FoodItem(name: 'Indian Fig (Anjeer)',  calories: 74,  isGoan: true, imagePath: 'assets/images/food/fruits/indian_fig.jpg',          unit: 'per 100 g', macros: FoodMacros(protein: 0.8, carbs: 19.0, fat: 0.3)),
+    FoodItem(name: 'Breadfruit (Nirphanas)', calories: 103, isGoan: true, imagePath: 'assets/images/food/fruits/breadfruit.jpg',        unit: 'per 100 g', macros: FoodMacros(protein: 1.1, carbs: 27.0, fat: 0.2)),
+    FoodItem(name: 'Tamarind (Raw)',       calories: 239, isGoan: true, imagePath: 'assets/images/food/fruits/tamarind.jpg',            unit: 'per 100 g', macros: FoodMacros(protein: 2.8, carbs: 63.0, fat: 0.6)),
+    FoodItem(name: 'Java Plum',           calories: 60,  isGoan: true, imagePath: 'assets/images/food/fruits/java_plum.jpg',           unit: 'per 100 g', macros: FoodMacros(protein: 0.7, carbs: 14.0, fat: 0.2)),
+    FoodItem(name: 'Bimbol (Bilimbi)',     calories: 35,  isGoan: true, imagePath: 'assets/images/food/fruits/bilimbi.jpg',             unit: 'per 100 g', macros: FoodMacros(protein: 0.6, carbs: 8.0, fat: 0.1)),
+    FoodItem(name: 'Wild Berries (Karwanda)', calories: 42, isGoan: true, imagePath: 'assets/images/food/fruits/karwanda.jpg',          unit: 'per 100 g', macros: FoodMacros(protein: 0.5, carbs: 10.0, fat: 0.3)),
+    FoodItem(name: 'Goa Mango (Mankurad)', calories: 60,  isGoan: true, imagePath: 'assets/images/food/fruits/mankurad_mango.jpg',      unit: 'per 100 g', macros: FoodMacros(protein: 0.8, carbs: 15.0, fat: 0.4)),
+    FoodItem(name: 'Goa Mango (Alphonso)', calories: 60,  isGoan: true, imagePath: 'assets/images/food/fruits/alphonso_mango.jpg',      unit: 'per 100 g', macros: FoodMacros(protein: 0.8, carbs: 15.0, fat: 0.4)),
+    FoodItem(name: 'Banana Fig (Rajeli)',  calories: 95,  isGoan: true, imagePath: 'assets/images/food/fruits/rajeli_banana.jpg',       unit: 'per 100 g', macros: FoodMacros(protein: 1.2, carbs: 23.0, fat: 0.4)),
+    FoodItem(name: 'Pineapple (Local Goan)', calories: 50, isGoan: true, imagePath: 'assets/images/food/fruits/goan_pineapple.jpg',    unit: 'per 100 g', macros: FoodMacros(protein: 0.5, carbs: 13.0, fat: 0.1)),
+    FoodItem(name: 'Sweet Lime (Mosambi)', calories: 43,  isGoan: true, imagePath: 'assets/images/food/fruits/mosambi.jpg',             unit: 'per 100 g', macros: FoodMacros(protein: 0.7, carbs: 10.0, fat: 0.3)),
+    FoodItem(name: 'Pomelo',              calories: 38,  isGoan: true, imagePath: 'assets/images/food/fruits/pomelo.jpg',              unit: 'per 100 g', macros: FoodMacros(protein: 0.8, carbs: 9.0, fat: 0.1)),
+    FoodItem(name: 'Elephant Apple (Karmbal)', calories: 55, isGoan: true, imagePath: 'assets/images/food/fruits/elephant_apple.jpg',  unit: 'per 100 g', macros: FoodMacros(protein: 0.7, carbs: 13.0, fat: 0.2)),
+    FoodItem(name: 'Toddy Palm Fruit',    calories: 87,  isGoan: true, imagePath: 'assets/images/food/fruits/toddy_palm.jpg',          unit: 'per 100 g', macros: FoodMacros(protein: 0.4, carbs: 21.0, fat: 0.2)),
+    FoodItem(name: 'Plantain (Raw Banan)',  calories: 122, isGoan: true, imagePath: 'assets/images/food/fruits/plantain.jpg',           unit: 'per 100 g', macros: FoodMacros(protein: 1.3, carbs: 32.0, fat: 0.4)),
+    FoodItem(name: 'Watermelon (Summer)',  calories: 30,  isGoan: true, imagePath: 'assets/images/food/fruits/watermelon.jpg',          unit: 'per 100 g', macros: FoodMacros(protein: 0.6, carbs: 7.6, fat: 0.2)),
+    FoodItem(name: 'Local Lime (Nimbu)',   calories: 29,  isGoan: true, imagePath: 'assets/images/food/fruits/local_lime.jpg',          unit: 'per 100 g', macros: FoodMacros(protein: 0.7, carbs: 9.0, fat: 0.2)),
+    FoodItem(name: 'Indian Mulberry',     calories: 43,  isGoan: true, imagePath: 'assets/images/food/fruits/indian_mulberry.jpg',     unit: 'per 100 g', macros: FoodMacros(protein: 0.9, carbs: 10.0, fat: 0.3)),
+    FoodItem(name: 'Goan Kokum Dried',    calories: 95,  isGoan: true, imagePath: 'assets/images/food/fruits/kokum_dried.jpg',         unit: 'per 30 g',  macros: FoodMacros(protein: 0.5, carbs: 22.0, fat: 0.3)),
+    FoodItem(name: 'Banana (Moira)',      calories: 90,  isGoan: true, imagePath: 'assets/images/food/fruits/moira_banana.jpg',         unit: 'per 100 g', macros: FoodMacros(protein: 1.1, carbs: 23.0, fat: 0.3)),
+    FoodItem(name: 'Lotus Fruit',         calories: 89,  isGoan: true, imagePath: 'assets/images/food/fruits/lotus_fruit.jpg',         unit: 'per 100 g', macros: FoodMacros(protein: 4.0, carbs: 17.0, fat: 0.1)),
+    FoodItem(name: 'Indian Jujube (Ber)', calories: 79,  isGoan: true, imagePath: 'assets/images/food/fruits/ber.jpg',                 unit: 'per 100 g', macros: FoodMacros(protein: 1.2, carbs: 20.0, fat: 0.2)),
+    FoodItem(name: 'Goa Rose Apple (Jambu)', calories: 25, isGoan: true, imagePath: 'assets/images/food/fruits/rose_apple.jpg',        unit: 'per 100 g', macros: FoodMacros(protein: 0.6, carbs: 5.7, fat: 0.3)),
+    FoodItem(name: 'Fig (Anjiri)',         calories: 74,  isGoan: true, imagePath: 'assets/images/food/fruits/anjiri.jpg',              unit: 'per 100 g', macros: FoodMacros(protein: 0.8, carbs: 19.0, fat: 0.3)),
+    FoodItem(name: 'Lychee (Seasonal)',   calories: 66,  isGoan: true, imagePath: 'assets/images/food/fruits/lychee.jpg',              unit: 'per 100 g', macros: FoodMacros(protein: 0.8, carbs: 17.0, fat: 0.4)),
+    FoodItem(name: 'Rambutan',            calories: 68,  isGoan: true, imagePath: 'assets/images/food/fruits/rambutan.jpg',            unit: 'per 100 g', macros: FoodMacros(protein: 0.9, carbs: 16.0, fat: 0.2)),
+    FoodItem(name: 'Dragon Fruit',        calories: 60,  isGoan: true, imagePath: 'assets/images/food/fruits/dragon_fruit.jpg',        unit: 'per 100 g', macros: FoodMacros(protein: 1.2, carbs: 13.0, fat: 0.4)),
+    FoodItem(name: 'Kiwi (Available in Goa)', calories: 61, isGoan: true, imagePath: 'assets/images/food/fruits/kiwi.jpg',             unit: 'per 100 g', macros: FoodMacros(protein: 1.1, carbs: 15.0, fat: 0.5)),
+    FoodItem(name: 'Passion Fruit',       calories: 97,  isGoan: true, imagePath: 'assets/images/food/fruits/passion_fruit.jpg',       unit: 'per 100 g', macros: FoodMacros(protein: 2.2, carbs: 23.0, fat: 0.7)),
+    FoodItem(name: 'Santol (Cotton Fruit)', calories: 57, isGoan: true, imagePath: 'assets/images/food/fruits/santol.jpg',             unit: 'per 100 g', macros: FoodMacros(protein: 0.6, carbs: 13.0, fat: 0.2)),
+    FoodItem(name: 'Longan',              calories: 60,  isGoan: true, imagePath: 'assets/images/food/fruits/longan.jpg',              unit: 'per 100 g', macros: FoodMacros(protein: 1.3, carbs: 15.0, fat: 0.1)),
+    FoodItem(name: 'Mangosteen',          calories: 73,  isGoan: true, imagePath: 'assets/images/food/fruits/mangosteen.jpg',          unit: 'per 100 g', macros: FoodMacros(protein: 0.4, carbs: 18.0, fat: 0.6)),
+    FoodItem(name: 'Coconut Kernel',      calories: 354, isGoan: true, imagePath: 'assets/images/food/fruits/coconut_kernel.jpg',      unit: 'per 100 g', macros: FoodMacros(protein: 3.3, carbs: 15.0, fat: 33.0)),
+    // Existing Items
+    FoodItem(name: 'Apple',        calories: 52, imagePath: 'assets/images/food/fruits/apple.jpg',       unit: 'per 100 g', macros: FoodMacros(protein: 0.3, carbs: 14.0, fat: 0.2)),
+    FoodItem(name: 'Mango',        calories: 60, imagePath: 'assets/images/food/fruits/mango.webp',      unit: 'per 100 g', macros: FoodMacros(protein: 0.8, carbs: 15.0, fat: 0.4)),
+    FoodItem(name: 'Chiku',        calories: 83, imagePath: 'assets/images/food/fruits/chiku.webp',      unit: 'per 100 g', macros: FoodMacros(protein: 0.4, carbs: 20.0, fat: 1.1)),
+    FoodItem(name: 'Pineapple',    calories: 50, imagePath: 'assets/images/food/fruits/pineapple.jpg',   unit: 'per 100 g', macros: FoodMacros(protein: 0.5, carbs: 13.0, fat: 0.1)),
+    FoodItem(name: 'Mixed Fruits', calories: 65, imagePath: 'assets/images/food/fruits/mixed_fruit.jpg', unit: 'per bowl',  macros: FoodMacros(protein: 0.7, carbs: 16.0, fat: 0.3)),
   ],
 );
 
