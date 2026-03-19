@@ -171,6 +171,75 @@ class FoodStorageService {
     } catch (e) { developer.log('[FoodStorage] toggleFavourite: $e'); }
   }
 
+  // ── Custom Items (user-added, saved permanently per category) ────────────────
+  // Stored as JSON list under key: food_custom_items_<categoryId>
+  // NOT reset on new day — these persist forever until manually removed.
+
+  static String _customItemsKey(String catId) => 'food_custom_items_$catId';
+
+  static Future<List<FoodItem>> getCustomItems(String catId) async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final raw = p.getString(_customItemsKey(catId));
+      if (raw == null) return [];
+      final List decoded = jsonDecode(raw);
+      return decoded.map((e) => FoodItem(
+        name:      e['name']     as String,
+        calories:  e['calories'] as int,
+        imagePath: e['imagePath'] as String? ?? 'assets/images/food/food_icon.png',
+        unit:      e['unit']     as String?,
+        macros: FoodMacros(
+          protein: (e['protein'] as num?)?.toDouble() ?? 0.0,
+          carbs:   (e['carbs']   as num?)?.toDouble() ?? 0.0,
+          fat:     (e['fat']     as num?)?.toDouble() ?? 0.0,
+        ),
+      )).toList();
+    } catch (e) {
+      developer.log('[FoodStorage] getCustomItems: $e');
+      return [];
+    }
+  }
+
+  static Future<void> saveCustomItem(String catId, FoodItem item) async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final existing = await getCustomItems(catId);
+      existing.add(item);
+      final encoded = existing.map((i) => {
+        'name':      i.name,
+        'calories':  i.calories,
+        'imagePath': i.imagePath,
+        'unit':      i.unit,
+        'protein':   i.macros.protein,
+        'carbs':     i.macros.carbs,
+        'fat':       i.macros.fat,
+      }).toList();
+      await p.setString(_customItemsKey(catId), jsonEncode(encoded));
+    } catch (e) {
+      developer.log('[FoodStorage] saveCustomItem: $e');
+    }
+  }
+
+  static Future<void> deleteCustomItem(String catId, String name) async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final existing = await getCustomItems(catId);
+      existing.removeWhere((i) => i.name == name);
+      final encoded = existing.map((i) => {
+        'name':      i.name,
+        'calories':  i.calories,
+        'imagePath': i.imagePath,
+        'unit':      i.unit,
+        'protein':   i.macros.protein,
+        'carbs':     i.macros.carbs,
+        'fat':       i.macros.fat,
+      }).toList();
+      await p.setString(_customItemsKey(catId), jsonEncode(encoded));
+    } catch (e) {
+      developer.log('[FoodStorage] deleteCustomItem: $e');
+    }
+  }
+
   // ── Water ─────────────────────────────────────────────────────────────────────
 
   static Future<int> getWaterMl() async {

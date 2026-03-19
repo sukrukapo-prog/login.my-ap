@@ -673,6 +673,20 @@ class FirestoreService {
     } catch (_) { return 0; }
   }
 
+  static Future<int> getBurnedCaloriesToday() async {
+    if (!_isLoggedIn) return 0;
+    try {
+      final now      = DateTime.now();
+      final todayKey = '${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}';
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('workouts')
+          .where('date', isEqualTo: todayKey)
+          .get();
+      return snap.docs.fold<int>(
+          0, (sum, d) => sum + ((d.data()['caloriesBurned'] as int?) ?? 0));
+    } catch (_) { return 0; }
+  }
+
   static Future<List<Map<String, dynamic>>> getNotificationHistory() async {
     if (!_isLoggedIn) return [];
     try {

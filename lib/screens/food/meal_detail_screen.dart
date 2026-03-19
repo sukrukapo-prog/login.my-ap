@@ -30,7 +30,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   String _searchQuery = '';
 
   // Custom items added manually this session
-  final List<_CustomItem> _customItems = [];
+
 
   late List<_IndexedItem> _sortedItems;
   List<_IndexedItem>      _filteredItems = [];
@@ -53,28 +53,47 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     super.dispose();
   }
 
+  // Combined list: built-in items first, then custom items
+  // Indices 0..N-1 = built-in, N.. = custom
+  List<FoodItem> _customItems = [];
+
   Future<void> _load() async {
-    final saved = await FoodStorageService.getCalories(widget.category.id);
-    final log   = await FoodStorageService.getLog(widget.category.id);
-    final favs  = await FoodStorageService.getFavourites();
+    final saved   = await FoodStorageService.getCalories(widget.category.id);
+    final log     = await FoodStorageService.getLog(widget.category.id);
+    final favs    = await FoodStorageService.getFavourites();
+    final customs = await FoodStorageService.getCustomItems(widget.category.id);
     if (!mounted) return;
     setState(() {
-      _savedTotal = saved;
-      _log        = log;
-      _favourites = favs;
+      _savedTotal  = saved;
+      _log         = log;
+      _favourites  = favs;
+      _customItems = customs;
       _rebuildSorted();
     });
   }
 
   void _rebuildSorted() {
-    final items = widget.category.items;
-    final catId = widget.category.id;
+    final builtIn = widget.category.items;
+    final catId   = widget.category.id;
+
     final favItems  = <_IndexedItem>[];
     final restItems = <_IndexedItem>[];
-    for (int i = 0; i < items.length; i++) {
-      final isFav = _favourites.contains('$catId::${items[i].name}');
-      (isFav ? favItems : restItems).add(_IndexedItem(index: i, item: items[i], isCustom: false));
+
+    // Built-in items (index 0..builtIn.length-1)
+    for (int i = 0; i < builtIn.length; i++) {
+      final isFav = _favourites.contains('$catId::${builtIn[i].name}');
+      (isFav ? favItems : restItems).add(
+          _IndexedItem(index: i, item: builtIn[i], isCustom: false));
     }
+
+    // Custom items (index builtIn.length .. builtIn.length+custom.length-1)
+    for (int i = 0; i < _customItems.length; i++) {
+      final globalIdx = builtIn.length + i;
+      final isFav = _favourites.contains('$catId::${_customItems[i].name}');
+      (isFav ? favItems : restItems).add(
+          _IndexedItem(index: globalIdx, item: _customItems[i], isCustom: true));
+    }
+
     _sortedItems = [...favItems, ...restItems];
     _applyFilter();
   }
@@ -89,10 +108,17 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     }
   }
 
+  // Resolve a global index → FoodItem (built-in or custom)
+  FoodItem _itemAt(int globalIdx) {
+    final builtIn = widget.category.items;
+    if (globalIdx < builtIn.length) return builtIn[globalIdx];
+    return _customItems[globalIdx - builtIn.length];
+  }
+
   void _recalculate() {
     int total = 0;
     for (final idx in _selected) {
-      total += widget.category.items[idx].calories * (_quantities[idx] ?? 1);
+      total += _itemAt(idx).calories * (_quantities[idx] ?? 1);
     }
     setState(() => _selectedTotal = total);
   }
@@ -100,7 +126,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   Future<void> _saveSelected() async {
     if (_selected.isEmpty) return;
     for (final idx in _selected) {
-      final item = widget.category.items[idx];
+      final item = _itemAt(idx);
       final qty  = _quantities[idx] ?? 1;
       final cal  = item.calories * qty;
       await FoodStorageService.addCalories(widget.category.id, cal);
@@ -136,222 +162,25 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   // ── Manual Add Item bottom sheet ──────────────────────────────────────────
 
   Future<void> _showManualAddSheet() async {
-    final color = Color(widget.category.colorValue);
-    final nameCtrl    = TextEditingController();
-    final calCtrl     = TextEditingController();
-    final proteinCtrl = TextEditingController();
-    final carbsCtrl   = TextEditingController();
-    final fatCtrl     = TextEditingController();
-    final unitCtrl    = TextEditingController();
-
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setModalState) {
-          bool nameEmpty = false;
-          bool calEmpty  = false;
-
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-                20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                            color: color.withAlpha(30),
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Icon(Icons.add_circle_outline, color: color, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Add Custom Item',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800)),
-                          Text('to ${widget.category.label}',
-                              style: TextStyle(color: color, fontSize: 12)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Food name
-                  _SheetField(
-                    label: 'Food Name *',
-                    hint: 'e.g. Goan Xacuti',
-                    controller: nameCtrl,
-                    accentColor: color,
-                    keyboardType: TextInputType.text,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Calories (required) + Unit (optional) side by side
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: _SheetField(
-                          label: 'Calories *',
-                          hint: 'e.g. 250',
-                          controller: calCtrl,
-                          accentColor: color,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          suffix: 'kcal',
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 3,
-                        child: _SheetField(
-                          label: 'Unit (optional)',
-                          hint: 'e.g. per bowl',
-                          controller: unitCtrl,
-                          accentColor: color,
-                          keyboardType: TextInputType.text,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Macros label
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10, bottom: 8),
-                    child: Row(
-                      children: [
-                        const Text('Macros',
-                            style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(12),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text('optional',
-                              style: TextStyle(color: Colors.white38, fontSize: 10)),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Macros row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SheetField(
-                          label: 'Protein',
-                          hint: '0',
-                          controller: proteinCtrl,
-                          accentColor: const Color(0xFF3B82F6),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
-                          suffix: 'g',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _SheetField(
-                          label: 'Carbs',
-                          hint: '0',
-                          controller: carbsCtrl,
-                          accentColor: const Color(0xFFF59E0B),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
-                          suffix: 'g',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _SheetField(
-                          label: 'Fat',
-                          hint: '0',
-                          controller: fatCtrl,
-                          accentColor: const Color(0xFFEF4444),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
-                          suffix: 'g',
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 22),
-
-                  // Save button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: color,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                        elevation: 0,
-                      ),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Add to Log',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                      onPressed: () async {
-                        final name = nameCtrl.text.trim();
-                        final cal  = int.tryParse(calCtrl.text.trim()) ?? 0;
-                        if (name.isEmpty || cal <= 0) return;
-
-                        final protein = double.tryParse(proteinCtrl.text.trim()) ?? 0.0;
-                        final carbs   = double.tryParse(carbsCtrl.text.trim()) ?? 0.0;
-                        final fat     = double.tryParse(fatCtrl.text.trim()) ?? 0.0;
-                        final unit    = unitCtrl.text.trim().isEmpty ? null : unitCtrl.text.trim();
-
-                        // Save directly to log (qty = 1)
-                        await FoodStorageService.addCalories(widget.category.id, cal);
-                        await FoodStorageService.appendLog(widget.category.id, name, 1, cal);
-
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        await _load();
-                        if (mounted) {
-                          setState(() => _justSaved = true);
-                          Future.delayed(const Duration(seconds: 2), () {
-                            if (mounted) setState(() => _justSaved = false);
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        });
-      },
+      builder: (_) => _ManualAddSheet(
+        category: widget.category,
+        onSaved: () async {
+          await _load();
+          if (mounted) {
+            setState(() => _justSaved = true);
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) setState(() => _justSaved = false);
+            });
+          }
+        },
+      ),
     );
-
-    nameCtrl.dispose();
-    calCtrl.dispose();
-    proteinCtrl.dispose();
-    carbsCtrl.dispose();
-    fatCtrl.dispose();
-    unitCtrl.dispose();
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -488,6 +317,22 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                         : '${_filteredItems.length} result${_filteredItems.length == 1 ? '' : 's'}',
                     style: TextStyle(color: Colors.white.withAlpha(60), fontSize: 11),
                   ),
+                  if (_customItems.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: color.withAlpha(22),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: color.withAlpha(60)),
+                      ),
+                      child: Text('${_customItems.length} custom',
+                          style: TextStyle(
+                              color: color,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ],
                   const Spacer(),
                   if (_sortedItems.any(
                           (e) => _favourites.contains('${cat.id}::${e.item.name}')))
@@ -565,7 +410,8 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                     final i     = entry.index;
                     final isFav =
                     _favourites.contains('${cat.id}::${entry.item.name}');
-                    return FoodItemTile(
+
+                    final tile = FoodItemTile(
                       item: entry.item,
                       isSelected: _selected.contains(i),
                       quantity: _quantities[i] ?? 1,
@@ -582,6 +428,80 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                         _recalculate();
                       },
                     );
+
+                    // Custom items get swipe-to-delete
+                    if (entry.isCustom) {
+                      return Dismissible(
+                        key: Key('custom_${entry.item.name}'),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444).withAlpha(30),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: const Color(0xFFEF4444).withAlpha(80)),
+                          ),
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.delete_outline,
+                                  color: Color(0xFFEF4444), size: 22),
+                              SizedBox(height: 2),
+                              Text('Delete',
+                                  style: TextStyle(
+                                      color: Color(0xFFEF4444),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                        confirmDismiss: (_) async {
+                          return await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              backgroundColor: const Color(0xFF1A2540),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                              title: const Text('Delete Item?',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800)),
+                              content: Text(
+                                  'Remove "${entry.item.name}" from your custom items?',
+                                  style: const TextStyle(
+                                      color: Colors.white70)),
+                              actions: [
+                                TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('Cancel',
+                                        style: TextStyle(
+                                            color: Colors.white54))),
+                                TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text('Delete',
+                                        style: TextStyle(
+                                            color: Color(0xFFEF4444),
+                                            fontWeight:
+                                            FontWeight.w700))),
+                              ],
+                            ),
+                          ) ?? false;
+                        },
+                        onDismissed: (_) async {
+                          await FoodStorageService.deleteCustomItem(
+                              cat.id, entry.item.name);
+                          await _load();
+                        },
+                        child: tile,
+                      );
+                    }
+
+                    return tile;
                   },
                 ),
               ),
@@ -694,7 +614,246 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 }
 
-// ── Sheet input field widget ──────────────────────────────────────────────────
+// ── Manual Add Sheet ──────────────────────────────────────────────────────────
+
+class _ManualAddSheet extends StatefulWidget {
+  final MealCategory category;
+  final VoidCallback onSaved;
+  const _ManualAddSheet({required this.category, required this.onSaved});
+
+  @override
+  State<_ManualAddSheet> createState() => _ManualAddSheetState();
+}
+
+class _ManualAddSheetState extends State<_ManualAddSheet> {
+  final _nameCtrl    = TextEditingController();
+  final _calCtrl     = TextEditingController();
+  final _proteinCtrl = TextEditingController();
+  final _carbsCtrl   = TextEditingController();
+  final _fatCtrl     = TextEditingController();
+  final _unitCtrl    = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _calCtrl.dispose();
+    _proteinCtrl.dispose();
+    _carbsCtrl.dispose();
+    _fatCtrl.dispose();
+    _unitCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _nameCtrl.text.trim();
+    final cal  = int.tryParse(_calCtrl.text.trim()) ?? 0;
+    if (name.isEmpty || cal <= 0) return;
+
+    setState(() => _saving = true);
+
+    final protein = double.tryParse(_proteinCtrl.text.trim()) ?? 0.0;
+    final carbs   = double.tryParse(_carbsCtrl.text.trim()) ?? 0.0;
+    final fat     = double.tryParse(_fatCtrl.text.trim()) ?? 0.0;
+    final unit    = _unitCtrl.text.trim().isEmpty ? null : _unitCtrl.text.trim();
+
+    final newItem = FoodItem(
+      name:      name,
+      calories:  cal,
+      imagePath: 'assets/images/food/food_icon.png',
+      unit:      unit,
+      macros:    FoodMacros(protein: protein, carbs: carbs, fat: fat),
+    );
+
+    // 1. Save item permanently to the category list
+    await FoodStorageService.saveCustomItem(widget.category.id, newItem);
+
+    // 2. Also log it to today's calories immediately
+    await FoodStorageService.addCalories(widget.category.id, cal);
+    await FoodStorageService.appendLog(widget.category.id, name, 1, cal);
+
+    if (mounted) Navigator.pop(context);
+    widget.onSaved();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Color(widget.category.colorValue);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: color.withAlpha(30),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Icon(Icons.add_circle_outline, color: color, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Add Custom Item',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800)),
+                    Text('to ${widget.category.label}',
+                        style: TextStyle(color: color, fontSize: 12)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Food name
+            _SheetField(
+              label: 'Food Name *',
+              hint: 'e.g. Goan Xacuti',
+              controller: _nameCtrl,
+              accentColor: color,
+              keyboardType: TextInputType.text,
+            ),
+            const SizedBox(height: 12),
+
+            // Calories + Unit row
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: _SheetField(
+                    label: 'Calories *',
+                    hint: 'e.g. 250',
+                    controller: _calCtrl,
+                    accentColor: color,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    suffix: 'kcal',
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 3,
+                  child: _SheetField(
+                    label: 'Unit (optional)',
+                    hint: 'e.g. per bowl',
+                    controller: _unitCtrl,
+                    accentColor: color,
+                    keyboardType: TextInputType.text,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+
+            // Macros label
+            Padding(
+              padding: const EdgeInsets.only(top: 10, bottom: 8),
+              child: Row(
+                children: [
+                  const Text('Macros',
+                      style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text('optional',
+                        style: TextStyle(color: Colors.white38, fontSize: 10)),
+                  ),
+                ],
+              ),
+            ),
+
+            // Macros row
+            Row(
+              children: [
+                Expanded(
+                  child: _SheetField(
+                    label: 'Protein',
+                    hint: '0',
+                    controller: _proteinCtrl,
+                    accentColor: const Color(0xFF3B82F6),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+                    suffix: 'g',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _SheetField(
+                    label: 'Carbs',
+                    hint: '0',
+                    controller: _carbsCtrl,
+                    accentColor: const Color(0xFFF59E0B),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+                    suffix: 'g',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _SheetField(
+                    label: 'Fat',
+                    hint: '0',
+                    controller: _fatCtrl,
+                    accentColor: const Color(0xFFEF4444),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+                    suffix: 'g',
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 22),
+
+            // Save button
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: color,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2))
+                    : const Icon(Icons.add, size: 18),
+                label: Text(_saving ? 'Saving...' : 'Add to Log',
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _SheetField extends StatelessWidget {
   final String label;
@@ -769,8 +928,4 @@ class _IndexedItem {
   _IndexedItem({required this.index, required this.item, required this.isCustom});
 }
 
-class _CustomItem {
-  final String name;
-  final int    calories;
-  _CustomItem({required this.name, required this.calories});
-}
+

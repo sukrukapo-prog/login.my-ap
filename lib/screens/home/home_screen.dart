@@ -6,6 +6,7 @@ import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/screens/main_tab_screen.dart';
 import 'package:fitmetrics/services/local_storage.dart';
 import 'package:fitmetrics/services/firestore_service.dart';
+import 'package:fitmetrics/services/food_storage_service.dart';
 import 'package:fitmetrics/core/haptic_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -27,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isLoading = true;
   int _unreadNotifications = 0;
   int _unreadCommunity = 0;
+  int _foodCaloriesToday = 0;
+  int _burnedCaloriesToday = 0;
 
   late AnimationController _progressCtrl;
   late Animation<double> _progressAnim;
@@ -72,9 +75,18 @@ class _HomeScreenState extends State<HomeScreen>
     // Real notification count from Firebase
     final notifCount = await FirestoreService.getUnreadNotificationCount();
 
+    // Food calories today
+    await FoodStorageService.checkAndResetIfNewDay();
+    final foodCals = await FoodStorageService.getTotalCaloriesToday();
+
+    // Burned calories from today's workouts
+    final burnedCals = await FirestoreService.getBurnedCaloriesToday();
+
     setState(() {
       _unreadCommunity = communityCount;
       _unreadNotifications = notifCount;
+      _foodCaloriesToday = foodCals;
+      _burnedCaloriesToday = burnedCals;
       _isLoading = false;
     });
     _progressCtrl.forward(from: 0);
@@ -192,6 +204,14 @@ class _HomeScreenState extends State<HomeScreen>
     final meditationText = _meditationMinutesToday > 0
         ? '$_meditationMinutesToday min today'
         : 'Start today';
+
+    // Calorie calculations
+    final goalCal      = calories?.round() ?? 0;
+    final remainingCal = (goalCal - _foodCaloriesToday + _burnedCaloriesToday).clamp(0, 99999);
+    final netCal       = goalCal > 0 ? remainingCal : _foodCaloriesToday;
+    final ringProgress = goalCal > 0
+        ? ((_foodCaloriesToday - _burnedCaloriesToday) / goalCal).clamp(0.0, 1.0)
+        : 0.0;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F1624),
@@ -537,7 +557,7 @@ class _HomeScreenState extends State<HomeScreen>
                             SizedBox(
                               width: 160, height: 160,
                               child: CircularProgressIndicator(
-                                value: 1.0, strokeWidth: 12,
+                                value: ringProgress, strokeWidth: 12,
                                 backgroundColor:
                                 Colors.white.withAlpha(20),
                                 valueColor:
@@ -558,13 +578,13 @@ class _HomeScreenState extends State<HomeScreen>
                                 const SizedBox(height: 6),
                                 Text(
                                     calories != null
-                                        ? calories.round().toString()
+                                        ? remainingCal.toString()
                                         : '—',
                                     style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 32,
                                         fontWeight: FontWeight.w900)),
-                                const Text('kcal net',
+                                const Text('kcal left',
                                     style: TextStyle(
                                         color: Color(0xFF3B82F6),
                                         fontSize: 12,
@@ -582,24 +602,24 @@ class _HomeScreenState extends State<HomeScreen>
                           _StatItem(
                               label: 'GOAL',
                               value: calories != null
-                                  ? calories.round().toString()
+                                  ? goalCal.toString()
                                   : '—',
                               color: Colors.white70),
                           _StatItem(
                               label: '- FOOD',
-                              value: '0',
+                              value: _foodCaloriesToday.toString(),
                               color: Colors.orangeAccent,
                               icon: Icons.restaurant_outlined),
                           _StatItem(
                               label: '+ BURNED',
-                              value: '0',
+                              value: _burnedCaloriesToday.toString(),
                               color: const Color(0xFF10B981),
                               icon:
                               Icons.local_fire_department_outlined),
                           _StatItem(
                               label: 'REMAINING',
                               value: calories != null
-                                  ? calories.round().toString()
+                                  ? remainingCal.toString()
                                   : '—',
                               color: Colors.white70),
                         ],
