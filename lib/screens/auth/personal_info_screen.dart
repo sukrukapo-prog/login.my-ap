@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
-import 'package:fitmetrics/routes.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   final OnboardingData data;
@@ -63,7 +62,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     final fullName = _fullNameController.text.trim();
     if (fullName.isNotEmpty) widget.data.fullName = fullName;
 
-    Navigator.pushNamed(context, AppRoutes.personalize, arguments: widget.data);
+    Navigator.pushNamed(context, '/personalize', arguments: widget.data);
   }
 
   String _formatHeight() {
@@ -327,6 +326,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 24),
                     const SizedBox(height: 32),
                   ],
                 ),

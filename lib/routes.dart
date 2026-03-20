@@ -55,32 +55,32 @@ class AppRoutes {
         return FadePageRoute(page: const WelcomeScreen());
 
       case name:
-        return SlidePageRoute(
+        return SharedAxisPageRoute(
           page: NameScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case personalInfo:
-        return SlidePageRoute(
+        return SharedAxisPageRoute(
           page: PersonalInfoScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case personalize:
-        return SlidePageRoute(
+        return SharedAxisPageRoute(
           page: PersonalizeScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case goals:
-        return SlidePageRoute(
+        return SharedAxisPageRoute(
           page: GoalsScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case createAccount:
-        return SlidePageRoute(
+        return SharedAxisPageRoute(
           page: CreateAccountScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 
       case success:
-        return SlidePageRoute(
+        return SharedAxisPageRoute(
           page: SuccessScreen(data: args is OnboardingData ? args : OnboardingData()),
         );
 

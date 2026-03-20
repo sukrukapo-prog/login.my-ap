@@ -17,7 +17,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   OnboardingData? _userData;
   double? _maintenanceCalories;
   String? _avatarId;
@@ -33,6 +33,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   late AnimationController _progressCtrl;
   late Animation<double> _progressAnim;
+  late AnimationController _staggerCtrl;
+  late AnimationController _counterCtrl;
 
   @override
   void initState() {
@@ -41,14 +43,23 @@ class _HomeScreenState extends State<HomeScreen>
         vsync: this, duration: const Duration(milliseconds: 1200));
     _progressAnim = CurvedAnimation(
         parent: _progressCtrl, curve: Curves.easeOutCubic);
+    _staggerCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900));
+    _counterCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1400));
     _loadData();
   }
 
   @override
   void dispose() {
     _progressCtrl.dispose();
+    _staggerCtrl.dispose();
+    _counterCtrl.dispose();
     super.dispose();
   }
+
+  /// Returns an animated count-up value driven by _counterCtrl
+  int _countUp(int target) => (target * _counterCtrl.value).round();
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
@@ -90,6 +101,8 @@ class _HomeScreenState extends State<HomeScreen>
       _isLoading = false;
     });
     _progressCtrl.forward(from: 0);
+    _staggerCtrl.forward(from: 0);
+    _counterCtrl.forward(from: 0);
   }
 
   double? _calculateMaintenance(OnboardingData data) {
@@ -425,11 +438,16 @@ class _HomeScreenState extends State<HomeScreen>
                               crossAxisAlignment:
                               CrossAxisAlignment.start,
                               children: [
-                                Text('$_streakDays',
+                                AnimatedBuilder(
+                                  animation: _counterCtrl,
+                                  builder: (_, __) => Text(
+                                    '${_countUp(_streakDays)}',
                                     style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 22,
-                                        fontWeight: FontWeight.w900)),
+                                        fontWeight: FontWeight.w900),
+                                  ),
+                                ),
                                 const Text('day streak',
                                     style: TextStyle(
                                         color: Colors.white54,
@@ -665,41 +683,49 @@ class _HomeScreenState extends State<HomeScreen>
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 14),
 
-                _LeaderboardCard(
-                    onTap: () => _navigate('leaderboard')),
+                _StaggerItem(
+                  animation: _staggerCtrl,
+                  index: 0,
+                  child: _LeaderboardCard(
+                      onTap: () => _navigate('leaderboard')),
+                ),
                 const SizedBox(height: 12),
 
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.4,
-                  children: [
-                    _QuickCard(
-                        title: 'Diet',
-                        subtitle: 'Log meals & macros',
-                        icon: Icons.restaurant_menu_outlined, // fallback only
-                        iconImage: 'assets/images/food/food_icon.png',
-                        color: const Color(0xFF10B981),
-                        onTap: () => _navigate('diet')),
-                    _QuickCard(
-                        title: 'Workout',
-                        subtitle: "Today's plan",
-                        icon: Icons.fitness_center_outlined,
-                        color: const Color(0xFF3B82F6),
-                        onTap: () => _navigate('workout')),
-                    _MeditationCard(
-                        subtitle: meditationText,
-                        onTap: () => _navigate('meditation')),
-                    _QuickCard(
-                        title: 'Progress',
-                        subtitle: 'View your stats',
-                        icon: Icons.trending_up,
-                        color: const Color(0xFFF59E0B),
-                        onTap: () => _navigate('progress')),
-                  ],
+                _StaggerItem(
+                  animation: _staggerCtrl,
+                  index: 1,
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 1.4,
+                    children: [
+                      _QuickCard(
+                          title: 'Diet',
+                          subtitle: 'Log meals & macros',
+                          icon: Icons.restaurant_menu_outlined,
+                          iconImage: 'assets/images/food/food_icon.png',
+                          color: const Color(0xFF10B981),
+                          onTap: () => _navigate('diet')),
+                      _QuickCard(
+                          title: 'Workout',
+                          subtitle: "Today's plan",
+                          icon: Icons.fitness_center_outlined,
+                          color: const Color(0xFF3B82F6),
+                          onTap: () => _navigate('workout')),
+                      _MeditationCard(
+                          subtitle: meditationText,
+                          onTap: () => _navigate('meditation')),
+                      _QuickCard(
+                          title: 'Progress',
+                          subtitle: 'View your stats',
+                          icon: Icons.trending_up,
+                          color: const Color(0xFFF59E0B),
+                          onTap: () => _navigate('progress')),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 32),
               ],
@@ -712,6 +738,40 @@ class _HomeScreenState extends State<HomeScreen>
 }
 
 // ── Leaderboard full width card ────────────────────────────────────────────────
+class _StaggerItem extends StatelessWidget {
+  final AnimationController animation;
+  final int index;
+  final Widget child;
+  const _StaggerItem({required this.animation, required this.index, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    // Each card staggers by 120ms
+    final start = (index * 0.15).clamp(0.0, 0.8);
+    final end   = (start + 0.5).clamp(0.0, 1.0);
+    final slide = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: animation,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+    ));
+    final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: animation,
+        curve: Interval(start, end, curve: Curves.easeOut),
+      ),
+    );
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (_, __) => FadeTransition(
+        opacity: fade,
+        child: SlideTransition(position: slide, child: child),
+      ),
+    );
+  }
+}
+
 class _LeaderboardCard extends StatelessWidget {
   final VoidCallback onTap;
   const _LeaderboardCard({required this.onTap});

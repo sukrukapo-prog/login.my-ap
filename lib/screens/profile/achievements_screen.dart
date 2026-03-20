@@ -476,48 +476,128 @@ class _LockedDetailSheet extends StatelessWidget {
 }
 
 // ── Card ───────────────────────────────────────────────────────────────────────
-class _AchievementCard extends StatelessWidget {
+class _AchievementCard extends StatefulWidget {
   final Achievement achievement;
   final bool unlocked;
   final double progress;
   const _AchievementCard({required this.achievement, required this.unlocked, required this.progress});
+  @override
+  State<_AchievementCard> createState() => _AchievementCardState();
+}
+
+class _AchievementCardState extends State<_AchievementCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _flipAnim;
+  late Animation<double> _progressAnim;
+  bool _wasUnlocked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _wasUnlocked = widget.unlocked;
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
+    _flipAnim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack);
+    _progressAnim = CurvedAnimation(parent: _ctrl, curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic));
+    // Small delay so grid entrance finishes first
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) _ctrl.forward();
+    });
+  }
+
+  @override
+  void didUpdateWidget(_AchievementCard old) {
+    super.didUpdateWidget(old);
+    // Flip animation when newly unlocked
+    if (!_wasUnlocked && widget.unlocked) {
+      _wasUnlocked = true;
+      _ctrl.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
-    final a = achievement;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: unlocked ? a.color.withAlpha(25) : Colors.white.withAlpha(6),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: unlocked ? a.color.withAlpha(80) : Colors.white.withAlpha(15), width: unlocked ? 1.5 : 1),
-          boxShadow: unlocked ? [BoxShadow(color: a.color.withAlpha(40), blurRadius: 12, spreadRadius: 1)] : []),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          unlocked
-              ? Text(a.emoji, style: const TextStyle(fontSize: 32))
-              : Container(width: 40, height: 40,
-              decoration: BoxDecoration(color: Colors.white.withAlpha(8), shape: BoxShape.circle),
-              child: const Icon(Icons.lock_rounded, color: Colors.white24, size: 20)),
-          if (unlocked)
-            Container(width: 22, height: 22,
-                decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
-                child: const Icon(Icons.check, color: Colors.white, size: 13)),
-        ]),
-        const Spacer(),
-        Text(unlocked ? a.title : '???',
-            style: TextStyle(color: unlocked ? Colors.white : Colors.white24,
-                fontSize: 13, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 3),
-        Text(unlocked ? a.description : 'Keep going to unlock',
-            style: TextStyle(color: unlocked ? Colors.white38 : Colors.white12, fontSize: 10), maxLines: 2),
-        const SizedBox(height: 8),
-        ClipRRect(borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(value: progress, minHeight: 4,
-                backgroundColor: Colors.white.withAlpha(15),
-                valueColor: AlwaysStoppedAnimation<Color>(unlocked ? a.color : Colors.white.withAlpha(40)))),
-      ]),
+    final a = widget.achievement;
+    final unlocked = widget.unlocked;
+    final progress = widget.progress;
+
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        // Flip: first half shows locked face, second half shows unlocked
+        final flip = _flipAnim.value;
+        final showFront = flip < 0.5;
+        final rotateY = unlocked
+            ? (flip < 0.5 ? flip * 3.14159 : (flip - 0.5) * 3.14159)
+            : 0.0;
+
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.001)
+            ..rotateY(unlocked && _wasUnlocked ? 0 : 0),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+                color: unlocked ? a.color.withAlpha(25) : Colors.white.withAlpha(6),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                    color: unlocked ? a.color.withAlpha(80) : Colors.white.withAlpha(15),
+                    width: unlocked ? 1.5 : 1),
+                boxShadow: unlocked
+                    ? [BoxShadow(color: a.color.withAlpha(40), blurRadius: 12, spreadRadius: 1)]
+                    : []),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                unlocked
+                    ? Text(a.emoji, style: const TextStyle(fontSize: 32))
+                    : Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(8), shape: BoxShape.circle),
+                    child: const Icon(Icons.lock_rounded, color: Colors.white24, size: 20)),
+                if (unlocked)
+                  ScaleTransition(
+                    scale: _flipAnim,
+                    child: Container(
+                        width: 22, height: 22,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFF10B981), shape: BoxShape.circle),
+                        child: const Icon(Icons.check, color: Colors.white, size: 13)),
+                  ),
+              ]),
+              const Spacer(),
+              Text(unlocked ? a.title : '???',
+                  style: TextStyle(
+                      color: unlocked ? Colors.white : Colors.white24,
+                      fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 3),
+              Text(unlocked ? a.description : 'Keep going to unlock',
+                  style: TextStyle(
+                      color: unlocked ? Colors.white38 : Colors.white12,
+                      fontSize: 10),
+                  maxLines: 2),
+              const SizedBox(height: 8),
+              // Progress bar animates from 0 to actual value on load
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: progress * _progressAnim.value,
+                  minHeight: 4,
+                  backgroundColor: Colors.white.withAlpha(15),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      unlocked ? a.color : Colors.white.withAlpha(40)),
+                ),
+              ),
+            ]),
+          ),
+        );
+      },
     );
   }
 }

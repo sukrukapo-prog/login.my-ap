@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/core/page_transitions.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:fitmetrics/services/local_storage.dart';
 import 'package:fitmetrics/core/haptic_service.dart';
@@ -221,8 +222,7 @@ class _CalmnessCardState extends State<_CalmnessCard> {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => MeditationPlayerScreen(scene: widget.scene),
+        ScalePageRoute(page: MeditationPlayerScreen(scene: widget.scene),
         ),
       ),
       child: ClipRRect(

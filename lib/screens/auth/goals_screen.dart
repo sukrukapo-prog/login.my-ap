@@ -12,6 +12,8 @@ class GoalsScreen extends StatefulWidget {
 
 class _GoalsScreenState extends State<GoalsScreen> {
   String? _selectedGoal;
+  double _goalWeightKg = 65.0;
+  bool _weightInLbs = false;
 
   static const int totalSteps = 6;
   static const int currentStep = 4;
@@ -47,6 +49,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
     },
   ];
 
+  String _formatGoalWeight() {
+    if (_weightInLbs) return '${(_goalWeightKg * 2.20462).toStringAsFixed(1)} lbs';
+    return '${_goalWeightKg.toStringAsFixed(1)} kg';
+  }
+
   void _next() {
     if (_selectedGoal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -54,7 +61,30 @@ class _GoalsScreenState extends State<GoalsScreen> {
       );
       return;
     }
+
+    final cw = widget.data.currentWeightKg ?? 70.0;
+
+    // Validate goal weight if lose/gain selected
+    if (_selectedGoal == 'lose_weight' && _goalWeightKg >= cw) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Goal weight must be less than your current weight')),
+      );
+      return;
+    }
+    if (_selectedGoal == 'gain_weight' && _goalWeightKg <= cw) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Goal weight must be more than your current weight')),
+      );
+      return;
+    }
+
     widget.data.goals.add(_selectedGoal!);
+
+    // Save goal weight only if lose/gain selected
+    if (_selectedGoal == 'lose_weight' || _selectedGoal == 'gain_weight') {
+      widget.data.goalWeightKg = _goalWeightKg;
+    }
+
     Navigator.pushNamed(context, AppRoutes.createAccount, arguments: widget.data);
   }
 
@@ -164,6 +194,94 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         ),
                       );
                     }),
+                    // Goal weight slider — only shown for lose/gain
+                    if (_selectedGoal == 'lose_weight' || _selectedGoal == 'gain_weight') ...[
+                      const SizedBox(height: 8),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _selectedGoal == 'lose_weight'
+                              ? const Color(0xFF10B981).withOpacity(0.08)
+                              : const Color(0xFFF59E0B).withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _selectedGoal == 'lose_weight'
+                                ? const Color(0xFF10B981).withOpacity(0.3)
+                                : const Color(0xFFF59E0B).withOpacity(0.3),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _selectedGoal == 'lose_weight'
+                                      ? 'Target Weight (lose to)'
+                                      : 'Target Weight (gain to)',
+                                  style: TextStyle(
+                                    color: _selectedGoal == 'lose_weight'
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFFF59E0B),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    _UnitChip(label: 'kg', active: !_weightInLbs,
+                                        onTap: () => setState(() => _weightInLbs = false)),
+                                    const SizedBox(width: 6),
+                                    _UnitChip(label: 'lbs', active: _weightInLbs,
+                                        onTap: () => setState(() => _weightInLbs = true)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Center(
+                              child: Text(
+                                _formatGoalWeight(),
+                                style: TextStyle(
+                                  color: _selectedGoal == 'lose_weight'
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFF59E0B),
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: _selectedGoal == 'lose_weight'
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFF59E0B),
+                                inactiveTrackColor: Colors.white12,
+                                thumbColor: _selectedGoal == 'lose_weight'
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFF59E0B),
+                                overlayShape: SliderComponentShape.noOverlay,
+                                trackHeight: 3,
+                              ),
+                              child: Slider(
+                                value: _goalWeightKg.clamp(10, 200),
+                                min: 10,
+                                max: 200,
+                                onChanged: (v) => setState(() => _goalWeightKg = v),
+                              ),
+                            ),
+                            Text(
+                              _selectedGoal == 'lose_weight'
+                                  ? 'Current: ${(widget.data.currentWeightKg ?? 70).toStringAsFixed(1)} kg  →  Goal: ${_goalWeightKg.toStringAsFixed(1)} kg'
+                                  : 'Current: ${(widget.data.currentWeightKg ?? 70).toStringAsFixed(1)} kg  →  Goal: ${_goalWeightKg.toStringAsFixed(1)} kg',
+                              style: const TextStyle(color: Colors.white38, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -194,6 +312,31 @@ class _GoalsScreenState extends State<GoalsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _UnitChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _UnitChip({required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFF3B82F6) : Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(label, style: TextStyle(
+          color: active ? Colors.white : Colors.white54,
+          fontSize: 12, fontWeight: FontWeight.w600,
+        )),
       ),
     );
   }

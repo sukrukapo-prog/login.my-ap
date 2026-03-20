@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/core/page_transitions.dart';
 import 'package:fitmetrics/models/exercise_model.dart';
 import 'package:fitmetrics/screens/workout/exercise_detail_screen.dart';
 import 'package:fitmetrics/routes.dart';
@@ -174,8 +175,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> with SingleTickerProvider
         final ex = exercises[i];
         final diffColor = _diffColors[ex.difficulty] ?? const Color(0xFF2ECC71);
         return GestureDetector(
-          onTap: () => Navigator.push(ctx, MaterialPageRoute(
-            builder: (_) => ExerciseDetailScreen(exercise: ex),
+          onTap: () => Navigator.push(ctx, ScalePageRoute(page: ExerciseDetailScreen(exercise: ex),
           )),
           child: Container(
             margin: const EdgeInsets.only(bottom: 8),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/core/page_transitions.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
@@ -150,8 +151,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                         onStartPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => const MovementMeditationScreen(),
+                            ScalePageRoute(page: const MovementMeditationScreen(),
                             ),
                           );
                         },
@@ -184,7 +184,7 @@ class _MeditationScreenState extends State<MeditationScreen> {
                         onStartPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const ChooseCalmnessScreen()),
+                            ScalePageRoute(page: const ChooseCalmnessScreen()),
                           );
                         },
                       ),

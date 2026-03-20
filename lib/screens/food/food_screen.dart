@@ -2,6 +2,7 @@
 // v2: loads calorie goal + water; goal editable via bottom-sheet dialog.
 
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/core/page_transitions.dart';
 import 'package:flutter/services.dart';
 import 'package:fitmetrics/models/food_item.dart';
 import 'package:fitmetrics/services/food_storage_service.dart';
@@ -22,6 +23,7 @@ class _FoodScreenState extends State<FoodScreen> {
   int  _goal    = 2000;
   int  _waterMl = 0;
   bool _loading = true;
+  int  _loadKey = 0; // incremented on each load to re-trigger card animations
 
   @override
   void initState() {
@@ -40,6 +42,7 @@ class _FoodScreenState extends State<FoodScreen> {
         _goal     = goal;
         _waterMl  = water;
         _loading  = false;
+        _loadKey++;
       });
     }
   }
@@ -279,26 +282,38 @@ class _FoodScreenState extends State<FoodScreen> {
                 ),
               ),
 
-              // Category cards
+              // Category cards — slide in from left with stagger
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                         (context, i) {
                       final cat = allMealCategories[i];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: FoodCategoryCard(
-                          category: cat,
-                          loggedCalories: _calories[cat.id] ?? 0,
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => MealDetailScreen(category: cat)),
-                            );
-                            _load();
-                          },
+                      return TweenAnimationBuilder<double>(
+                        key: ValueKey('${cat.id}_$_loadKey'),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        duration: Duration(milliseconds: 400 + i * 80),
+                        curve: Curves.easeOutCubic,
+                        builder: (_, t, child) => Opacity(
+                          opacity: t,
+                          child: Transform.translate(
+                            offset: Offset(-40 * (1 - t), 0),
+                            child: child,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: FoodCategoryCard(
+                            category: cat,
+                            loggedCalories: _calories[cat.id] ?? 0,
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                ScalePageRoute(page: MealDetailScreen(category: cat)),
+                              );
+                              _load();
+                            },
+                          ),
                         ),
                       );
                     },

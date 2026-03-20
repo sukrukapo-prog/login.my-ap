@@ -5,11 +5,11 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/food_item.dart';
 
-class FoodSummaryCard extends StatelessWidget {
+class FoodSummaryCard extends StatefulWidget {
   final Map<String, int> calories;
   final int total;
-  final int goal;       // passed in from FoodScreen (loaded from storage)
-  final int waterMl;    // passed in from FoodScreen (loaded from storage)
+  final int goal;
+  final int waterMl;
   final VoidCallback onEditGoal;
   final void Function(int ml) onAddWater;
   final VoidCallback onResetWater;
@@ -26,7 +26,44 @@ class FoodSummaryCard extends StatelessWidget {
   });
 
   @override
+  State<FoodSummaryCard> createState() => _FoodSummaryCardState();
+}
+
+class _FoodSummaryCardState extends State<FoodSummaryCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ringCtrl;
+  late Animation<double> _ringAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ringCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200));
+    _ringAnim = CurvedAnimation(parent: _ringCtrl, curve: Curves.easeOutCubic);
+    _ringCtrl.forward();
+  }
+
+  @override
+  void didUpdateWidget(FoodSummaryCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Re-animate whenever calorie data changes
+    if (oldWidget.total != widget.total || oldWidget.goal != widget.goal) {
+      _ringCtrl.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ringCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final calories = widget.calories;
+    final total    = widget.total;
+    final goal     = widget.goal;
+    final waterMl  = widget.waterMl;
     final progress  = (total / goal).clamp(0.0, 1.0);
     final isOver    = total > goal;
     final remaining = isOver ? 0 : goal - total;
@@ -73,12 +110,10 @@ class FoodSummaryCard extends StatelessWidget {
                         SizedBox(
                           width: 92,
                           height: 92,
-                          child: TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0.0, end: progress),
-                            duration: const Duration(milliseconds: 700),
-                            curve: Curves.easeOutCubic,
-                            builder: (_, value, __) => CircularProgressIndicator(
-                              value: value,
+                          child: AnimatedBuilder(
+                            animation: _ringAnim,
+                            builder: (_, __) => CircularProgressIndicator(
+                              value: progress * _ringAnim.value,
                               strokeWidth: 10,
                               backgroundColor: Colors.white.withAlpha(18),
                               valueColor: AlwaysStoppedAnimation<Color>(
@@ -118,7 +153,7 @@ class FoodSummaryCard extends StatelessWidget {
                       children: [
                         // Tappable goal row
                         GestureDetector(
-                          onTap: onEditGoal,
+                          onTap: widget.onEditGoal,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
@@ -259,7 +294,7 @@ class FoodSummaryCard extends StatelessWidget {
                     ],
                   ),
                   GestureDetector(
-                    onTap: onResetWater,
+                    onTap: widget.onResetWater,
                     child: const Text('Reset',
                         style: TextStyle(color: Colors.white30, fontSize: 11)),
                   ),
@@ -289,11 +324,11 @@ class FoodSummaryCard extends StatelessWidget {
               // Quick-add buttons
               Row(
                 children: [
-                  _WaterBtn(label: '+ 1 glass\n250 ml', ml: 250, onTap: () => onAddWater(250)),
+                  _WaterBtn(label: '+ 1 glass\n250 ml', ml: 250, onTap: () => widget.onAddWater(250)),
                   const SizedBox(width: 8),
-                  _WaterBtn(label: '+ 500 ml', ml: 500, onTap: () => onAddWater(500)),
+                  _WaterBtn(label: '+ 500 ml', ml: 500, onTap: () => widget.onAddWater(500)),
                   const SizedBox(width: 8),
-                  _WaterBtn(label: '+ 1 L', ml: 1000, onTap: () => onAddWater(1000)),
+                  _WaterBtn(label: '+ 1 L', ml: 1000, onTap: () => widget.onAddWater(1000)),
                 ],
               ),
             ],

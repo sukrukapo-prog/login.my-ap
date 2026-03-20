@@ -313,14 +313,50 @@ class FirestoreService {
     }
   }
 
-  static Future<void> updateStats({double? weightKg, double? heightCm, int? age}) async {
+  static Future<void> updateStats({double? weightKg, double? heightCm, int? age, double? goalWeightKg}) async {
     if (!_isLoggedIn) return;
     try {
       final updates = <String, dynamic>{};
-      if (weightKg != null) updates['currentWeightKg'] = weightKg;
-      if (heightCm != null) updates['heightCm'] = heightCm;
-      if (age != null) updates['age'] = age;
+      if (weightKg != null)    updates['currentWeightKg'] = weightKg;
+      if (heightCm != null)    updates['heightCm'] = heightCm;
+      if (age != null)         updates['age'] = age;
+      if (goalWeightKg != null) updates['goalWeightKg'] = goalWeightKg;
+
+      // Recalculate TDEE whenever body metrics change
       if (updates.isNotEmpty) {
+        // Load current user data, merge changes, then recalculate
+        try {
+          final doc = await _db.collection('users').doc(_uid).get();
+          if (doc.exists) {
+            final d = doc.data()!;
+            final w  = (weightKg    ?? (d['currentWeightKg'] as num?)?.toDouble() ?? 70);
+            final h  = (heightCm    ?? (d['heightCm']        as num?)?.toDouble() ?? 170);
+            final a  = (age         ?? (d['age']             as int?) ?? 25);
+            final gw = (goalWeightKg?? (d['goalWeightKg']    as num?)?.toDouble());
+            final gender = (d['gender'] as String?) ?? 'Male';
+            final goals  = List<String>.from(d['goals'] as List? ?? []);
+
+            double bmr = gender == 'Female'
+                ? (10 * w) + (6.25 * h) - (5 * a) - 161
+                : (10 * w) + (6.25 * h) - (5 * a) + 5;
+
+            String activityLevel = 'sedentary';
+            for (final g in goals) {
+              if (g.startsWith('activity:')) { activityLevel = g.replaceFirst('activity:', ''); break; }
+            }
+            final mult = {'sedentary':1.2,'lightly_active':1.375,'moderately_active':1.55,'very_active':1.725}[activityLevel] ?? 1.2;
+            double tdee = bmr * mult;
+            if (goals.contains('lose_weight')) tdee -= 500;
+            else if (goals.contains('gain_weight')) tdee += 500;
+            updates['tdeeCalories'] = tdee.round().clamp(1200, 4000);
+
+            // Also update local food calorie goal
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setInt('food_calorie_goal', (tdee.round()).clamp(1200, 4000));
+          }
+        } catch (e) {
+          developer.log('[Firestore] TDEE recalc error: $e');
+        }
         await _db.collection('users').doc(_uid).update(updates);
       }
     } catch (e) {
@@ -365,6 +401,20 @@ class FirestoreService {
       // Total sessions from stats
       final stats = await getAllTimeStats();
       await prefs.setInt('total_sessions', stats['totalSessions'] ?? 0);
+
+      // Restore calorie goal from Firestore tdeeCalories field
+      try {
+        final userDoc = await _db.collection('users').doc(_uid).get();
+        if (userDoc.exists) {
+          final tdee = (userDoc.data()!['tdeeCalories'] as int?) ?? 2000;
+          // Only restore if user hasn't manually overridden (i.e. key not set yet)
+          if (!prefs.containsKey('food_calorie_goal')) {
+            await prefs.setInt('food_calorie_goal', tdee.clamp(1200, 4000));
+          }
+        }
+      } catch (e) {
+        developer.log('[Firestore] Calorie goal sync error: $e');
+      }
 
       developer.log('[Firestore] Sync complete.');
     } catch (e) {

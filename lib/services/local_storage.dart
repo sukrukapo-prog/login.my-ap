@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/services/firestore_service.dart';
+import 'package:fitmetrics/services/food_storage_service.dart';
 
 /// Single source of truth for all local persistence.
 /// Every write method also writes to Firestore (dual-write pattern).
@@ -14,6 +15,51 @@ class LocalStorage {
   static const String _keySeenOnboarding  = 'seenOnboarding';
   static const String _keySeenWalkthrough = 'seenWalkthrough';
 
+  // ── TDEE Calculator (Mifflin-St Jeor) ──────────────────────────────────────
+  /// Returns daily calorie target based on user profile and goal.
+  /// Formula: BMR × activity multiplier ± 500 for weight change goals.
+  static int calculateTdee(OnboardingData data) {
+    final weight = data.currentWeightKg ?? 70;
+    final height = data.heightCm ?? 170;
+    final age    = data.age ?? 25;
+    final gender = data.gender ?? 'Male';
+
+    // Mifflin-St Jeor BMR
+    double bmr;
+    if (gender == 'Female') {
+      bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+    } else {
+      bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+    }
+
+    // Activity multiplier from goals set (stored as 'activity:value')
+    String activityLevel = 'sedentary';
+    for (final g in data.goals) {
+      if (g.startsWith('activity:')) {
+        activityLevel = g.replaceFirst('activity:', '');
+        break;
+      }
+    }
+    final double multiplier = {
+      'sedentary':        1.2,
+      'lightly_active':   1.375,
+      'moderately_active':1.55,
+      'very_active':      1.725,
+    }[activityLevel] ?? 1.2;
+
+    double tdee = bmr * multiplier;
+
+    // Adjust ±500 based on weight goal
+    if (data.goals.contains('lose_weight')) {
+      tdee -= 500; // deficit to lose ~0.5kg/week
+    } else if (data.goals.contains('gain_weight')) {
+      tdee += 500; // surplus to gain ~0.5kg/week
+    }
+    // 'explore' / 'calm_yourself' → maintain, no adjustment
+
+    return tdee.round().clamp(1200, 4000);
+  }
+
   // ── Auth ────────────────────────────────────────────────────────────────────
 
   static Future<void> saveUserData(OnboardingData data) async {
@@ -21,6 +67,14 @@ class LocalStorage {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyRegistered, true);
       await prefs.setString(_keyUserData, jsonEncode(data.toJson()));
+
+      // Auto-calculate and save TDEE as calorie goal (only if we have enough data)
+      if (data.currentWeightKg != null && data.heightCm != null && data.age != null) {
+        final tdee = calculateTdee(data);
+        await FoodStorageService.setCalorieGoal(tdee);
+        developer.log('[LocalStorage] TDEE calculated: $tdee kcal/day');
+      }
+
       developer.log('[LocalStorage] User data saved.');
     } catch (e, st) {
       developer.log('[LocalStorage] saveUserData error', error: e, stackTrace: st);
@@ -154,16 +208,18 @@ class LocalStorage {
     double? weightKg,
     double? heightCm,
     int? age,
+    double? goalWeightKg,
   }) async {
     try {
       final data = await getUserData();
       if (data == null) return;
-      if (weightKg != null) data.currentWeightKg = weightKg;
-      if (heightCm != null) data.heightCm = heightCm;
-      if (age != null) data.age = age;
-      await saveUserData(data);
-      // Dual-write to Firestore
-      FirestoreService.updateStats(weightKg: weightKg, heightCm: heightCm, age: age);
+      if (weightKg != null)    data.currentWeightKg = weightKg;
+      if (heightCm != null)    data.heightCm = heightCm;
+      if (age != null)         data.age = age;
+      if (goalWeightKg != null) data.goalWeightKg = goalWeightKg;
+      await saveUserData(data); // this recalculates TDEE + saves calorie goal locally
+      // Dual-write to Firestore (also recalculates TDEE there)
+      FirestoreService.updateStats(weightKg: weightKg, heightCm: heightCm, age: age, goalWeightKg: goalWeightKg);
     } catch (e, st) {
       developer.log('[LocalStorage] updateStats error', error: e, stackTrace: st);
     }

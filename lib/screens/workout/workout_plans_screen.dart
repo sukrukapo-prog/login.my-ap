@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fitmetrics/core/page_transitions.dart';
 import 'package:fitmetrics/models/workout_plan_model.dart';
 import 'package:fitmetrics/services/firestore_service.dart';
 import 'package:fitmetrics/screens/workout/workout_plan_builder_screen.dart';
@@ -33,7 +34,7 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
   Future<void> _openBuilder({WorkoutPlan? existing}) async {
     final result = await Navigator.push<WorkoutPlan>(
       context,
-      MaterialPageRoute(builder: (_) => WorkoutPlanBuilderScreen(existing: existing)),
+      ScalePageRoute(page: WorkoutPlanBuilderScreen(existing: existing)),
     );
     if (result != null) _load();
   }
@@ -165,8 +166,7 @@ class _WorkoutPlansScreenState extends State<WorkoutPlansScreen> {
         final plan = _plans[i];
         return GestureDetector(
           onTap: () async {
-            await Navigator.push(ctx, MaterialPageRoute(
-              builder: (_) => WorkoutPlanDetailScreen(plan: plan),
+            await Navigator.push(ctx, ScalePageRoute(page: WorkoutPlanDetailScreen(plan: plan),
             ));
             _load();
           },

@@ -44,6 +44,7 @@ class AuthService {
         'goalWeightKg': data.goalWeightKg,
         'goals': data.goals.toList(),
         'avatarId': data.avatarId,
+        'tdeeCalories': LocalStorage.calculateTdee(data),
         'createdAt': FieldValue.serverTimestamp(),
         'lastLogin': FieldValue.serverTimestamp(),
       });
@@ -138,6 +139,7 @@ class AuthService {
           'email': user.email ?? '',
           'name': userData.name ?? '',
           'fullName': userData.fullName ?? '',
+          'tdeeCalories': 2000, // default — recalculated after onboarding
           'createdAt': FieldValue.serverTimestamp(),
           'lastLogin': FieldValue.serverTimestamp(),
           'signInMethod': 'google',
