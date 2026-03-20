@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/core/page_transitions.dart';
 
-import 'package:fitmetrics/screens/notifications/meditation_history_screen.dart';
+import 'package:fitmetrics/screens/notifications/meditation_history_screen.dart' show MeditationHistoryScreen;
+import 'package:fitmetrics/screens/notifications/notification_history_screen.dart' show NotificationHistoryScreen;
 import 'package:fitmetrics/screens/community/community_screen.dart';
 import 'package:fitmetrics/screens/workout/workout_history_screen.dart';
 import 'package:fitmetrics/screens/workout/workout_plans_screen.dart';
@@ -21,7 +22,6 @@ import 'package:fitmetrics/screens/progress/progress_screen.dart';
 import 'package:fitmetrics/screens/auth/splash_screen.dart';
 import 'package:fitmetrics/screens/auth/onboarding_screen.dart';
 import 'package:fitmetrics/screens/leaderboard/leaderboard_screen.dart';
-import 'package:fitmetrics/screens/notifications/notification_history_screen.dart';
 import 'package:fitmetrics/screens/profile/achievements_screen.dart';
 
 class AppRoutes {

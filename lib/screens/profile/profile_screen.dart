@@ -455,8 +455,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 const SizedBox(height: 12),
 
                 // ── Contact Us ──────────────────────────────────────────────
-                _ContactUsCard(onTapFitmetrics: () => _launchInstagram('https://www.instagram.com/fitmetrics_proj/'),
-                    onTapKapil: () => _launchInstagram('https://www.instagram.com/kapil_paiginkar/')),
+                _ContactUsCard(onTapFitmetrics: () => _launchInstagram('https://www.instagram.com/fitmetrics_proj/')),
                 const SizedBox(height: 12),
 
                 _MenuCard(items: [
@@ -702,8 +701,7 @@ class _Chip extends StatelessWidget {
 // ── Contact Us Card ────────────────────────────────────────────────────────────
 class _ContactUsCard extends StatelessWidget {
   final VoidCallback onTapFitmetrics;
-  final VoidCallback onTapKapil;
-  const _ContactUsCard({required this.onTapFitmetrics, required this.onTapKapil});
+  const _ContactUsCard({required this.onTapFitmetrics});
 
   @override
   Widget build(BuildContext context) {
@@ -740,12 +738,6 @@ class _ContactUsCard extends StatelessWidget {
             handle: '@fitmetrics_proj',
             label: 'FitMetrics Official',
             onTap: onTapFitmetrics,
-          ),
-          const Divider(color: Colors.white10, height: 1, indent: 56),
-          _InstaRow(
-            handle: '@kapil_paiginkar',
-            label: 'Developer — Kapil',
-            onTap: onTapKapil,
           ),
         ],
       ),

@@ -551,6 +551,15 @@ class FirestoreService {
     } catch (_) { return []; }
   }
 
+  static Future<int> getMyRank() async {
+    if (!_isLoggedIn) return 0;
+    try {
+      final leaderboard = await getLeaderboard();
+      final idx = leaderboard.indexWhere((e) => e['uid'] == _uid);
+      return idx >= 0 ? idx + 1 : 0;
+    } catch (_) { return 0; }
+  }
+
   // ── Full progress data ────────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> getFullProgressData() async {
