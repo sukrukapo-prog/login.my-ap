@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fitmetrics/models/onboarding_data.dart';
 import 'package:fitmetrics/routes.dart';
 import 'package:fitmetrics/core/avatar_data.dart';
@@ -165,6 +166,35 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
+  Future<void> _launchInstagram(String url) async {
+    HapticService.light();
+    try {
+      // Use Android/iOS platform intent to open URL — no url_launcher package needed
+      const platform = MethodChannel('flutter/url_launcher');
+      await platform.invokeMethod<void>('launch', {
+        'url': url,
+        'useSafariVC': false,
+        'useWebView': false,
+        'enableJavaScript': false,
+        'enableDomStorage': false,
+        'universalLinksOnly': false,
+        'headers': <String, String>{},
+      });
+    } catch (_) {
+      // If platform channel fails, show a snackbar with the URL
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Visit: $url'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF1A2540),
+            action: SnackBarAction(label: 'OK', onPressed: () {}, textColor: const Color(0xFF3B82F6)),
+          ),
+        );
+      }
+    }
+  }
+
   void _logout() {
     showDialog(
       context: context,
@@ -269,9 +299,9 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withAlpha(13),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    border: Border.all(color: Colors.white.withAlpha(20)),
                   ),
                   child: Row(
                     children: [
@@ -424,6 +454,11 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 ]),
                 const SizedBox(height: 12),
 
+                // ── Contact Us ──────────────────────────────────────────────
+                _ContactUsCard(onTapFitmetrics: () => _launchInstagram('https://www.instagram.com/fitmetrics_proj/'),
+                    onTapKapil: () => _launchInstagram('https://www.instagram.com/kapil_paiginkar/')),
+                const SizedBox(height: 12),
+
                 _MenuCard(items: [
                   _MenuItem(icon: Icons.logout, label: 'Logout', onTap: _logout, color: Colors.redAccent),
                 ]),
@@ -467,9 +502,9 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withAlpha(13),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withAlpha(20)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
@@ -525,7 +560,7 @@ class _EditableRow extends StatelessWidget {
               suffixText: suffix,
               suffixStyle: const TextStyle(color: Colors.white38, fontSize: 12),
               isDense: true, filled: true,
-              fillColor: Colors.white.withOpacity(0.08),
+              fillColor: Colors.white.withAlpha(20),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             ),
@@ -544,9 +579,9 @@ class _MenuCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withAlpha(13),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withAlpha(20)),
       ),
       child: Column(
         children: items.asMap().entries.map((e) {
@@ -655,7 +690,7 @@ class _Chip extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
-        color: selected ? const Color(0xFF3B82F6) : Colors.white.withOpacity(0.08),
+        color: selected ? const Color(0xFF3B82F6) : Colors.white.withAlpha(20),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(label, style: TextStyle(
@@ -663,4 +698,97 @@ class _Chip extends StatelessWidget {
           fontSize: 12, fontWeight: selected ? FontWeight.w700 : FontWeight.normal)),
     ),
   );
+}
+// ── Contact Us Card ────────────────────────────────────────────────────────────
+class _ContactUsCard extends StatelessWidget {
+  final VoidCallback onTapFitmetrics;
+  final VoidCallback onTapKapil;
+  const _ContactUsCard({required this.onTapFitmetrics, required this.onTapKapil});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(6),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withAlpha(12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            child: Row(children: [
+              Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE1306C), Color(0xFF833AB4), Color(0xFFF77737)],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
+              ),
+              const SizedBox(width: 10),
+              const Text('Contact Us',
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          _InstaRow(
+            handle: '@fitmetrics_proj',
+            label: 'FitMetrics Official',
+            onTap: onTapFitmetrics,
+          ),
+          const Divider(color: Colors.white10, height: 1, indent: 56),
+          _InstaRow(
+            handle: '@kapil_paiginkar',
+            label: 'Developer — Kapil',
+            onTap: onTapKapil,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InstaRow extends StatelessWidget {
+  final String handle;
+  final String label;
+  final VoidCallback onTap;
+  const _InstaRow({required this.handle, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFE1306C), Color(0xFF833AB4)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label,
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 2),
+            Text(handle,
+                style: const TextStyle(color: Colors.white54, fontSize: 11)),
+          ])),
+          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 14),
+        ]),
+      ),
+    );
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/models/exercise_model.dart';
 import 'package:fitmetrics/services/firestore_service.dart';
+import 'package:fitmetrics/services/local_storage.dart';
 
 const _catAccent = {
   'stretching': Color(0xFF2ECC71),
@@ -78,6 +79,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         repsCompleted:  reps,
         caloriesBurned: _estCalories,
       );
+      await LocalStorage.incrementTotalWorkouts();
       if (mounted) setState(() { _loading = false; _logged = true; });
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) Navigator.pop(context);

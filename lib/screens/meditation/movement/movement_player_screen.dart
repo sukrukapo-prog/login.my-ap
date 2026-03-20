@@ -7,6 +7,7 @@ import 'package:fitmetrics/screens/meditation/movement/movement_session_model.da
 import 'package:fitmetrics/screens/meditation/movement/widgets/movement_circular_timer.dart';
 import 'package:fitmetrics/screens/meditation/movement/widgets/movement_wave_animation.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 import 'package:fitmetrics/core/audio_service.dart';
 
 class MovementPlayerScreen extends StatefulWidget {
@@ -334,7 +335,44 @@ class _MovementPlayerScreenState extends State<MovementPlayerScreen>
 
   Future<void> _saveTime() async {
     final spent = (_totalSeconds - _remainingSeconds) ~/ 60;
+    final sessionName = widget.session.title;
+
     await LocalStorage.addMeditationMinutes(DateTime.now(), spent);
+    await LocalStorage.addMeditationHistory(
+      sessionId: 'movement_${widget.session.id}',
+      sessionName: sessionName,
+      type: 'Movement',
+      minutes: spent,
+    );
+    await LocalStorage.incrementTotalSessions();
+
+    // Save notification to Firestore
+    FirestoreService.saveSessionNotification(
+      sessionName: sessionName,
+      minutes: spent,
+      sessionType: 'movement',
+    );
+
+    // Show in-app banner
+    if (mounted) {
+      _showSessionCompleteBanner(sessionName, spent);
+    }
+  }
+
+  void _showSessionCompleteBanner(String sessionName, int mins) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => _MovementCompleteBanner(
+        sessionName: sessionName,
+        minutes: mins,
+        onDismiss: () { if (entry.mounted) entry.remove(); },
+      ),
+    );
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 4), () {
+      if (entry.mounted) entry.remove();
+    });
   }
 
   VideoPlayerController? get _activeVideo =>
@@ -802,6 +840,93 @@ class _MovementPlayerScreenState extends State<MovementPlayerScreen>
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Movement Session Complete Banner ──────────────────────────────────────────
+class _MovementCompleteBanner extends StatefulWidget {
+  final String sessionName;
+  final int minutes;
+  final VoidCallback onDismiss;
+  const _MovementCompleteBanner({required this.sessionName, required this.minutes, required this.onDismiss});
+  @override
+  State<_MovementCompleteBanner> createState() => _MovementCompleteBannerState();
+}
+
+class _MovementCompleteBannerState extends State<_MovementCompleteBanner>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<Offset> _slide;
+  late Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _slide = Tween<Offset>(begin: const Offset(0, -1.5), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  Future<void> _dismiss() async {
+    await _ctrl.reverse();
+    widget.onDismiss();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 10,
+      left: 16,
+      right: 16,
+      child: SlideTransition(
+        position: _slide,
+        child: FadeTransition(
+          opacity: _fade,
+          child: GestureDetector(
+            onTap: _dismiss,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF8B5CF6).withAlpha(80), blurRadius: 16, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Row(children: [
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(color: Colors.white.withAlpha(30), shape: BoxShape.circle),
+                    child: const Center(child: Text('🏃', style: TextStyle(fontSize: 20))),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Movement Complete! 🎉',
+                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                    Text(
+                      '"${widget.sessionName}"${widget.minutes > 0 ? ' · ${widget.minutes} min' : ''}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ])),
+                  const Icon(Icons.close, color: Colors.white54, size: 18),
+                ]),
+              ),
             ),
           ),
         ),

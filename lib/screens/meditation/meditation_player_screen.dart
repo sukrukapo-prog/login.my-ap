@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 import 'package:fitmetrics/screens/meditation/widgets/meditation_breathing_effect.dart';
 import 'package:fitmetrics/screens/meditation/widgets/random_bottom_animation.dart';
 
@@ -192,15 +193,41 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
         _audioPlayer.stop();
         _videoController?.pause();
         setState(() { _isPlaying = false; _remainingSeconds = 0; });
+        _onSessionComplete();
       } else {
         setState(() => _remainingSeconds--);
       }
     });
   }
 
-  Future<void> _saveMeditationTime() async {
-    final mins = (_totalSeconds - _remainingSeconds) ~/ 60;
+  Future<void> _onSessionComplete() async {
+    final mins = _totalSeconds ~/ 60;
+    final sessionName = widget.scene.name;
+
+    // Save meditation minutes + history + increment session count
     await LocalStorage.addMeditationMinutes(DateTime.now(), mins);
+    await LocalStorage.addMeditationHistory(
+      sessionId: 'calmness_${widget.scene.name.toLowerCase().replaceAll(' ', '_')}',
+      sessionName: sessionName,
+      type: 'Calmness',
+      minutes: mins,
+    );
+    await LocalStorage.incrementTotalSessions();
+
+    // Save to Firestore notification history
+    FirestoreService.saveSessionNotification(
+      sessionName: sessionName,
+      minutes: mins,
+      sessionType: 'meditation',
+    );
+
+    // Show confetti
+    _confettiCtrl.play();
+
+    // Show in-app banner if context is still mounted
+    if (mounted) {
+      _showSessionCompleteBanner(sessionName, mins);
+    }
   }
 
   void _adjustTime(int minutes) {
@@ -218,6 +245,22 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
   double get _progress =>
       _totalSeconds > 0 ? _remainingSeconds / _totalSeconds : 0.0;
   int get _displayMinutes => _totalSeconds ~/ 60;
+
+  void _showSessionCompleteBanner(String sessionName, int mins) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => _SessionCompleteBanner(
+        sessionName: sessionName,
+        minutes: mins,
+        onDismiss: () { if (entry.mounted) entry.remove(); },
+      ),
+    );
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 4), () {
+      if (entry.mounted) entry.remove();
+    });
+  }
 
   // ── Back confirm — only when playing ──────────────────────────────────────
   void _onBack() {
@@ -296,7 +339,23 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
               child: GestureDetector(
                 onTap: () async {
                   Navigator.pop(context);
-                  await _saveMeditationTime();
+                  // Save partial session time when user leaves early
+                  final mins = (_totalSeconds - _remainingSeconds) ~/ 60;
+                  if (mins > 0) {
+                    await LocalStorage.addMeditationMinutes(DateTime.now(), mins);
+                    await LocalStorage.addMeditationHistory(
+                      sessionId: 'calmness_${widget.scene.name.toLowerCase().replaceAll(' ', '_')}',
+                      sessionName: widget.scene.name,
+                      type: 'Calmness',
+                      minutes: mins,
+                    );
+                    await LocalStorage.incrementTotalSessions();
+                    FirestoreService.saveSessionNotification(
+                      sessionName: widget.scene.name,
+                      minutes: mins,
+                      sessionType: 'meditation',
+                    );
+                  }
                   if (mounted) Navigator.pop(context);
                 },
                 child: Container(
@@ -725,6 +784,92 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                 color: Colors.white70,
                 fontSize: 12,
                 fontWeight: FontWeight.w500)),
+      ),
+    );
+  }
+}
+// ── Session Complete Banner ────────────────────────────────────────────────────
+class _SessionCompleteBanner extends StatefulWidget {
+  final String sessionName;
+  final int minutes;
+  final VoidCallback onDismiss;
+  const _SessionCompleteBanner({required this.sessionName, required this.minutes, required this.onDismiss});
+  @override
+  State<_SessionCompleteBanner> createState() => _SessionCompleteBannerState();
+}
+
+class _SessionCompleteBannerState extends State<_SessionCompleteBanner>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<Offset> _slide;
+  late Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _slide = Tween<Offset>(begin: const Offset(0, -1.5), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+
+  Future<void> _dismiss() async {
+    await _ctrl.reverse();
+    widget.onDismiss();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 10,
+      left: 16,
+      right: 16,
+      child: SlideTransition(
+        position: _slide,
+        child: FadeTransition(
+          opacity: _fade,
+          child: GestureDetector(
+            onTap: _dismiss,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF10B981).withAlpha(80), blurRadius: 16, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Row(children: [
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(color: Colors.white.withAlpha(30), shape: BoxShape.circle),
+                    child: const Center(child: Text('🧘', style: TextStyle(fontSize: 20))),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Session Complete! 🎉',
+                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                    Text(
+                      '"${widget.sessionName}"${widget.minutes > 0 ? ' · ${widget.minutes} min' : ''}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ])),
+                  const Icon(Icons.close, color: Colors.white54, size: 18),
+                ]),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

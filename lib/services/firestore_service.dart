@@ -274,6 +274,34 @@ class FirestoreService {
     }
   }
 
+  // ── Session notification ───────────────────────────────────────────────────
+
+  /// Saves a 'session' type notification to Firestore (shows in notification history).
+  static Future<void> saveSessionNotification({
+    required String sessionName,
+    required int minutes,
+    required String sessionType, // 'meditation' | 'movement'
+  }) async {
+    if (!_isLoggedIn) return;
+    try {
+      final emoji = sessionType == 'movement' ? '🏃' : '🧘';
+      final label = sessionType == 'movement' ? 'Movement session' : 'Meditation session';
+      await _db.collection('users').doc(_uid)
+          .collection('notifications')
+          .add({
+        'type': 'session',
+        'title': 'Session Complete! $emoji',
+        'body': '$label "$sessionName" completed — ${minutes > 0 ? '$minutes min' : 'great job'}!',
+        'sessionName': sessionName,
+        'minutes': minutes,
+        'read': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      developer.log('[Firestore] saveSessionNotification: $e');
+    }
+  }
+
   // ── Profile updates ────────────────────────────────────────────────────────
 
   static Future<void> updateDisplayName(String name) async {
@@ -432,6 +460,16 @@ class FirestoreService {
       developer.log('[Firestore] logWorkout: $e');
       rethrow;
     }
+  }
+
+  static Future<int> getTotalWorkoutCount() async {
+    if (!_isLoggedIn) return 0;
+    try {
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('workouts')
+          .get();
+      return snap.docs.length;
+    } catch (_) { return 0; }
   }
 
   static Future<List<Map<String, dynamic>>> getWorkoutHistory() async {

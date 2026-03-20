@@ -279,6 +279,7 @@ class LocalStorage {
       'streakDays': currentStreak,
       'longestStreak': longestStreak,
       'totalSessions': prefs.getInt('total_sessions') ?? 0,
+      'totalWorkouts': prefs.getInt('total_workouts') ?? 0,
     };
   }
 
@@ -298,6 +299,12 @@ class LocalStorage {
     await prefs.setInt('total_sessions', current + 1);
     // Dual-write to Firestore
     FirestoreService.incrementTotalSessions();
+  }
+
+  static Future<void> incrementTotalWorkouts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getInt('total_workouts') ?? 0;
+    await prefs.setInt('total_workouts', current + 1);
   }
 
   // ── Weekly chart data ───────────────────────────────────────────────────────

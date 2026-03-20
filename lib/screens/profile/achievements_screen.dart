@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/services/local_storage.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 import 'package:fitmetrics/core/haptic_service.dart';
 
 // ── Achievement model ──────────────────────────────────────────────────────────
@@ -28,7 +29,7 @@ final List<Achievement> allAchievements = [
       description: 'Open FitMetrics for the first time', category: 'session',
       requiredValue: 0, color: Color(0xFF10B981)),
   const Achievement(id: 'first_session', emoji: '🌱', title: 'First Step',
-      description: 'Complete your first session', category: 'session',
+      description: 'Complete your first meditation session', category: 'session',
       requiredValue: 1, color: Color(0xFF10B981)),
   const Achievement(id: 'sessions_5', emoji: '⭐', title: 'Getting Started',
       description: 'Complete 5 sessions', category: 'session',
@@ -45,6 +46,7 @@ final List<Achievement> allAchievements = [
   const Achievement(id: 'sessions_100', emoji: '👑', title: 'Legend',
       description: 'Complete 100 sessions', category: 'session',
       requiredValue: 100, color: Color(0xFFFF6B6B)),
+  // ── Streak achievements ───────────────────────────────────────────────────
   const Achievement(id: 'streak_3', emoji: '🔥', title: 'On Fire',
       description: '3 day streak', category: 'streak',
       requiredValue: 3, color: Color(0xFFF59E0B)),
@@ -60,6 +62,7 @@ final List<Achievement> allAchievements = [
   const Achievement(id: 'streak_100', emoji: '⚡', title: 'Unstoppable',
       description: '100 day streak', category: 'streak',
       requiredValue: 100, color: Color(0xFF06B6D4)),
+  // ── Time achievements ─────────────────────────────────────────────────────
   const Achievement(id: 'time_60', emoji: '⏰', title: 'Hour In',
       description: 'Meditate for 60 minutes total', category: 'time',
       requiredValue: 60, color: Color(0xFF10B981)),
@@ -72,6 +75,26 @@ final List<Achievement> allAchievements = [
   const Achievement(id: 'time_1800', emoji: '🌈', title: 'Zen Master',
       description: 'Meditate for 30 hours total', category: 'time',
       requiredValue: 1800, color: Color(0xFFFFD700)),
+  // ── Workout achievements ──────────────────────────────────────────────────
+  const Achievement(id: 'first_workout', emoji: '🏋️', title: 'First Lift',
+      description: 'Complete your first workout', category: 'workout',
+      requiredValue: 1, color: Color(0xFF3B82F6)),
+  const Achievement(id: 'workouts_5', emoji: '💥', title: 'Getting Fit',
+      description: 'Complete 5 workouts', category: 'workout',
+      requiredValue: 5, color: Color(0xFFFF6B35)),
+  const Achievement(id: 'workouts_10', emoji: '🦾', title: 'Workout Warrior',
+      description: 'Complete 10 workouts', category: 'workout',
+      requiredValue: 10, color: Color(0xFFEF4444)),
+  const Achievement(id: 'workouts_25', emoji: '🥇', title: 'Iron Will',
+      description: 'Complete 25 workouts', category: 'workout',
+      requiredValue: 25, color: Color(0xFFFFD700)),
+  const Achievement(id: 'workouts_50', emoji: '🏅', title: 'Gym Legend',
+      description: 'Complete 50 workouts', category: 'workout',
+      requiredValue: 50, color: Color(0xFF10B981)),
+  // ── Zen / time-of-day ─────────────────────────────────────────────────────
+  const Achievement(id: 'time_30min', emoji: '🌅', title: 'Zen Beginner',
+      description: 'Meditate for 30 minutes total', category: 'time',
+      requiredValue: 30, color: Color(0xFF06B6D4)),
 ];
 
 class AchievementsScreen extends StatefulWidget {
@@ -86,7 +109,7 @@ class _AchievementsScreenState extends State<AchievementsScreen>
   bool _isLoading = true;
   String _filter = 'All';
   late AnimationController _animCtrl;
-  final _filters = ['All', 'Sessions', 'Streaks', 'Time'];
+  final _filters = ['All', 'Sessions', 'Streaks', 'Time', 'Workouts'];
 
   @override
   void initState() {
@@ -100,7 +123,15 @@ class _AchievementsScreenState extends State<AchievementsScreen>
 
   Future<void> _loadStats() async {
     final stats = await LocalStorage.getAllTimeStats();
-    setState(() { _stats = stats; _isLoading = false; });
+    // Merge Firestore workout count (more accurate than local)
+    final workoutCount = await FirestoreService.getTotalWorkoutCount();
+    final merged = {
+      ...stats,
+      'totalWorkouts': workoutCount > (stats['totalWorkouts'] ?? 0)
+          ? workoutCount
+          : (stats['totalWorkouts'] ?? 0),
+    };
+    setState(() { _stats = merged; _isLoading = false; });
     _animCtrl.forward(from: 0);
   }
 
@@ -108,11 +139,14 @@ class _AchievementsScreenState extends State<AchievementsScreen>
     final sessions = _stats['totalSessions'] ?? 0;
     final streak   = _stats['streakDays']    ?? 0;
     final minutes  = _stats['totalMinutes']  ?? 0;
+    final workouts = _stats['totalWorkouts'] ?? 0;
 
     switch (a.category) {
+      case 'app':     return true; // first_login is always unlocked once you're in
       case 'session': return sessions >= a.requiredValue;
-      case 'streak':  return streak  >= a.requiredValue;
-      case 'time':    return minutes >= a.requiredValue;
+      case 'streak':  return streak   >= a.requiredValue;
+      case 'time':    return minutes  >= a.requiredValue;
+      case 'workout': return workouts >= a.requiredValue;
       default:        return false;
     }
   }
@@ -121,12 +155,14 @@ class _AchievementsScreenState extends State<AchievementsScreen>
     final sessions = _stats['totalSessions'] ?? 0;
     final streak   = _stats['streakDays']    ?? 0;
     final minutes  = _stats['totalMinutes']  ?? 0;
-    if (a.requiredValue == 0) return 1.0;
+    final workouts = _stats['totalWorkouts'] ?? 0;
+    if (a.requiredValue == 0 || a.category == 'app') return 1.0;
     int current;
     switch (a.category) {
       case 'session': current = sessions; break;
       case 'streak':  current = streak;   break;
       case 'time':    current = minutes;  break;
+      case 'workout': current = workouts; break;
       default:        current = 0;
     }
     return (current / a.requiredValue).clamp(0.0, 1.0);
@@ -136,19 +172,23 @@ class _AchievementsScreenState extends State<AchievementsScreen>
     final sessions = _stats['totalSessions'] ?? 0;
     final streak   = _stats['streakDays']    ?? 0;
     final minutes  = _stats['totalMinutes']  ?? 0;
+    final workouts = _stats['totalWorkouts'] ?? 0;
     switch (a.category) {
+      case 'app':     return 'Unlocked ✓';
       case 'session': return '$sessions / ${a.requiredValue} sessions';
       case 'streak':  return '$streak / ${a.requiredValue} days';
       case 'time':    return '$minutes / ${a.requiredValue} minutes';
+      case 'workout': return '$workouts / ${a.requiredValue} workouts';
       default:        return '';
     }
   }
 
   List<Achievement> get _filtered {
     List<Achievement> list;
-    if (_filter == 'Sessions') list = allAchievements.where((a) => a.category == 'session').toList();
-    else if (_filter == 'Streaks') list = allAchievements.where((a) => a.category == 'streak').toList();
-    else if (_filter == 'Time') list = allAchievements.where((a) => a.category == 'time').toList();
+    if (_filter == 'Sessions')  list = allAchievements.where((a) => a.category == 'session').toList();
+    else if (_filter == 'Streaks')  list = allAchievements.where((a) => a.category == 'streak').toList();
+    else if (_filter == 'Time')     list = allAchievements.where((a) => a.category == 'time').toList();
+    else if (_filter == 'Workouts') list = allAchievements.where((a) => a.category == 'workout').toList();
     else list = allAchievements.toList();
     list.sort((a, b) {
       final au = _isUnlocked(a) ? 0 : 1;
