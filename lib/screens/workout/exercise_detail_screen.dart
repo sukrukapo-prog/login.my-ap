@@ -80,6 +80,16 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         caloriesBurned: _estCalories,
       );
       await LocalStorage.incrementTotalWorkouts();
+
+      // Save workout notification to history + check if this is the first ever
+      FirestoreService.saveWorkoutNotification(
+        exerciseName:   widget.exercise.name,
+        caloriesBurned: _estCalories,
+        setsCompleted:  sets,
+        repsCompleted:  reps,
+      );
+      FirestoreService.checkFirstWorkout();
+
       if (mounted) setState(() { _loading = false; _logged = true; });
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) Navigator.pop(context);

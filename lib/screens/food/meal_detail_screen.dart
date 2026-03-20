@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fitmetrics/models/food_item.dart';
 import 'package:fitmetrics/services/food_storage_service.dart';
+import 'package:fitmetrics/services/firestore_service.dart';
 import 'package:fitmetrics/screens/food/widgets/food_item_tile.dart';
 import 'package:fitmetrics/constants/colors.dart';
 
@@ -139,6 +140,13 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
       _selectedTotal = 0;
       _justSaved     = true;
     });
+
+    // Sync today's total to Firestore (food streak + leaderboard points)
+    final total = await FoodStorageService.getTotalCaloriesToday();
+    final goal  = await FoodStorageService.getCalorieGoal();
+    FirestoreService.saveDailyFood(totalCalories: total, goal: goal);
+    FirestoreService.saveFoodNotification(totalCalories: total, goal: goal);
+
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _justSaved = false);
     });
@@ -927,5 +935,3 @@ class _IndexedItem {
   final bool     isCustom;
   _IndexedItem({required this.index, required this.item, required this.isCustom});
 }
-
-

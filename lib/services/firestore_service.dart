@@ -306,6 +306,145 @@ class FirestoreService {
     }
   }
 
+  // ── Workout notification ───────────────────────────────────────────────────
+  static Future<void> saveWorkoutNotification({
+    required String exerciseName,
+    required int caloriesBurned,
+    required int setsCompleted,
+    required int repsCompleted,
+  }) async {
+    if (!_isLoggedIn) return;
+    try {
+      await _db.collection('users').doc(_uid).collection('notifications').add({
+        'type':  'session',
+        'title': 'Workout Complete! 💪',
+        'body':  '$exerciseName — $setsCompleted sets · $repsCompleted reps · ~$caloriesBurned kcal burned',
+        'read':  false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      developer.log('[Firestore] saveWorkoutNotification: $e');
+    }
+  }
+
+  // ── Food notification (goal met / over / under) ────────────────────────────
+  static Future<void> saveFoodNotification({
+    required int totalCalories,
+    required int goal,
+  }) async {
+    if (!_isLoggedIn) return;
+    try {
+      String title;
+      String body;
+      if ((totalCalories - goal).abs() <= 100) {
+        title = 'Calorie goal hit! 🎯';
+        body  = 'You logged $totalCalories kcal — right on your $goal kcal target. Great discipline!';
+      } else if (totalCalories > goal) {
+        final over = totalCalories - goal;
+        title = 'Over your calorie goal ⚠️';
+        body  = 'You logged $totalCalories kcal — $over kcal over your goal. Consider lighter options tomorrow.';
+      } else {
+        title = 'Food logged today 🥗';
+        body  = 'You logged $totalCalories kcal out of your $goal kcal goal.';
+      }
+      await _db.collection('users').doc(_uid).collection('notifications').add({
+        'type':  'session',
+        'title': title,
+        'body':  body,
+        'read':  false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      developer.log('[Firestore] saveFoodNotification: $e');
+    }
+  }
+
+  // ── Streak milestone notification ──────────────────────────────────────────
+  static Future<void> checkAndSaveStreakMilestone(int streakDays) async {
+    if (!_isLoggedIn || streakDays <= 0) return;
+    const milestones = [3, 7, 14, 30, 60, 100];
+    if (!milestones.contains(streakDays)) return;
+    try {
+      // Check if we already saved this milestone to avoid duplicates
+      final existing = await _db.collection('users').doc(_uid)
+          .collection('notifications')
+          .where('type', isEqualTo: 'streak')
+          .where('streakDays', isEqualTo: streakDays)
+          .limit(1)
+          .get();
+      if (existing.docs.isNotEmpty) return; // already notified
+
+      String emoji;
+      String message;
+      if (streakDays == 3)   { emoji = '🔥'; message = "You're on fire! 3 days in a row."; }
+      else if (streakDays == 7)   { emoji = '🗓️'; message = 'One full week! You\'re building a real habit.'; }
+      else if (streakDays == 14)  { emoji = '💪'; message = 'Two weeks strong! You\'re unstoppable.'; }
+      else if (streakDays == 30)  { emoji = '🌙'; message = 'A whole month! You\'re a FitMetrics pro.'; }
+      else if (streakDays == 60)  { emoji = '⚡'; message = '60 days — seriously impressive dedication.'; }
+      else                        { emoji = '🏆'; message = '100 day streak. Legendary.'; }
+
+      await _db.collection('users').doc(_uid).collection('notifications').add({
+        'type':       'streak',
+        'title':      '$emoji $streakDays Day Streak!',
+        'body':       message,
+        'streakDays': streakDays,
+        'read':       false,
+        'createdAt':  FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      developer.log('[Firestore] checkAndSaveStreakMilestone: $e');
+    }
+  }
+
+  // ── Rank change notification ───────────────────────────────────────────────
+  static Future<void> checkAndSaveRankNotification(int rankBefore) async {
+    if (!_isLoggedIn) return;
+    try {
+      final rankNow = await getMyRank();
+      if (rankNow <= 0 || rankBefore <= 0) return;
+      if (rankNow == rankBefore) return;
+
+      final String title;
+      final String body;
+      if (rankNow < rankBefore) {
+        title = 'You moved up! 📈';
+        body  = 'You\'re now ranked #$rankNow on the leaderboard. Keep going!';
+      } else {
+        title = 'You dropped a rank 📉';
+        body  = 'You\'re now #$rankNow. Complete a session to climb back up.';
+      }
+      await _db.collection('users').doc(_uid).collection('notifications').add({
+        'type':  'rank',
+        'title': title,
+        'body':  body,
+        'rank':  rankNow,
+        'read':  false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      developer.log('[Firestore] checkAndSaveRankNotification: $e');
+    }
+  }
+
+  // ── First workout ever notification ───────────────────────────────────────
+  static Future<void> checkFirstWorkout() async {
+    if (!_isLoggedIn) return;
+    try {
+      final snap = await _db.collection('users').doc(_uid)
+          .collection('workouts').limit(2).get();
+      if (snap.docs.length != 1) return; // not the first (0 or already 2+)
+      await _db.collection('users').doc(_uid).collection('notifications').add({
+        'type':  'session',
+        'title': 'First workout logged! 🥇',
+        'body':  'You\'ve taken the first step. Every rep counts — keep it up!',
+        'read':  false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      developer.log('[Firestore] checkFirstWorkout: $e');
+    }
+  }
+
   // ── Profile updates ────────────────────────────────────────────────────────
 
   static Future<void> updateDisplayName(String name) async {
@@ -578,6 +717,9 @@ class FirestoreService {
       final name    = (pData['name'] as String?)?.trim() ?? 'User';
       final avatarId = pData['avatarId'] as String?;
 
+      // Capture rank BEFORE updating score
+      final rankBefore = await getMyRank();
+
       await _db.collection('leaderboard').doc(_uid).set({
         'uid':           _uid,
         'name':          name,
@@ -589,6 +731,10 @@ class FirestoreService {
         'streakDays':    streakDays,
         'updatedAt':     FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      // Fire-and-forget: check milestones and rank changes after score update
+      checkAndSaveStreakMilestone(streakDays);
+      checkAndSaveRankNotification(rankBefore);
     } catch (e) {
       developer.log('[Firestore] updateLeaderboardScore: $e');
     }
