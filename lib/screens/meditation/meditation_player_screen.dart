@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/services.dart';
@@ -152,13 +153,23 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
 
   Future<void> _initVideo() async {
     try {
-      _videoController =
-          VideoPlayerController.asset(widget.scene.videoPath);
-      await _videoController!.initialize();
-      _videoController!.setLooping(true);
-      _videoController!.setVolume(0);
-      if (mounted) setState(() => _videoReady = true);
-    } catch (_) {}
+      final ctrl = VideoPlayerController.asset(widget.scene.videoPath);
+      await ctrl.initialize();
+      ctrl.setLooping(true);
+      ctrl.setVolume(0);
+      // Only assign to _videoController after successful init
+      if (mounted) {
+        setState(() {
+          _videoController = ctrl;
+          _videoReady = true;
+        });
+      } else {
+        ctrl.dispose(); // widget gone, don't leak
+      }
+    } catch (e) {
+      developer.log('[MeditationPlayer] Video init failed: \$e');
+      // _videoController stays null — gradient fallback shows instead
+    }
   }
 
   Future<void> _initAudio() async {
@@ -423,8 +434,8 @@ class _MeditationPlayerScreenState extends State<MeditationPlayerScreen>
                   child: FittedBox(
                     fit: BoxFit.cover,
                     child: SizedBox(
-                      width: _videoController!.value.size.width,
-                      height: _videoController!.value.size.height,
+                      width: _videoController?.value.size.width ?? 300,
+                      height: _videoController?.value.size.height ?? 300,
                       child: VideoPlayer(_videoController!),
                     ),
                   ),

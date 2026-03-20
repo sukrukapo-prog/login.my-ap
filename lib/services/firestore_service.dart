@@ -249,6 +249,8 @@ class FirestoreService {
       int running = 0;
       bool currentCounted = false;
 
+      // i=0 is today. If today has no activity, current streak is already 0
+      // and we start looking backwards from yesterday.
       for (int i = 0; i < 365; i++) {
         final key = _dateKey(today.subtract(Duration(days: i)));
         if (activeDates.contains(key)) {
@@ -256,7 +258,9 @@ class FirestoreService {
           if (!currentCounted) current = running;
           if (running > longest) longest = running;
         } else {
-          if (i > 0) { currentCounted = true; running = 0; }
+          // Any gap — including today having no activity — breaks the current streak
+          currentCounted = true;
+          running = 0;
         }
       }
       return {'current': current, 'longest': longest};
@@ -850,24 +854,39 @@ class FirestoreService {
   }) async {
     if (!_isLoggedIn) return;
     try {
-      // Get all users except sender
-      final usersSnap = await _db.collection('users').get();
-      final batch = _db.batch();
-      for (final doc in usersSnap.docs) {
-        if (doc.id == senderUid) continue;
-        final notifRef = _db.collection('users').doc(doc.id)
-            .collection('community_notifications').doc();
-        batch.set(notifRef, {
-          'senderName': senderName,
-          'senderUid': senderUid,
-          'message': messageText.length > 50
-              ? '${messageText.substring(0, 50)}...'
-              : messageText,
-          'read': false,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+      // Use leaderboard as user registry — avoids expensive full users collection scan.
+      // Leaderboard has one doc per active user, keyed by uid.
+      final leaderSnap = await _db.collection('leaderboard').get();
+      if (leaderSnap.docs.isEmpty) return;
+
+      final truncated = messageText.length > 50
+          ? '${messageText.substring(0, 50)}...'
+          : messageText;
+
+      // Chunk into batches of 400 (Firestore limit is 500 per batch)
+      final uids = leaderSnap.docs
+          .map((d) => d.id)
+          .where((uid) => uid != senderUid)
+          .toList();
+
+      for (int start = 0; start < uids.length; start += 400) {
+        final chunk = uids.sublist(
+            start, (start + 400).clamp(0, uids.length));
+        final batch = _db.batch();
+        for (final uid in chunk) {
+          final notifRef = _db
+              .collection('users').doc(uid)
+              .collection('community_notifications').doc();
+          batch.set(notifRef, {
+            'senderName': senderName,
+            'senderUid': senderUid,
+            'message': truncated,
+            'read': false,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+        await batch.commit();
       }
-      await batch.commit();
     } catch (e) {
       developer.log('[Firestore] sendCommunityNotification: $e');
     }

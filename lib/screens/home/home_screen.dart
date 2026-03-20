@@ -129,7 +129,11 @@ class _HomeScreenState extends State<HomeScreen>
       if (goal.contains('moderately_active')) multiplier = 1.55;
       if (goal.contains('very_active')) multiplier = 1.725;
     }
-    return bmr * multiplier;
+    double tdee = bmr * multiplier;
+    // Apply deficit/surplus so home screen matches food screen target
+    if (data.goals.contains('lose_weight')) tdee -= 500;
+    if (data.goals.contains('gain_weight')) tdee += 500;
+    return tdee.clamp(1200, 4000);
   }
 
   String _getGreeting() {

@@ -51,7 +51,9 @@ class _PersonalizeScreenState extends State<PersonalizeScreen> {
       return;
     }
     final data = widget.data ?? OnboardingData();
-    // Store activity level in goals for now
+    // Remove any previously stored activity before adding new one.
+    // Prevents duplicates if user goes Back and reselects.
+    data.goals.removeWhere((g) => g.startsWith('activity:'));
     data.goals.add('activity:$_selectedActivity');
     Navigator.pushNamed(context, AppRoutes.goals, arguments: data);
   }

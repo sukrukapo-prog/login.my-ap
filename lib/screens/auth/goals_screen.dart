@@ -78,6 +78,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
       return;
     }
 
+    // Clear any previously selected goal type before adding the new one.
+    // Prevents duplicates if user goes Back and reselects.
+    widget.data.goals.removeWhere((g) =>
+    g == 'lose_weight' || g == 'gain_weight' ||
+        g == 'explore'     || g == 'calm_yourself');
     widget.data.goals.add(_selectedGoal!);
 
     // Save goal weight only if lose/gain selected

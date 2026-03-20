@@ -85,7 +85,11 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     if (age != null) _data.age = age;
     if (height != null) _data.heightCm = height;
     if (weight != null) _data.currentWeightKg = weight;
-    await LocalStorage.updateStats(age: age, heightCm: height, weightKg: weight);
+    // Also pass goalWeightKg so TDEE recalculates with the correct deficit/surplus
+    await LocalStorage.updateStats(
+      age: age, heightCm: height, weightKg: weight,
+      goalWeightKg: _data.goalWeightKg,
+    );
     // Fix 13 — update leaderboard score when profile stats change
     FirestoreService.updateLeaderboardScore();
     setState(() => _isEditing = false);
