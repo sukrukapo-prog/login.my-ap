@@ -267,6 +267,14 @@ class FirestoreService {
     } catch (_) { return {'current': 0, 'longest': 0}; }
   }
 
+  /// Public helper — returns the current streak count from Firestore.
+  /// Uses the same logic as _calculateStreak (meditation + workout + food).
+  static Future<int> getStreakDays() async {
+    if (!_isLoggedIn) return 0;
+    final result = await _calculateStreak();
+    return result['current'] ?? 0;
+  }
+
   static Future<void> incrementTotalSessions() async {
     if (!_isLoggedIn) return;
     try {
@@ -821,6 +829,38 @@ class FirestoreService {
         }
       }
 
+      // ── Food: calorie intake per day from Firestore food_daily ─────────
+      final List<int> weeklyFoodCal = List.filled(7, 0);
+      int foodWeekTotal = 0;
+      int foodAllTimeTotal = 0;
+      int foodAllTimeDays = 0;
+
+      final foodSnap = await _db.collection('users').doc(_uid)
+          .collection('food_daily')
+          .orderBy('date', descending: true)
+          .limit(365)
+          .get();
+
+      for (final doc in foodSnap.docs) {
+        final dateStr = doc.data()['date'] as String? ?? '';
+        final docDate = DateTime.tryParse(dateStr);
+        final cal     = (doc.data()['totalCalories'] as int?) ?? 0;
+        if (cal > 0) {
+          foodAllTimeTotal += cal;
+          foodAllTimeDays++;
+        }
+        if (docDate != null) {
+          final diff = today.difference(docDate).inDays;
+          if (diff < 7) {
+            foodWeekTotal += cal;
+            final dayIndex = 6 - diff;
+            if (dayIndex >= 0 && dayIndex < 7) weeklyFoodCal[dayIndex] += cal;
+          }
+        }
+      }
+
+      final foodAvgAllTime = foodAllTimeDays > 0 ? foodAllTimeTotal ~/ foodAllTimeDays : 0;
+
       return {
         // Meditation
         'medToday':        medToday,
@@ -838,6 +878,12 @@ class FirestoreService {
         'workoutsTotal':   (s['totalWorkouts'] as int?) ?? 0,
         'calTotal':        (s['totalCaloriesBurned'] as int?) ?? 0,
         'weeklyWorkoutCal': weeklyWorkoutCal,
+        // Food intake (from Firestore food_daily)
+        'weeklyFoodCal':    weeklyFoodCal,    // List<int> Mon→Sun
+        'foodWeekTotal':    foodWeekTotal,    // sum this week
+        'foodAllTimeTotal': foodAllTimeTotal, // sum all time
+        'foodAllTimeDays':  foodAllTimeDays,  // days with any log
+        'foodAvgAllTime':   foodAvgAllTime,   // avg kcal/day all time
       };
     } catch (e) {
       developer.log('[Firestore] getFullProgressData: $e');

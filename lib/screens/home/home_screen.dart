@@ -73,7 +73,10 @@ class _HomeScreenState extends State<HomeScreen>
     await LocalStorage.getMeditationMinutes(DateTime.now());
     _goalMinutes = await LocalStorage.getDailyGoalMinutes();
     final stats = await LocalStorage.getAllTimeStats();
-    _streakDays = stats['streakDays'] ?? 0;
+    // Use Firestore streak (counts meditation + workout + food activity)
+    // Fall back to local meditation-only streak if not logged in
+    final firestoreStreak = await FirestoreService.getStreakDays();
+    _streakDays = firestoreStreak > 0 ? firestoreStreak : (stats['streakDays'] ?? 0);
 
     // Rest day: no sessions in last 2 days
     final yesterday =

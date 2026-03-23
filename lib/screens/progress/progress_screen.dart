@@ -105,6 +105,14 @@ class _ProgressScreenState extends State<ProgressScreen>
   }
 
   int get _foodTotal   => _foodCalories.values.fold(0, (a, b) => a + b);
+
+  // Food intake from Firestore (for This Week / All Time tabs)
+  List<int> get _weeklyFoodCal =>
+      (_progress['weeklyFoodCal'] as List?)?.cast<int>() ?? List.filled(7, 0);
+  int get _foodWeekTotal    => (_progress['foodWeekTotal']    as int?) ?? 0;
+  int get _foodAllTimeTotal => (_progress['foodAllTimeTotal'] as int?) ?? 0;
+  int get _foodAllTimeDays  => (_progress['foodAllTimeDays']  as int?) ?? 0;
+  int get _foodAvgAllTime   => (_progress['foodAvgAllTime']   as int?) ?? 0;
   int get _waterGlasses => (_waterMl / 250).floor();
 
   double? get _bmi {
@@ -279,78 +287,216 @@ class _ProgressScreenState extends State<ProgressScreen>
   }
 
   Widget _buildFoodSection() {
-    // Food is daily local data — only show for Today tab
-    if (_tabIndex != 0) {
+    const pink = Color(0xFFEC4899);
+
+    // ── TODAY — local data, same as before ──────────────────────────────────
+    if (_tabIndex == 0) {
+      final progress = (_foodTotal / _foodGoal).clamp(0.0, 1.0);
+      final over = _foodTotal > _foodGoal;
       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _sectionHeader('Food & Nutrition', Icons.restaurant, const Color(0xFFEC4899)),
+        _sectionHeader('Food & Nutrition', Icons.restaurant, pink),
         const SizedBox(height: 12),
         Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color(0xFF151F30),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFEC4899).withOpacity(0.15)),
+            border: Border.all(color: pink.withOpacity(0.2)),
           ),
           child: Column(children: [
-            const Text('🍽️', style: TextStyle(fontSize: 32)),
-            const SizedBox(height: 10),
-            const Text('Food data is tracked daily', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
-            const Text('Switch to Today tab to see your calorie intake', style: TextStyle(color: Colors.white38, fontSize: 12), textAlign: TextAlign.center),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                AnimatedBuilder(animation: _counterAnim, builder: (_, __) =>
+                    Text('${(_foodTotal * _counterAnim.value).round()} kcal',
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800))),
+                Text('of $_foodGoal kcal goal', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+              ]),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: over ? const Color(0xFFFF4757).withOpacity(0.15) : const Color(0xFF2ECC71).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  over ? '+${_foodTotal - _foodGoal} over' : '${(_foodGoal - _foodTotal).clamp(0, _foodGoal)} left',
+                  style: TextStyle(color: over ? const Color(0xFFFF4757) : const Color(0xFF2ECC71), fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            AnimatedBuilder(animation: _barAnim, builder: (_, __) =>
+                ClipRRect(borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: progress * _barAnim.value, minHeight: 10,
+                      backgroundColor: Colors.white.withAlpha(20),
+                      valueColor: AlwaysStoppedAnimation(over ? const Color(0xFFFF4757) : pink),
+                    ))),
+            const SizedBox(height: 12),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+              _miniStat('Breakfast', _foodCalories['breakfast'] ?? 0, const Color(0xFFF59E0B)),
+              _miniStat('Lunch',     _foodCalories['lunch']     ?? 0, const Color(0xFF2ECC71)),
+              _miniStat('Dinner',    _foodCalories['dinner']    ?? 0, const Color(0xFF8B5CF6)),
+              _miniStat('Drinks',    _foodCalories['drinks']    ?? 0, const Color(0xFF3B82F6)),
+              _miniStat('Fruits',    _foodCalories['fruits']    ?? 0, pink),
+            ]),
           ]),
         ),
       ]);
     }
 
-    final progress = (_foodTotal / _foodGoal).clamp(0.0, 1.0);
-    final over = _foodTotal > _foodGoal;
+    // ── THIS WEEK — bar chart of daily calorie intake from Firestore ────────
+    if (_tabIndex == 1) {
+      final bars = _weeklyFoodCal;
+      final maxVal = bars.reduce((a, b) => a > b ? a : b);
+      final safeMax = maxVal == 0 ? 1 : maxVal;
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      final todayDow = DateTime.now().weekday; // 1=Mon … 7=Sun
+
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _sectionHeader('Food & Nutrition', Icons.restaurant, pink),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF151F30),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: pink.withOpacity(0.2)),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                AnimatedBuilder(animation: _counterAnim, builder: (_, __) =>
+                    Text('${(_foodWeekTotal * _counterAnim.value).round()} kcal',
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800))),
+                const Text('this week', style: TextStyle(color: Colors.white38, fontSize: 12)),
+              ]),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: pink.withAlpha(25), borderRadius: BorderRadius.circular(10)),
+                child: Text(
+                  '${maxVal > 0 ? (_foodWeekTotal / bars.where((v) => v > 0).length.clamp(1, 7)).round() : 0} kcal/day avg',
+                  style: const TextStyle(color: pink, fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 20),
+            if (maxVal == 0)
+              Center(child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text('No food logged this week',
+                    style: TextStyle(color: Colors.white.withAlpha(80), fontSize: 13)),
+              ))
+            else
+              SizedBox(
+                height: 130,
+                child: AnimatedBuilder(
+                  animation: _barAnim,
+                  builder: (_, __) => Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: List.generate(7, (i) {
+                      final val = bars[i];
+                      final frac = (val / safeMax) * _barAnim.value;
+                      final isToday = (i + 1) == todayDow;
+                      final barColor = isToday ? pink : pink.withAlpha(120);
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              if (val > 0)
+                                Text('${(val * _barAnim.value).round()}',
+                                    style: TextStyle(
+                                        color: isToday ? Colors.white : Colors.white38,
+                                        fontSize: 9, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 4),
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 600),
+                                height: frac * 90,
+                                decoration: BoxDecoration(
+                                  color: barColor,
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(days[i],
+                                  style: TextStyle(
+                                      color: isToday ? Colors.white : Colors.white38,
+                                      fontSize: 10,
+                                      fontWeight: isToday ? FontWeight.w800 : FontWeight.w400)),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
+          ]),
+        ),
+      ]);
+    }
+
+    // ── ALL TIME — summary stats card ────────────────────────────────────────
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _sectionHeader('Food & Nutrition', Icons.restaurant, const Color(0xFFEC4899)),
+      _sectionHeader('Food & Nutrition', Icons.restaurant, pink),
       const SizedBox(height: 12),
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: const Color(0xFF151F30),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEC4899).withOpacity(0.2)),
+          border: Border.all(color: pink.withOpacity(0.2)),
         ),
         child: Column(children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(child: Column(children: [
+              const Text('🍽️', style: TextStyle(fontSize: 28)),
+              const SizedBox(height: 6),
               AnimatedBuilder(animation: _counterAnim, builder: (_, __) =>
-                  Text('${(_foodTotal * _counterAnim.value).round()} kcal',
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800))),
-              Text('of $_foodGoal kcal goal', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                  Text('${(_foodAllTimeTotal * _counterAnim.value).round()}',
+                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800))),
+              const Text('total kcal logged', style: TextStyle(color: Colors.white38, fontSize: 10), textAlign: TextAlign.center),
+            ])),
+            Container(width: 1, height: 60, color: Colors.white12),
+            Expanded(child: Column(children: [
+              const Text('📊', style: TextStyle(fontSize: 28)),
+              const SizedBox(height: 6),
+              AnimatedBuilder(animation: _counterAnim, builder: (_, __) =>
+                  Text('${(_foodAvgAllTime * _counterAnim.value).round()}',
+                      style: const TextStyle(color: pink, fontSize: 20, fontWeight: FontWeight.w800))),
+              const Text('daily avg kcal', style: TextStyle(color: Colors.white38, fontSize: 10), textAlign: TextAlign.center),
+            ])),
+            Container(width: 1, height: 60, color: Colors.white12),
+            Expanded(child: Column(children: [
+              const Text('📅', style: TextStyle(fontSize: 28)),
+              const SizedBox(height: 6),
+              AnimatedBuilder(animation: _counterAnim, builder: (_, __) =>
+                  Text('${(_foodAllTimeDays * _counterAnim.value).round()}',
+                      style: const TextStyle(color: Color(0xFF2ECC71), fontSize: 20, fontWeight: FontWeight.w800))),
+              const Text('days logged', style: TextStyle(color: Colors.white38, fontSize: 10), textAlign: TextAlign.center),
+            ])),
+          ]),
+          const SizedBox(height: 16),
+          if (_foodGoal > 0) ...[
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              const Text('Avg vs goal', style: TextStyle(color: Colors.white54, fontSize: 11)),
+              Text('$_foodGoal kcal goal', style: const TextStyle(color: Colors.white38, fontSize: 11)),
             ]),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: over ? const Color(0xFFFF4757).withOpacity(0.15) : const Color(0xFF2ECC71).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                over ? '+${_foodTotal - _foodGoal} over' : '${(_foodGoal - _foodTotal).clamp(0, _foodGoal)} left',
-                style: TextStyle(color: over ? const Color(0xFFFF4757) : const Color(0xFF2ECC71), fontSize: 12, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          AnimatedBuilder(animation: _barAnim, builder: (_, __) =>
-              ClipRRect(borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: progress * _barAnim.value, minHeight: 10,
-                    backgroundColor: Colors.white.withAlpha(20),
-                    valueColor: AlwaysStoppedAnimation(over ? const Color(0xFFFF4757) : const Color(0xFFEC4899)),
-                  ))),
-          const SizedBox(height: 12),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-            _miniStat('Breakfast', _foodCalories['breakfast'] ?? 0, const Color(0xFFF59E0B)),
-            _miniStat('Lunch',     _foodCalories['lunch']     ?? 0, const Color(0xFF2ECC71)),
-            _miniStat('Dinner',    _foodCalories['dinner']    ?? 0, const Color(0xFF8B5CF6)),
-            _miniStat('Drinks',    _foodCalories['drinks']    ?? 0, const Color(0xFF3B82F6)),
-            _miniStat('Fruits',    _foodCalories['fruits']    ?? 0, const Color(0xFFEC4899)),
-          ]),
+            const SizedBox(height: 6),
+            AnimatedBuilder(animation: _barAnim, builder: (_, __) {
+              final frac = (_foodAvgAllTime / _foodGoal).clamp(0.0, 1.0) * _barAnim.value;
+              final over = _foodAvgAllTime > _foodGoal;
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: frac, minHeight: 8,
+                  backgroundColor: Colors.white.withAlpha(15),
+                  valueColor: AlwaysStoppedAnimation(over ? const Color(0xFFFF4757) : pink),
+                ),
+              );
+            }),
+          ],
         ]),
       ),
     ]);

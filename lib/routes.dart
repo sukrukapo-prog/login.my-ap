@@ -6,6 +6,7 @@ import 'package:fitmetrics/screens/notifications/meditation_history_screen.dart'
 import 'package:fitmetrics/screens/notifications/notification_history_screen.dart' show NotificationHistoryScreen;
 import 'package:fitmetrics/screens/community/community_screen.dart';
 import 'package:fitmetrics/screens/workout/workout_history_screen.dart';
+import 'package:fitmetrics/screens/food/food_history_screen.dart';
 import 'package:fitmetrics/screens/workout/workout_plans_screen.dart';
 import 'package:fitmetrics/screens/profile/bmi_screen.dart';
 import 'package:fitmetrics/screens/auth/welcome_screen.dart';
@@ -46,6 +47,7 @@ class AppRoutes {
   static const String workoutHistory       = '/workout-history';
   static const String workoutPlans         = '/workout-plans';
   static const String bmi                  = '/bmi';
+  static const String foodHistory          = '/food-history';
 
   static Route<dynamic> generateRoute(RouteSettings routeSettings) {
     final args = routeSettings.arguments;
@@ -135,6 +137,9 @@ class AppRoutes {
 
       case bmi:
         return SlidePageRoute(page: const BmiScreen());
+
+      case foodHistory:
+        return SlidePageRoute(page: const FoodHistoryScreen());
 
       default:
         return MaterialPageRoute(
