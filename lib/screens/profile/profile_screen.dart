@@ -171,7 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const FeedbackScreen(),
+      builder: (_) => FeedbackScreen(userData: _data),
     );
   }
 

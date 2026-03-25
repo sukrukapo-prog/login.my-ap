@@ -1,43 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:fitmetrics/services/firestore_service.dart';
+import 'package:fitmetrics/models/onboarding_data.dart';
 
 class FeedbackScreen extends StatefulWidget {
-  const FeedbackScreen({super.key});
+  final OnboardingData? userData;
+
+  const FeedbackScreen({super.key, this.userData});
 
   @override
   State<FeedbackScreen> createState() => _FeedbackScreenState();
 }
 
-class _FeedbackScreenState extends State<FeedbackScreen> {
-  final _nameCtrl  = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _msgCtrl   = TextEditingController();
-  String _type     = 'General';
-  int    _rating   = 0;
-  bool   _submitted = false;
-  bool   _isLoading = false;
+class _FeedbackScreenState extends State<FeedbackScreen>
+    with SingleTickerProviderStateMixin {
+  final _msgCtrl = TextEditingController();
+  String _type = 'General';
+  int _rating = 0;
+  bool _submitted = false;
+  bool _isLoading = false;
+
+  late AnimationController _successAnim;
+  late Animation<double> _scaleAnim;
+  late Animation<double> _fadeAnim;
 
   final List<Map<String, dynamic>> _types = [
-    {'label': 'General',         'icon': Icons.chat_bubble_outline},
-    {'label': 'Bug Report',      'icon': Icons.bug_report_outlined},
+    {'label': 'General', 'icon': Icons.chat_bubble_outline},
+    {'label': 'Bug Report', 'icon': Icons.bug_report_outlined},
     {'label': 'Feature Request', 'icon': Icons.lightbulb_outline},
-    {'label': 'Meditation',      'icon': Icons.self_improvement},
-    {'label': 'Workout',         'icon': Icons.fitness_center},
+    {'label': 'Meditation', 'icon': Icons.self_improvement},
+    {'label': 'Workout', 'icon': Icons.fitness_center},
   ];
+
+  // Resolved user details (read-only)
+  String get _userName =>
+      widget.userData?.fullName ??
+          widget.userData?.name ??
+          'User';
+
+  String get _userEmail => widget.userData?.email ?? '';
+
+  @override
+  void initState() {
+    super.initState();
+    _successAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _scaleAnim = CurvedAnimation(parent: _successAnim, curve: Curves.elasticOut);
+    _fadeAnim = CurvedAnimation(parent: _successAnim, curve: Curves.easeIn);
+  }
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _emailCtrl.dispose();
     _msgCtrl.dispose();
+    _successAnim.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (_nameCtrl.text.trim().isEmpty || _msgCtrl.text.trim().isEmpty) {
+    if (_msgCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please fill in your name and feedback'),
+          content: const Text('Please write your feedback before submitting'),
           backgroundColor: Colors.redAccent.withOpacity(0.9),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -51,27 +75,33 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
     try {
       await FirestoreService.submitFeedback(
-        name:    _nameCtrl.text,
-        email:   _emailCtrl.text,
-        type:    _type,
-        rating:  _rating,
+        name: _userName,
+        email: _userEmail,
+        type: _type,
+        rating: _rating,
         message: _msgCtrl.text,
       );
-      if (mounted) setState(() { _submitted = true; _isLoading = false; });
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) Navigator.pop(context);
-      });
+      if (mounted) {
+        setState(() {
+          _submitted = true;
+          _isLoading = false;
+        });
+        _successAnim.forward();
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) Navigator.pop(context);
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text('Something went wrong. Please try again.'),
             backgroundColor: Colors.redAccent.withOpacity(0.9),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 8),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -79,12 +109,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   }
 
   // ── Static launcher ────────────────────────────────────────────────────────
-  static void show(BuildContext context) {
+  static void show(BuildContext context, {OnboardingData? userData}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const FeedbackScreen(),
+      builder: (_) => FeedbackScreen(userData: userData),
     );
   }
 
@@ -106,38 +136,98 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   // ── Success state ──────────────────────────────────────────────────────────
   Widget _buildSuccess() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80, height: 80,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+    return FadeTransition(
+      opacity: _fadeAnim,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 36),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Animated checkmark circle
+              ScaleTransition(
+                scale: _scaleAnim,
+                child: Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF3B82F6).withOpacity(0.5),
+                        blurRadius: 30,
+                        spreadRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.check_rounded,
+                      color: Colors.white, size: 48),
                 ),
               ),
-              child: const Icon(Icons.check_rounded, color: Colors.white, size: 44),
-            ),
-            const SizedBox(height: 20),
-            const Text('Thank You! 🙏',
-                style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 12),
-            const Text(
-              'Your valuable feedback has been sent successfully!',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'We truly respect your feedback and will use it to make FitMetrics even better for you.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.5),
-            ),
-          ],
+              const SizedBox(height: 28),
+
+              // Thank you heading
+              const Text(
+                'Thank You! 🙏',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Primary message
+              const Text(
+                'We received your feedback!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Secondary message
+              Text(
+                'Thanks for taking the time to share your thoughts. '
+                    'Our team will carefully review your feedback and work on making '
+                    'FitMetrics even better for you.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.55),
+                  fontSize: 14,
+                  height: 1.65,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Subtle closing note
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                ),
+                child: Text(
+                  'This window will close automatically',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.35),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -148,15 +238,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     return ListView(
       controller: scrollCtrl,
       padding: EdgeInsets.fromLTRB(
-        20, 16, 20,
+        20,
+        16,
+        20,
         MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       children: [
-
         // Drag handle
         Center(
           child: Container(
-            width: 40, height: 4,
+            width: 40,
+            height: 4,
             margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(
               color: Colors.white24,
@@ -169,21 +261,26 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         Row(
           children: [
             Container(
-              width: 42, height: 42,
+              width: 44,
+              height: 44,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
                 ),
               ),
-              child: const Icon(Icons.rate_review_rounded, color: Colors.white, size: 20),
+              child: const Icon(Icons.rate_review_rounded,
+                  color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Send Feedback',
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800)),
                 Text('Help us improve FitMetrics',
                     style: TextStyle(color: Colors.white38, fontSize: 12)),
               ],
@@ -192,69 +289,77 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
-                width: 32, height: 32,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.08),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, color: Colors.white54, size: 16),
+                child:
+                const Icon(Icons.close, color: Colors.white54, size: 16),
               ),
             ),
           ],
         ),
         const SizedBox(height: 28),
 
-        // Name
-        _label('Your Name *'),
+        // ── Name (read-only, pre-filled) ──────────────────────────────────
+        _label('Your Name'),
         const SizedBox(height: 8),
-        _inputField(controller: _nameCtrl, hint: 'Enter your name'),
+        _readOnlyField(value: _userName, icon: Icons.person_outline_rounded),
         const SizedBox(height: 18),
 
-        // Email
-        _label('Email (optional)'),
+        // ── Email (read-only, pre-filled) ─────────────────────────────────
+        _label('Email'),
         const SizedBox(height: 8),
-        _inputField(
-          controller: _emailCtrl,
-          hint: 'your@email.com',
-          keyboardType: TextInputType.emailAddress,
+        _readOnlyField(
+          value: _userEmail.isNotEmpty ? _userEmail : 'Not provided',
+          icon: Icons.mail_outline_rounded,
+          faded: _userEmail.isEmpty,
         ),
         const SizedBox(height: 22),
 
-        // Feedback type
+        // ── Feedback type ─────────────────────────────────────────────────
         _label('Feedback Type'),
         const SizedBox(height: 12),
         Wrap(
-          spacing: 8, runSpacing: 8,
+          spacing: 8,
+          runSpacing: 8,
           children: _types.map((t) {
             final selected = _type == t['label'];
             return GestureDetector(
               onTap: () => setState(() => _type = t['label'] as String),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   gradient: selected
-                      ? const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)])
+                      ? const LinearGradient(
+                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)])
                       : null,
                   color: selected ? null : Colors.white.withOpacity(0.07),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: selected ? Colors.transparent : Colors.white.withOpacity(0.12),
+                    color: selected
+                        ? Colors.transparent
+                        : Colors.white.withOpacity(0.12),
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(t['icon'] as IconData,
-                      size: 14,
-                      color: selected ? Colors.white : Colors.white38,
-                    ),
+                        size: 14,
+                        color: selected ? Colors.white : Colors.white38),
                     const SizedBox(width: 6),
                     Text(t['label'] as String,
                         style: TextStyle(
                           color: selected ? Colors.white : Colors.white54,
                           fontSize: 13,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                         )),
                   ],
                 ),
@@ -264,7 +369,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         ),
         const SizedBox(height: 24),
 
-        // Star rating
+        // ── Star rating ───────────────────────────────────────────────────
         _label('Rate Your Experience'),
         const SizedBox(height: 12),
         Row(
@@ -285,7 +390,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         ),
         const SizedBox(height: 24),
 
-        // Message
+        // ── Message ───────────────────────────────────────────────────────
         _label('Your Feedback *'),
         const SizedBox(height: 8),
         Container(
@@ -301,27 +406,37 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             style: const TextStyle(color: Colors.white, fontSize: 14),
             decoration: InputDecoration(
               hintText: 'Tell us what you think...',
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.25)),
+              hintStyle:
+              TextStyle(color: Colors.white.withOpacity(0.25)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
-              counterStyle: const TextStyle(color: Colors.white24, fontSize: 11),
+              counterStyle:
+              const TextStyle(color: Colors.white24, fontSize: 11),
             ),
             onChanged: (_) => setState(() {}),
           ),
         ),
         const SizedBox(height: 30),
 
-        // Submit button
+        // ── Submit button ─────────────────────────────────────────────────
         GestureDetector(
           onTap: _isLoading ? null : _submit,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
             height: 54,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+              gradient: LinearGradient(
+                colors: _isLoading
+                    ? [
+                  const Color(0xFF3B82F6).withOpacity(0.5),
+                  const Color(0xFF8B5CF6).withOpacity(0.5),
+                ]
+                    : const [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
               ),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [
+              boxShadow: _isLoading
+                  ? []
+                  : [
                 BoxShadow(
                   color: const Color(0xFF3B82F6).withOpacity(0.4),
                   blurRadius: 20,
@@ -339,13 +454,15 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   strokeWidth: 2.5,
                 ),
               )
-                  : const Text('Submit Feedback',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                  )),
+                  : const Text(
+                'Submit Feedback',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ),
           ),
         ),
@@ -353,30 +470,69 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     );
   }
 
-  Widget _label(String text) => Text(text,
-      style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600));
+  Widget _label(String text) => Text(
+    text,
+    style: const TextStyle(
+        color: Colors.white70,
+        fontSize: 13,
+        fontWeight: FontWeight.w600),
+  );
 
-  Widget _inputField({
-    required TextEditingController controller,
-    required String hint,
-    TextInputType keyboardType = TextInputType.text,
+  /// A styled non-editable display row for name / email.
+  Widget _readOnlyField({
+    required String value,
+    required IconData icon,
+    bool faded = false,
   }) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: Colors.white.withOpacity(0.04),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.10)),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        style: const TextStyle(color: Colors.white, fontSize: 14),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.25)),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.white24),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: faded
+                    ? Colors.white.withOpacity(0.25)
+                    : Colors.white.withOpacity(0.75),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          // Lock badge
+          Container(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_outline_rounded,
+                    size: 10, color: Colors.white.withOpacity(0.3)),
+                const SizedBox(width: 4),
+                Text(
+                  'auto-filled',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.3),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
